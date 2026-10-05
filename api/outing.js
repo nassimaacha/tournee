@@ -9,7 +9,7 @@ const KV_TOKEN = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST
 const TTL = 60 * 60 * 24 * 30; // outings expire after 30 days
 const MAX_MEMBERS = 8;
 
-const BUDGETS = { "vienna": [10, 100], "sharm-el-sheikh": [500, 8000], "toronto": [15, 200], "barcelona": [10, 100], "berlin": [10, 100], "amsterdam": [10, 100], "lisbon": [10, 100], "rome": [10, 100], "miami": [10, 150], "houston": [10, 150], "mexico-city": [200, 3000], "montreal": [15, 200], "tokyo": [1000, 15000], "seoul": [10000, 150000], "bangkok": [300, 5000], "singapore": [15, 200], "marrakech": [100, 1000], "cape-town": [150, 2000], "buenos-aires": [10, 120], "rio": [50, 600], "sao-paulo": [50, 600], "sydney": [15, 200], "melbourne": [15, 200], paris: [10, 100], london: [10, 100], dubai: [50, 600], madrid: [10, 100], "new-york": [10, 150], "los-angeles": [10, 150], casablanca: [100, 1000] };
+const BUDGETS = { "vienna": [0, 500], "toronto": [0, 800], "sharm-el-sheikh": [0, 28000], "barcelona": [0, 500], "berlin": [0, 500], "amsterdam": [0, 500], "lisbon": [0, 500], "rome": [0, 500], "miami": [0, 600], "houston": [0, 600], "mexico-city": [0, 10600], "montreal": [0, 800], "tokyo": [0, 85000], "seoul": [0, 800000], "bangkok": [0, 18900], "singapore": [0, 700], "marrakech": [0, 5400], "cape-town": [0, 10300], "buenos-aires": [0, 600], "rio": [0, 3200], "sao-paulo": [0, 3200], "sydney": [0, 900], "melbourne": [0, 900], "paris": [0, 500], "london": [0, 400], "dubai": [0, 2100], "madrid": [0, 500], "new-york": [0, 600], "los-angeles": [0, 600], "casablanca": [0, 5400] };
 const VIBES = {
   night: ["chill", "cocktails", "dance", "karaoke", "food", "cheap", "music", "rooftop"],
   day: ["museums", "contemporary", "galleries", "streetart", "architecture", "parks", "markets", "views"],
@@ -92,6 +92,7 @@ module.exports = async (req, res) => {
         mode, city, admin,
         area: clean(body.area, 40),
         start: /^\d{2}:\d{2}$/.test(body.start) ? body.start : "",
+        end: /^\d{2}:\d{2}$/.test(body.end) ? body.end : "",
         stops: Math.min(5, Math.max(0, parseInt(body.stops, 10) || 0)),
         metro: body.metro === true,
         created: Date.now(),
@@ -140,6 +141,7 @@ module.exports = async (req, res) => {
       const meta = { ...o.meta };
       if (body.area !== undefined) meta.area = clean(body.area, 40);
       if (body.start !== undefined) meta.start = /^\d{2}:\d{2}$/.test(body.start) ? body.start : "";
+      if (body.end !== undefined) meta.end = /^\d{2}:\d{2}$/.test(body.end) ? body.end : "";
       if (body.stops !== undefined) meta.stops = Math.min(5, Math.max(0, parseInt(body.stops, 10) || 0));
       if (body.metro !== undefined) meta.metro = !!body.metro;
       await kv([["SET", k.meta, JSON.stringify(meta), "EX", TTL], ...touch(id)]);
