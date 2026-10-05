@@ -9,7 +9,7 @@ const KV_TOKEN = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST
 const TTL = 60 * 60 * 24 * 30; // outings expire after 30 days
 const MAX_MEMBERS = 8;
 
-const BUDGETS = { paris: [10, 100], london: [10, 100], dubai: [50, 600], madrid: [10, 100], "los-angeles": [10, 150], casablanca: [100, 1000] };
+const BUDGETS = { paris: [10, 100], london: [10, 100], dubai: [50, 600], madrid: [10, 100], "new-york": [10, 150], "los-angeles": [10, 150], casablanca: [100, 1000] };
 const VIBES = {
   night: ["chill", "cocktails", "dance", "karaoke", "food", "cheap", "music", "rooftop"],
   day: ["museums", "contemporary", "galleries", "streetart", "architecture", "parks", "markets", "views"],
