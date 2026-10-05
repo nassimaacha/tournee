@@ -132,7 +132,7 @@ input[type=range]{width:100%;accent-color:var(--ink);margin-top:8px}
 @media (prefers-reduced-motion: reduce){.train::after{animation:none;transform:translateX(20px)}}
 .error{background:var(--ash);border-radius:8px;padding:16px}
 .view[hidden]{display:none}
-:root[data-mode="culture"]{--lamp:#FF9AD5}
+:root[data-mode="day"]{--lamp:#FF9AD5}
 body{transition:background .35s,color .35s}
 .split{display:grid;grid-template-columns:1fr;width:100vw;margin-left:calc(50% - 50vw)}
 .pick{position:relative;display:flex;flex-direction:column;justify-content:flex-end;gap:10px;min-height:calc(50svh - 36px);padding:28px max(20px,calc(50vw - 300px));
@@ -196,7 +196,7 @@ footer{color:var(--stone);font-size:12px;padding:24px 0 40px;border-top:1px soli
     <h1 class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)" data-i18n="srTitle"></h1>
     <div class="split">
       <button class="pick night" type="button" data-pick="night"><b data-i18n="pickNight"></b><span data-i18n="pickNightSub"></span></button>
-      <button class="pick day" type="button" data-pick="culture"><b data-i18n="pickDay"></b><span data-i18n="pickDaySub"></span></button>
+      <button class="pick day" type="button" data-pick="day"><b data-i18n="pickDay"></b><span data-i18n="pickDaySub"></span></button>
     </div>
   </main>
 
@@ -346,7 +346,7 @@ function fillTimes(val){
 const MODES = {
   night:{theme:"dark", emoji:"🌙", panel:"panelNight", cta:"ctaNight", end:"endNight", flag:"flagNight", homeTitle:"nightTitle", homeText:"nightText", hero:"heroNight", label:"pickNight",
     vibes:["chill","cocktails","dance","karaoke","food","cheap","music","rooftop"], picks:["cheap","dance","food"], flags:[false,false,true]},
-  culture:{theme:"light", emoji:"🎨", panel:"panelDay", cta:"ctaDay", end:"endDay", flag:"flagDay", homeTitle:"dayTitle", homeText:"dayText", hero:"heroDay", label:"pickDay",
+  day:{theme:"light", emoji:"🎨", panel:"panelDay", cta:"ctaDay", end:"endDay", flag:"flagDay", homeTitle:"dayTitle", homeText:"dayText", hero:"heroDay", label:"pickDay",
     vibes:["museums","contemporary","galleries","streetart","architecture","parks","markets","views"], picks:["museums","streetart","parks"], flags:[true,true,true]}
 };
 let mode = "night";
@@ -613,7 +613,7 @@ async function plan(){
   ctl?.abort(); ctl = new AbortController();
   try{
     const r = await fetch("/api/plan",{method:"POST",headers:{"Content-Type":"application/json"},signal:ctl.signal,
-      body:JSON.stringify({lang, mode, city:city.id, friends, area:$("#area").value, start:$("#start").value, metro:$("#metro").checked})});
+      body:JSON.stringify({lang, mode:mode==="day"?"culture":mode, city:city.id, friends, area:$("#area").value, start:$("#start").value, metro:$("#metro").checked})});
     const data = await r.json().catch(()=>({}));
     if(!r.ok) throw {code:data.error||"server"};
     const p = data.plan;
@@ -657,7 +657,7 @@ function applyMode(){
 }
 function cityTexts(){
   const c=city;
-  $("#metroLabel").textContent=t(mode==="culture"?"rideDay":c.ride);
+  $("#metroLabel").textContent=t(mode==="day"?"rideDay":c.ride);
   $("#heroText").textContent=t(M().hero,{c:cityName(c)});
   $("#cityTag").textContent=cityName(c);
   $("#status").textContent=t("status");
@@ -667,13 +667,14 @@ function openCity(c){
   city=c; friends=defaultFriends();
   const m=M();
   $("#area").innerHTML=c.areas.map(a=>`<option>${esc(a)}</option>`).join("");
-  fillTimes(mode==="culture"?"14:00":c.start);
+  fillTimes(mode==="day"?"14:00":c.start);
   cityTexts();
   $("#result").innerHTML="";
   renderFriends();
 }
 let opened="";
 function route(keepScroll){
+  if(/^#culture\b/.test(location.hash)){ history.replaceState(null,"",location.hash.replace("#culture","#day")); }
   const [m0,c0]=location.hash.slice(1).split("/");
   const c=MODES[m0]?CITIES.find(x=>x.id===c0):null;
   const view=!MODES[m0]?"start":c?"planner":"home";
