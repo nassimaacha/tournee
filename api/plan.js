@@ -115,6 +115,7 @@ const style = lang => `- Écris toutes les valeurs texte du JSON en ${LANGS[lang
 - ${lang === "en" ? "Dans les textes, écris les heures au format 12 h avec AM/PM (ex : 11:30 PM)." : "Dans les textes, écris les heures au format 24 h (ex : 23:30)."}`;
 const accuracy = `- N'utilise QUE des lieux qui existent vraiment et qui sont ouverts aujourd'hui : jamais de lieu fermé définitivement ou temporairement, ni de lieu dont tu n'es pas sûr qu'il existe encore. Préfère les lieux établis depuis longtemps.
 - Le champ "lieu" doit être le nom exact du lieu tel qu'il apparaît sur Google Maps.
+- Chaque étape est UN lieu précis avec une adresse (un musée, un parc, un bar, une rue précise de street art), jamais une zone vague comme "quartier X et rues adjacentes".
 - Choisis des étapes proches les unes des autres : le trajet entre deux étapes doit rester court et réaliste.`;
 const timing = (start, end) => isTime(end)
   ? `Horaires : rendez vous à ${start}, fin au plus tard à ${end}. Tout le plan, trajets compris, doit tenir dans ce créneau. Donne l'heure de début de chaque étape dans le champ "heure" (format HH:MM).`
