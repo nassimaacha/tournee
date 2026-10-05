@@ -51,6 +51,8 @@ body{margin:0;background:var(--bg);color:var(--ink);
   font-family:"Inter","Cairo",ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
   font-size:16px;line-height:1.4;letter-spacing:.06em;-webkit-font-smoothing:antialiased;overflow-x:hidden}
 .wrap{max-width:640px;margin:0 auto;padding:0 20px}
+.home-link{display:flex;align-items:center;gap:10px;color:var(--ink);text-decoration:none;border-radius:6px}
+.home-link:focus-visible{outline:2px solid var(--ink);outline-offset:4px}
 header{display:flex;align-items:center;gap:10px;padding:20px 0;border-bottom:1px solid var(--line);margin:0 -20px;padding-left:20px;padding-right:20px}
 .brand{font-weight:700;font-size:14px;text-transform:uppercase}
 .mark{width:30px;height:30px}
@@ -103,10 +105,12 @@ input[type=range]{width:100%;accent-color:var(--ink);margin-top:8px}
 .map .cap{display:flex;justify-content:space-between;gap:10px;padding:10px 14px;font-size:12px;color:var(--muted)}
 .map button{background:none;border:0;color:var(--ink);font:inherit;font-weight:700;text-transform:uppercase;cursor:pointer;padding:0}
 .line{list-style:none;margin:0;padding:0;position:relative}
-.line::before{content:"";position:absolute;left:58px;top:12px;bottom:12px;width:4px;background:var(--metro)}
-.stop{display:grid;grid-template-columns:44px 30px 1fr;gap:0 12px;padding-bottom:28px;position:relative}
+.line{--tcol:44px}
+:root[lang="en"] .line{--tcol:74px}
+.line::before{content:"";position:absolute;left:calc(var(--tcol) + 28px);top:12px;bottom:12px;width:4px;background:var(--metro)}
+.stop{display:grid;grid-template-columns:var(--tcol) 30px 1fr;gap:0 12px;padding-bottom:28px;position:relative}
 .stop:last-child{padding-bottom:0}
-.time{font-weight:700;font-size:14px;padding-top:4px;text-align:right}
+.time{font-weight:700;font-size:14px;white-space:nowrap;padding-top:4px;text-align:right}
 .station{width:20px;height:20px;border-radius:50%;background:var(--bg);border:4px solid var(--metro);margin:4px 0 0 8px;position:relative;z-index:1}
 .stop.home .station{background:var(--lamp);border-color:var(--lamp)}
 .stop-type{font-size:12px;color:var(--muted);margin:0 0 2px}
@@ -159,7 +163,7 @@ header select.lang{width:auto;padding:6px 30px 6px 12px;font-size:12px;font-weig
 [dir="rtl"] .pick,[dir="rtl"] .city{text-align:right}
 [dir="rtl"] select{background-position:16px 55%,21px 55%;padding-right:16px;padding-left:36px}
 [dir="rtl"] header select.lang{padding:6px 12px 6px 30px;background-position:11px 55%,16px 55%}
-[dir="rtl"] .line::before{left:auto;right:58px}
+[dir="rtl"] .line::before{left:auto;right:calc(var(--tcol) + 28px)}
 [dir="rtl"] .time{text-align:left}
 [dir="rtl"] .station{margin:4px 8px 0 0}
 footer{color:var(--stone);font-size:12px;padding:24px 0 40px;border-top:1px solid var(--line)}
@@ -170,12 +174,14 @@ footer{color:var(--stone);font-size:12px;padding:24px 0 40px;border-top:1px soli
 <body>
 <div class="wrap">
   <header>
+    <a href="#" class="home-link" id="homeLink">
     <svg class="mark" viewBox="0 0 34 34" aria-hidden="true">
-      <path d="M5 26 C 12 26, 12 8, 19 8 S 26 20, 29 20" fill="none" stroke="var(--ink)" stroke-width="5" stroke-linecap="round"/>
-      <circle cx="5" cy="26" r="4" fill="var(--bg)" stroke="var(--ink)" stroke-width="3"/>
-      <circle cx="29" cy="20" r="4.5" fill="var(--ink)"/>
-    </svg>
-    <span class="brand">Tournée</span>
+        <path d="M5 26 C 12 26, 12 8, 19 8 S 26 20, 29 20" fill="none" stroke="var(--ink)" stroke-width="5" stroke-linecap="round"/>
+        <circle cx="5" cy="26" r="4" fill="var(--bg)" stroke="var(--ink)" stroke-width="3"/>
+        <circle cx="29" cy="20" r="4.5" fill="var(--ink)"/>
+      </svg>
+      <span class="brand">Tournée</span>
+    </a>
     <span class="city-tag" id="cityTag" hidden></span>
     <div class="controls">
       <button class="switch" id="switchCity" type="button" hidden></button>
@@ -222,7 +228,7 @@ footer{color:var(--stone);font-size:12px;padding:24px 0 40px;border-top:1px soli
       </div>
       <div class="field">
         <label for="start" data-i18n="timeLabel"></label>
-        <input type="time" id="start" value="20:00">
+        <select id="start"></select>
       </div>
     </div>
     <p class="check" style="margin-top:14px"><input type="checkbox" id="metro" checked><label for="metro" id="metroLabel"></label></p>
@@ -322,6 +328,17 @@ const CITY_T = {
 let lang = (()=>{ try{ const s=localStorage.getItem("tournee-lang"); if(T[s]) return s; }catch{} const n=(navigator.language||"fr").slice(0,2); return T[n]?n:"fr"; })();
 const t = (k, v={}) => (T[lang][k] ?? T.fr[k] ?? k).replace(/\{(\w)\}/g,(_,x)=>v[x]??"");
 const cityName = c => CITY_T[c.id][lang];
+function fmtTime(v){
+  const m=/^(\d{1,2})[:h](\d{2})/.exec(String(v??"")); if(!m) return String(v??"");
+  const h=+m[1]%24, mm=m[2];
+  if(lang==="en") return `${h%12||12}:${mm} ${h<12?"AM":"PM"}`;
+  return `${String(h).padStart(2,"0")}:${mm}`;
+}
+function fillTimes(val){
+  const sel=document.getElementById("start"), opts=[];
+  for(let m=8*60;m<24*60;m+=15){ const v=`${String(Math.floor(m/60)).padStart(2,"0")}:${String(m%60).padStart(2,"0")}`; opts.push(`<option value="${v}">${fmtTime(v)}</option>`); }
+  sel.innerHTML=opts.join(""); sel.value=val||"20:00";
+}
 
 const MODES = {
   night:{theme:"dark", emoji:"🌙", panel:"panelNight", cta:"ctaNight", end:"endNight", flag:"flagNight", homeTitle:"nightTitle", homeText:"nightText", hero:"heroNight", label:"pickNight",
@@ -405,7 +422,7 @@ function renderPlan(p, isExample, quiet){
   lastPlan = p; lastIsExample=!!isExample;
   const steps = (p.etapes||[]).map(s=>`
     <li class="stop">
-      <div class="time">${esc(s.heure)}</div>
+      <div class="time">${esc(fmtTime(s.heure))}</div>
       <div class="station" aria-hidden="true"></div>
       <div>
         <p class="stop-type">${esc(s.type)}</p>
@@ -549,7 +566,7 @@ async function drawMap(p){
       const m=new Marker({map,position:pos,title:`${i+1}. ${s.lieu}`,zIndex:10+i,
         label:{text:String(i+1),color:ink,fontWeight:"700",fontFamily:"Inter, sans-serif",fontSize:"13px"},
         icon:{path:google.maps.SymbolPath.CIRCLE,scale:13,fillColor:bg,fillOpacity:1,strokeColor:ink,strokeWeight:4}});
-      m.addListener("click",()=>{ info.setContent(`<div style="font:14px Inter,sans-serif;color:#000"><b>${esc(s.heure)} ${esc(s.lieu)}</b><br>${esc(s.quartier)}</div>`); info.open({map,anchor:m}); });
+      m.addListener("click",()=>{ info.setContent(`<div style="font:14px Inter,sans-serif;color:#000"><b>${esc(fmtTime(s.heure))} ${esc(s.lieu)}</b><br>${esc(s.quartier)}</div>`); info.open({map,anchor:m}); });
     });
     if(inCity(+p.retour_lat,+p.retour_lng)){
       const pos={lat:+p.retour_lat,lng:+p.retour_lng}; route.push(pos); bounds.extend(pos);
@@ -565,7 +582,7 @@ async function drawMap(p){
 
 async function copyPlan(){
   const p=lastPlan; if(!p) return;
-  const txt = `${M().emoji} ${p.titre} (${cityName(city)})\n${p.resume}\n\n` + p.etapes.map(s=>`${s.heure} · ${s.type} : ${s.lieu} (${s.quartier}), ${fmt(s.prix_pp)}`).join("\n") + `\n\n${t("total")} : ${fmt(p.total_pp)} ${t("perPerson")}\n${t("returnLabel")} : ${p.retour}\n\n${t("plannedWith")}`;
+  const txt = `${M().emoji} ${p.titre} (${cityName(city)})\n${p.resume}\n\n` + p.etapes.map(s=>`${fmtTime(s.heure)} · ${s.type} : ${s.lieu} (${s.quartier}), ${fmt(s.prix_pp)}`).join("\n") + `\n\n${t("total")} : ${fmt(p.total_pp)} ${t("perPerson")}\n${t("returnLabel")} : ${p.retour}\n\n${t("plannedWith")}`;
   const b=$("#copy");
   try{ await navigator.clipboard.writeText(txt); b.textContent=t("copied"); }
   catch{
@@ -615,7 +632,7 @@ $("#go").onclick=()=>{
 function cityClock(c){
   const parts=new Intl.DateTimeFormat("fr-FR",{hour:"2-digit",minute:"2-digit",hour12:false,timeZone:c.tz}).formatToParts(new Date());
   const h=+parts.find(x=>x.type==="hour").value % 24, m=parts.find(x=>x.type==="minute").value;
-  return {txt:`${String(h).padStart(2,"0")}:${m}`, night:h>=18||h<5};
+  return {txt:fmtTime(`${h}:${m}`), night:h>=18||h<5};
 }
 function renderCities(){
   $("#cities").setAttribute("aria-label",t("citiesLabel"));
@@ -647,7 +664,7 @@ function openCity(c){
   city=c; friends=defaultFriends();
   const m=M();
   $("#area").innerHTML=c.areas.map(a=>`<option>${esc(a)}</option>`).join("");
-  $("#start").value=mode==="culture"?"14:00":c.start;
+  fillTimes(mode==="culture"?"14:00":c.start);
   cityTexts();
   $("#result").innerHTML="";
   renderFriends();
@@ -681,9 +698,10 @@ function applyLang(){
   const sel=$("#lang"); sel.setAttribute("aria-label",t("langLabel"));
   sel.innerHTML=Object.entries(LANGS).map(([k,v])=>`<option value="${k}"${k===lang?" selected":""}>${v}</option>`).join("");
 }
+$("#homeLink").addEventListener("click",e=>{ e.preventDefault(); location.hash=""; if(!location.hash) route(); });
 $("#lang").addEventListener("change",e=>{
   lang=e.target.value; try{localStorage.setItem("tournee-lang",lang)}catch{}
-  applyLang(); route(true);
+  const keep=$("#start").value; applyLang(); fillTimes(keep); route(true);
   if(!$("#planner").hidden){ cityTexts(); renderFriends(); if(lastPlan) renderPlan(lastPlan,lastIsExample,true); }
 });
 applyLang();
