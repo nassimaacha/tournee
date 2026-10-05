@@ -128,6 +128,9 @@ input[type=range]{width:100%;accent-color:var(--accent);margin-top:10px}
 .map .cap{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 16px;font-size:12px;color:#B7A6DE}
 .line{list-style:none;margin:0;padding:0;position:relative;--tcol:44px}
 :root[lang="en"] .line{--tcol:74px}
+.line.notimes{--tcol:0px}
+.line.notimes .time{display:none}
+.line.notimes .stop{gap:0 10px}
 .line::before{content:"";position:absolute;left:calc(var(--tcol) + 28px);top:12px;bottom:12px;width:2px;background:var(--metro)}
 .stop{display:grid;grid-template-columns:var(--tcol) 30px 1fr;gap:0 12px;padding-bottom:32px;position:relative}
 .stop:last-child{padding-bottom:0}
@@ -186,9 +189,6 @@ input[type=range]{width:100%;accent-color:var(--accent);margin-top:10px}
 .city-time .day{width:7px;height:7px;border-radius:50%;border:1px solid currentColor}
 
 [hidden]{display:none!important}
-[aria-invalid="true"]{border-style:dashed!important;border-color:var(--accent)!important}
-.stops[aria-invalid="true"]{border:none!important}
-.stops[aria-invalid="true"] button{border-style:dashed;border-color:var(--accent)}
 input[type=range].unset{opacity:.45}
 .share-row{display:flex;gap:10px;flex-wrap:wrap}
 .share-row input{flex:1 1 220px}
@@ -290,14 +290,18 @@ footer{color:var(--muted);font-size:12px;padding:28px 0 44px;border-top:1px soli
   <section class="panel" aria-labelledby="s-title">
     <h2 id="s-title"></h2>
     <p class="hint" data-i18n="panelHint"></p>
-    <div class="grid2">
-      <div class="field">
-        <label for="area" data-i18n="startLabel"></label>
-        <select id="area"></select>
-      </div>
+    <div class="field">
+      <label for="area" data-i18n="startLabel"></label>
+      <select id="area"></select>
+    </div>
+    <div class="grid2" style="margin-top:14px">
       <div class="field">
         <label for="start" data-i18n="timeLabel"></label>
         <select id="start"></select>
+      </div>
+      <div class="field">
+        <label for="end" data-i18n="endLabel"></label>
+        <select id="end"></select>
       </div>
     </div>
     <div class="field stops-field">
@@ -322,7 +326,7 @@ footer{color:var(--muted);font-size:12px;padding:28px 0 44px;border-top:1px soli
 const GMAPS_KEY = "AIzaSyB-K5Z8agH0iJ5zSslPaSNzefRy4X-ryVs";
 const LANGS = {fr:"FR", en:"EN", es:"ES"};
 const T = {
-fr:{sgLink:"Ma ville n'est pas là",sgPh:"Votre ville",sgSend:"Envoyer",sgThanks:"Merci, c'est noté.",contEurope:"Europe",contNA:"Amérique du Nord",contSA:"Amérique du Sud",contAsia:"Asie",contAfrica:"Afrique",contOceania:"Océanie",rideTrain:"On rentre en train ou métro (pas de taxi)",rideWalk:"On rentre à pied (pas de taxi)",namePh:"Prénom",choose:"Choisir…",needFields:"Complétez les champs manquants (bordure en pointillés).",needJoin:"Ajoutez votre prénom, votre budget et votre envie.",host:"Organiser",hostPick:"Choisissez la ville de votre sortie.",shareTitle:"Invitez le groupe",shareHint:"Envoyez ce lien. Chacun ajoute son prénom et son budget.",copyLink:"Copier le lien",linkCopied:"Lien copié",joinTitle:"Rejoindre la sortie",joinHint:"Ajoutez votre prénom et votre budget. Seul l'organisateur peut modifier les autres.",joinHostHint:"Ajoutez-vous aussi au groupe.",joinBtn:"Rejoindre",yourName:"Votre prénom",youHost:"Organisateur",you:"Vous",waitHost:"L'organisateur lancera le plan quand tout le monde sera là.",full:"Cette sortie est complète (8 personnes max).",notFound:"Cette sortie n'existe pas ou a expiré.",needName:"Ajoutez votre prénom.",noStore:"Le partage n'est pas encore activé sur le serveur.",creating:"Création de la sortie…",groupEmpty:"Personne n'a encore rejoint.",flagShortNight:"sans alcool",flagShortDay:"étudiant",srTitle:"Tournée : choisissez votre sortie",pickNight:"Soirée",pickNightSub:"Bars, clubs, concerts. Du premier verre au dernier métro.",pickDay:"Journée",pickDaySub:"Musées, expos, parcs. Du premier musée au dernier café.",
+fr:{endLabel:"Heure de fin",endPh:"Facultatif",needNames:"Ajoutez un prénom pour chaque personne.",needBudgets:"Indiquez un budget pour chaque personne.",needVibe:"Choisissez au moins une envie pour lancer le plan.",needArea:"Choisissez un point de départ pour continuer.",needStart:"Choisissez une heure de rendez-vous pour continuer.",needStopsMsg:"Choisissez le nombre d'étapes pour continuer.",needEndAfter:"L'heure de fin doit être après l'heure de rendez-vous.",walkMin:"{n} min à pied",transitMin:"{n} min en transports",driveMin:"{n} min en taxi",fromStart:"depuis {a}",sgLink:"Ma ville n'est pas là",sgPh:"Votre ville",sgSend:"Envoyer",sgThanks:"Merci, c'est noté.",contEurope:"Europe",contNA:"Amérique du Nord",contSA:"Amérique du Sud",contAsia:"Asie",contAfrica:"Afrique",contOceania:"Océanie",rideTrain:"On rentre en train ou métro (pas de taxi)",rideWalk:"On rentre à pied (pas de taxi)",namePh:"Prénom",choose:"Choisir…",needFields:"Complétez les champs manquants (bordure en pointillés).",needJoin:"Ajoutez votre prénom et votre budget.",host:"Organiser",hostPick:"Choisissez la ville de votre sortie.",shareTitle:"Invitez le groupe",shareHint:"Envoyez ce lien. Chacun ajoute son prénom et son budget.",copyLink:"Copier le lien",linkCopied:"Lien copié",joinTitle:"Rejoindre la sortie",joinHint:"Ajoutez votre prénom et votre budget. Seul l'organisateur peut modifier les autres.",joinHostHint:"Ajoutez-vous aussi au groupe.",joinBtn:"Rejoindre",yourName:"Votre prénom",youHost:"Organisateur",you:"Vous",waitHost:"L'organisateur lancera le plan quand tout le monde sera là.",full:"Cette sortie est complète (8 personnes max).",notFound:"Cette sortie n'existe pas ou a expiré.",needName:"Ajoutez votre prénom.",noStore:"Le partage n'est pas encore activé sur le serveur.",creating:"Création de la sortie…",groupEmpty:"Personne n'a encore rejoint.",flagShortNight:"sans alcool",flagShortDay:"étudiant",srTitle:"Tournée : choisissez votre sortie",pickNight:"Soirée",pickNightSub:"Bars, clubs, concerts. Du premier verre au dernier métro.",pickDay:"Journée",pickDaySub:"Musées, expos, parcs. Du premier musée au dernier café.",
  nightTitle:"On sort où<br>ce soir&nbsp;?",nightText:"Choisissez une ville. Tournée trouve la soirée qui convient à tout le groupe, du premier verre au retour.",
  dayTitle:"On visite<br>quoi&nbsp;?",dayText:"Choisissez une ville. Tournée organise une journée qui plaira à tout le groupe, du premier musée au dernier café.",
  citiesLabel:"Villes",clockAria:"{t} à {c}",evening:", c'est le soir",langLabel:"Langue",
@@ -339,7 +343,7 @@ fr:{sgLink:"Ma ville n'est pas là",sgPh:"Votre ville",sgSend:"Envoyer",sgThanks
  thinking:"On cherche le plan qui convient à tout le monde…",retry:"Relancer",errRate:"Trop de demandes d'un coup. Attendez quelques secondes puis réessayez.",
  errKey:"Le service est momentanément indisponible. Réessayez plus tard.",errGeneric:"Impossible de créer le plan. Réessayez.",
  mapCheck:"Vérifiez les adresses avant d'y aller",mapOpen:"Ouvrir l'itinéraire",mapAria:"Carte des étapes",svgCap:"Positions approximatives, carte simplifiée",svgAll:"Voir tout Paris",svgZoom:"Zoomer sur le plan"},
-en:{sgLink:"My city isn't here",sgPh:"Your city",sgSend:"Send",sgThanks:"Thanks, noted.",contEurope:"Europe",contNA:"North America",contSA:"South America",contAsia:"Asia",contAfrica:"Africa",contOceania:"Oceania",rideTrain:"Getting home by train or metro (no taxi)",rideWalk:"Getting home on foot (no taxi)",namePh:"Name",choose:"Choose…",needFields:"Fill in the missing fields (dashed border).",needJoin:"Add your name, budget and vibe.",host:"Host",hostPick:"Choose the city for your outing.",shareTitle:"Invite the group",shareHint:"Send this link. Everyone adds their name and budget.",copyLink:"Copy link",linkCopied:"Link copied",joinTitle:"Join the outing",joinHint:"Add your name and budget. Only the host can change other people's details.",joinHostHint:"Add yourself to the group too.",joinBtn:"Join",yourName:"Your name",youHost:"Host",you:"You",waitHost:"The host will plan the outing once everyone's in.",full:"This outing is full (8 people max).",notFound:"This outing doesn't exist or has expired.",needName:"Add your name.",noStore:"Sharing isn't set up on the server yet.",creating:"Creating the outing…",groupEmpty:"Nobody has joined yet.",flagShortNight:"no alcohol",flagShortDay:"student",srTitle:"Tournée: pick your outing",pickNight:"Nightlife",pickNightSub:"Bars, clubs, live music. From first drink to last train.",pickDay:"Daylife",pickDaySub:"Museums, galleries, parks. From first museum to last coffee.",
+en:{endLabel:"End time",endPh:"Optional",needNames:"Add a name for everyone to continue.",needBudgets:"Set a budget for everyone to continue.",needVibe:"Pick at least one vibe to plan the outing.",needArea:"Add a meeting point to continue.",needStart:"Add a meeting time to continue.",needStopsMsg:"Choose the number of stops to continue.",needEndAfter:"The end time has to be after the meeting time.",walkMin:"{n} min walk",transitMin:"{n} min by public transport",driveMin:"{n} min by taxi",fromStart:"from {a}",sgLink:"My city isn't here",sgPh:"Your city",sgSend:"Send",sgThanks:"Thanks, noted.",contEurope:"Europe",contNA:"North America",contSA:"South America",contAsia:"Asia",contAfrica:"Africa",contOceania:"Oceania",rideTrain:"Getting home by train or metro (no taxi)",rideWalk:"Getting home on foot (no taxi)",namePh:"Name",choose:"Choose…",needFields:"Fill in the missing fields (dashed border).",needJoin:"Add your name and budget.",host:"Host",hostPick:"Choose the city for your outing.",shareTitle:"Invite the group",shareHint:"Send this link. Everyone adds their name and budget.",copyLink:"Copy link",linkCopied:"Link copied",joinTitle:"Join the outing",joinHint:"Add your name and budget. Only the host can change other people's details.",joinHostHint:"Add yourself to the group too.",joinBtn:"Join",yourName:"Your name",youHost:"Host",you:"You",waitHost:"The host will plan the outing once everyone's in.",full:"This outing is full (8 people max).",notFound:"This outing doesn't exist or has expired.",needName:"Add your name.",noStore:"Sharing isn't set up on the server yet.",creating:"Creating the outing…",groupEmpty:"Nobody has joined yet.",flagShortNight:"no alcohol",flagShortDay:"student",srTitle:"Tournée: pick your outing",pickNight:"Nightlife",pickNightSub:"Bars, clubs, live music. From first drink to last train.",pickDay:"Daylife",pickDaySub:"Museums, galleries, parks. From first museum to last coffee.",
  nightTitle:"Where are we<br>going tonight?",nightText:"Pick a city. Tournée finds the night out that works for the whole group, from first drink to the ride home.",
  dayTitle:"What are we<br>seeing today?",dayText:"Pick a city. Tournée plans a day the whole group will love, from the first museum to the last coffee.",
  citiesLabel:"Cities",clockAria:"{t} in {c}",evening:", it's evening",langLabel:"Language",
@@ -356,7 +360,7 @@ en:{sgLink:"My city isn't here",sgPh:"Your city",sgSend:"Send",sgThanks:"Thanks,
  thinking:"Finding a plan that works for everyone…",retry:"Try again",errRate:"Too many requests at once. Wait a few seconds and try again.",
  errKey:"The service is temporarily unavailable. Try again later.",errGeneric:"Couldn't create the plan. Try again.",
  mapCheck:"Check addresses before you go",mapOpen:"Open directions",mapAria:"Map of the stops",svgCap:"Approximate positions, simplified map",svgAll:"See all of Paris",svgZoom:"Zoom in on the plan"},
-es:{sgLink:"Mi ciudad no está",sgPh:"Tu ciudad",sgSend:"Enviar",sgThanks:"Gracias, apuntado.",contEurope:"Europa",contNA:"Norteamérica",contSA:"Sudamérica",contAsia:"Asia",contAfrica:"África",contOceania:"Oceanía",rideTrain:"Volvemos en tren o metro (sin taxi)",rideWalk:"Volvemos a pie (sin taxi)",namePh:"Nombre",choose:"Elegir…",needFields:"Completa los campos que faltan (borde discontinuo).",needJoin:"Añade tu nombre, tu presupuesto y lo que te apetece.",host:"Organizar",hostPick:"Elige la ciudad de tu quedada.",shareTitle:"Invita al grupo",shareHint:"Envía este enlace. Cada uno añade su nombre y su presupuesto.",copyLink:"Copiar enlace",linkCopied:"Enlace copiado",joinTitle:"Únete a la quedada",joinHint:"Añade tu nombre y tu presupuesto. Solo el organizador puede cambiar los datos de los demás.",joinHostHint:"Añádete tú también al grupo.",joinBtn:"Unirme",yourName:"Tu nombre",youHost:"Organizador",you:"Tú",waitHost:"El organizador creará el plan cuando estén todos.",full:"Esta quedada está completa (máx. 8 personas).",notFound:"Esta quedada no existe o ha caducado.",needName:"Añade tu nombre.",noStore:"Compartir aún no está activado en el servidor.",creating:"Creando la quedada…",groupEmpty:"Aún no se ha unido nadie.",flagShortNight:"sin alcohol",flagShortDay:"estudiante",srTitle:"Tournée: elige tu plan",pickNight:"De noche",pickNightSub:"Bares, discotecas, conciertos. De la primera copa al último metro.",pickDay:"De día",pickDaySub:"Museos, exposiciones, parques. Del primer museo al último café.",
+es:{endLabel:"Hora de fin",endPh:"Opcional",needNames:"Añade un nombre para cada persona.",needBudgets:"Indica un presupuesto para cada persona.",needVibe:"Elige al menos un plan que te apetezca para continuar.",needArea:"Elige un punto de encuentro para continuar.",needStart:"Elige una hora de encuentro para continuar.",needStopsMsg:"Elige el número de paradas para continuar.",needEndAfter:"La hora de fin tiene que ser después de la hora de encuentro.",walkMin:"{n} min a pie",transitMin:"{n} min en transporte público",driveMin:"{n} min en taxi",fromStart:"desde {a}",sgLink:"Mi ciudad no está",sgPh:"Tu ciudad",sgSend:"Enviar",sgThanks:"Gracias, apuntado.",contEurope:"Europa",contNA:"Norteamérica",contSA:"Sudamérica",contAsia:"Asia",contAfrica:"África",contOceania:"Oceanía",rideTrain:"Volvemos en tren o metro (sin taxi)",rideWalk:"Volvemos a pie (sin taxi)",namePh:"Nombre",choose:"Elegir…",needFields:"Completa los campos que faltan (borde discontinuo).",needJoin:"Añade tu nombre y tu presupuesto.",host:"Organizar",hostPick:"Elige la ciudad de tu quedada.",shareTitle:"Invita al grupo",shareHint:"Envía este enlace. Cada uno añade su nombre y su presupuesto.",copyLink:"Copiar enlace",linkCopied:"Enlace copiado",joinTitle:"Únete a la quedada",joinHint:"Añade tu nombre y tu presupuesto. Solo el organizador puede cambiar los datos de los demás.",joinHostHint:"Añádete tú también al grupo.",joinBtn:"Unirme",yourName:"Tu nombre",youHost:"Organizador",you:"Tú",waitHost:"El organizador creará el plan cuando estén todos.",full:"Esta quedada está completa (máx. 8 personas).",notFound:"Esta quedada no existe o ha caducado.",needName:"Añade tu nombre.",noStore:"Compartir aún no está activado en el servidor.",creating:"Creando la quedada…",groupEmpty:"Aún no se ha unido nadie.",flagShortNight:"sin alcohol",flagShortDay:"estudiante",srTitle:"Tournée: elige tu plan",pickNight:"De noche",pickNightSub:"Bares, discotecas, conciertos. De la primera copa al último metro.",pickDay:"De día",pickDaySub:"Museos, exposiciones, parques. Del primer museo al último café.",
  nightTitle:"¿Dónde salimos<br>esta noche?",nightText:"Elige una ciudad. Tournée encuentra el plan de noche que le va bien a todo el grupo, de la primera copa a la vuelta a casa.",
  dayTitle:"¿Qué vemos<br>hoy?",dayText:"Elige una ciudad. Tournée organiza un día que le encantará a todo el grupo, del primer museo al último café.",
  citiesLabel:"Ciudades",clockAria:"{t} en {c}",evening:", es de noche",langLabel:"Idioma",
@@ -433,6 +437,13 @@ function fmtTime(v){
   if(lang==="en") return `${h%12||12}:${mm} ${h<12?"AM":"PM"}`;
   return `${String(h).padStart(2,"0")}:${mm}`;
 }
+function fillEnd(val){
+  const sel=document.getElementById("end"), opts=[];
+  const add=m=>{ const v=`${String(Math.floor(m/60)%24).padStart(2,"0")}:${String(m%60).padStart(2,"0")}`; opts.push(`<option value="${v}">${fmtTime(v)}</option>`); };
+  for(let m=8*60+15;m<24*60;m+=15) add(m);
+  for(let m=0;m<=5*60;m+=15) add(m);
+  sel.innerHTML=`<option value="">${t("endPh")}</option>`+opts.join(""); sel.value=val||"";
+}
 function fillTimes(val){
   const sel=document.getElementById("start"), opts=[];
   for(let m=8*60;m<24*60;m+=15){ const v=`${String(Math.floor(m/60)).padStart(2,"0")}:${String(m%60).padStart(2,"0")}`; opts.push(`<option value="${v}">${fmtTime(v)}</option>`); }
@@ -448,94 +459,94 @@ const MODES = {
 let mode = "night";
 const M = () => MODES[mode];
 const CITIES = [
-  {id:"london", cont:"europe", tz:"Europe/London", pre:"£", post:"", budget:[10,100,5,20,45,30], start:"20:00",
+  {id:"london", cont:"europe", tz:"Europe/London", pre:"£", post:"", budget:[0,400,5,0,400,200], start:"20:00",
    bbox:[51.38,51.62,-0.35,0.10], ride:"rideTube",
    areas:["Shoreditch","Soho","Camden","Brixton","Hackney","Dalston","Peckham","Covent Garden","Notting Hill","King's Cross","Islington","Clapham"]},
-  {id:"dubai", cont:"asia", tz:"Asia/Dubai", pre:"", post:" AED", budget:[50,600,25,100,300,200], start:"20:00",
+  {id:"dubai", cont:"asia", tz:"Asia/Dubai", pre:"", post:" AED", budget:[0,2100,25,0,2100,1050], start:"20:00",
    bbox:[24.90,25.35,55.00,55.50], ride:"rideMetro",
    areas:["Dubai Marina","JBR","Downtown","DIFC","Business Bay","Jumeirah","City Walk","Al Barsha","Bur Dubai","Deira","Palm Jumeirah"]},
-  {id:"paris", cont:"europe", tz:"Europe/Paris", pre:"", post:" €", budget:[10,100,5,20,45,30], start:"20:00",
+  {id:"paris", cont:"europe", tz:"Europe/Paris", pre:"", post:" €", budget:[0,500,5,0,500,250], start:"20:00",
    bbox:[48.80,48.91,2.22,2.47], ride:"rideMetro",
    areas:["Bastille","Oberkampf","Pigalle","Le Marais","Canal Saint‑Martin","Belleville","Quartier Latin","Montmartre","Châtelet","Butte‑aux‑Cailles","Saint‑Germain‑des‑Prés","Batignolles","Ménilmontant","Bercy","Strasbourg‑Saint‑Denis"]},
-  {id:"madrid", cont:"europe", tz:"Europe/Madrid", pre:"", post:" €", budget:[10,100,5,20,45,30], start:"21:00",
+  {id:"madrid", cont:"europe", tz:"Europe/Madrid", pre:"", post:" €", budget:[0,500,5,0,500,250], start:"21:00",
    bbox:[40.35,40.50,-3.80,-3.60], ride:"rideMetro",
    areas:["Malasaña","Chueca","La Latina","Lavapiés","Sol","Huertas","Chamberí","Conde Duque","Salamanca","Moncloa"]},
-  {id:"new-york", cont:"north-america", tz:"America/New_York", pre:"$", post:"", budget:[10,150,5,25,60,40], start:"20:00",
+  {id:"new-york", cont:"north-america", tz:"America/New_York", pre:"$", post:"", budget:[0,600,5,0,600,300], start:"20:00",
    bbox:[40.49,40.92,-74.27,-73.68], ride:"rideSubway",
    areas:["Lower East Side","East Village","West Village","SoHo","Chelsea","Midtown","Harlem","Williamsburg","Greenpoint","Bushwick","Astoria"]},
-  {id:"los-angeles", cont:"north-america", tz:"America/Los_Angeles", pre:"$", post:"", budget:[10,150,5,25,60,40], start:"19:30",
+  {id:"los-angeles", cont:"north-america", tz:"America/Los_Angeles", pre:"$", post:"", budget:[0,600,5,0,600,300], start:"19:30",
    bbox:[33.70,34.35,-118.70,-118.00], ride:"rideTransit",
    areas:["Downtown LA","Arts District","Hollywood","West Hollywood","Silver Lake","Echo Park","Los Feliz","Koreatown","Santa Monica","Venice"]},
-  {id:"casablanca", cont:"africa", tz:"Africa/Casablanca", pre:"", post:" MAD", budget:[100,1000,50,200,500,300], start:"20:00",
+  {id:"casablanca", cont:"africa", tz:"Africa/Casablanca", pre:"", post:" MAD", budget:[0,5400,50,0,5400,2700], start:"20:00",
    bbox:[33.45,33.65,-7.75,-7.45], ride:"rideTram",
    areas:["Maârif","Gauthier","Racine","Bourgogne","Centre ville","Habous","Anfa","Ain Diab","Corniche","Marina"]},
-  {id:"barcelona", cont:"europe", tz:"Europe/Madrid", pre:"", post:" €", budget:[10,100,5,10,100,55], start:"20:00",
+  {id:"barcelona", cont:"europe", tz:"Europe/Madrid", pre:"", post:" €", budget:[0,500,5,0,500,250], start:"20:00",
    bbox:[41.32, 41.47, 2.05, 2.25], ride:"rideMetro",
    areas:["Gràcia", "El Born", "Barri Gòtic", "El Raval", "Eixample", "Poble Sec", "Sant Antoni", "Barceloneta", "Poblenou"]},
-  {id:"berlin", cont:"europe", tz:"Europe/Berlin", pre:"", post:" €", budget:[10,100,5,10,100,55], start:"20:00",
+  {id:"berlin", cont:"europe", tz:"Europe/Berlin", pre:"", post:" €", budget:[0,500,5,0,500,250], start:"20:00",
    bbox:[52.4, 52.62, 13.2, 13.6], ride:"rideMetro",
    areas:["Kreuzberg", "Neukölln", "Friedrichshain", "Mitte", "Prenzlauer Berg", "Schöneberg", "Wedding"]},
-  {id:"amsterdam", cont:"europe", tz:"Europe/Amsterdam", pre:"", post:" €", budget:[10,100,5,10,100,55], start:"20:00",
+  {id:"amsterdam", cont:"europe", tz:"Europe/Amsterdam", pre:"", post:" €", budget:[0,500,5,0,500,250], start:"20:00",
    bbox:[52.3, 52.42, 4.78, 5.02], ride:"rideTransit",
    areas:["De Pijp", "Jordaan", "Leidseplein", "Rembrandtplein", "Centrum", "Oud-West", "Oost", "Noord"]},
-  {id:"lisbon", cont:"europe", tz:"Europe/Lisbon", pre:"", post:" €", budget:[10,100,5,10,100,55], start:"20:00",
+  {id:"lisbon", cont:"europe", tz:"Europe/Lisbon", pre:"", post:" €", budget:[0,500,5,0,500,250], start:"20:00",
    bbox:[38.68, 38.8, -9.25, -9.08], ride:"rideMetro",
    areas:["Bairro Alto", "Cais do Sodré", "Chiado", "Príncipe Real", "Alfama", "Baixa", "Intendente", "Alcântara", "Belém"]},
-  {id:"rome", cont:"europe", tz:"Europe/Rome", pre:"", post:" €", budget:[10,100,5,10,100,55], start:"20:00",
+  {id:"rome", cont:"europe", tz:"Europe/Rome", pre:"", post:" €", budget:[0,500,5,0,500,250], start:"20:00",
    bbox:[41.8, 41.99, 12.4, 12.6], ride:"rideMetro",
    areas:["Trastevere", "Monti", "Testaccio", "Pigneto", "San Lorenzo", "Centro Storico", "Ostiense", "Prati"]},
-  {id:"miami", cont:"north-america", tz:"America/New_York", pre:"$", post:"", budget:[10,150,5,10,150,80], start:"20:00",
+  {id:"miami", cont:"north-america", tz:"America/New_York", pre:"$", post:"", budget:[0,600,5,0,600,300], start:"20:00",
    bbox:[25.7, 25.9, -80.32, -80.11], ride:"rideTransit",
    areas:["Wynwood", "South Beach", "Brickell", "Downtown Miami", "Little Havana", "Design District", "Coconut Grove"]},
-  {id:"houston", cont:"north-america", tz:"America/Chicago", pre:"$", post:"", budget:[10,150,5,10,150,80], start:"20:00",
+  {id:"houston", cont:"north-america", tz:"America/Chicago", pre:"$", post:"", budget:[0,600,5,0,600,300], start:"20:00",
    bbox:[29.6, 29.95, -95.65, -95.2], ride:"rideTransit",
    areas:["Montrose", "Midtown", "Downtown", "The Heights", "EaDo", "Museum District", "Rice Village", "Washington Avenue"]},
-  {id:"mexico-city", cont:"north-america", tz:"America/Mexico_City", pre:"", post:" MXN", budget:[200,3000,100,200,3000,1600], start:"20:00",
+  {id:"mexico-city", cont:"north-america", tz:"America/Mexico_City", pre:"", post:" MXN", budget:[0,10600,100,0,10600,5300], start:"20:00",
    bbox:[19.25, 19.55, -99.3, -99.0], ride:"rideMetro",
    areas:["Roma Norte", "Condesa", "Juárez", "Centro Histórico", "Coyoacán", "Polanco", "San Rafael", "Santa María la Ribera"]},
-  {id:"montreal", cont:"north-america", tz:"America/Toronto", pre:"CA$", post:"", budget:[15,200,5,15,200,110], start:"20:00",
+  {id:"montreal", cont:"north-america", tz:"America/Toronto", pre:"CA$", post:"", budget:[0,800,10,0,800,400], start:"20:00",
    bbox:[45.42, 45.62, -73.75, -73.48], ride:"rideMetro",
    areas:["Plateau Mont-Royal", "Mile End", "Quartier des spectacles", "Vieux-Montréal", "Quartier latin", "Le Village", "Griffintown", "Saint-Henri"]},
-  {id:"tokyo", cont:"asia", tz:"Asia/Tokyo", pre:"¥", post:"", budget:[1000,15000,500,1000,15000,8000], start:"20:00",
+  {id:"tokyo", cont:"asia", tz:"Asia/Tokyo", pre:"¥", post:"", budget:[0,85000,500,0,85000,42500], start:"20:00",
    bbox:[35.55, 35.8, 139.6, 139.85], ride:"rideTrain",
    areas:["Shibuya", "Shinjuku", "Shimokitazawa", "Harajuku", "Roppongi", "Nakameguro", "Koenji", "Asakusa", "Ueno", "Ginza"]},
-  {id:"seoul", cont:"asia", tz:"Asia/Seoul", pre:"₩", post:"", budget:[10000,150000,5000,10000,150000,80000], start:"20:00",
+  {id:"seoul", cont:"asia", tz:"Asia/Seoul", pre:"₩", post:"", budget:[0,800000,5000,0,800000,400000], start:"20:00",
    bbox:[37.45, 37.65, 126.85, 127.15], ride:"rideMetro",
    areas:["Hongdae", "Itaewon", "Gangnam", "Seongsu", "Euljiro", "Yeonnam-dong", "Myeongdong", "Insadong"]},
-  {id:"bangkok", cont:"asia", tz:"Asia/Bangkok", pre:"฿", post:"", budget:[300,5000,100,300,5000,2600], start:"20:00",
+  {id:"bangkok", cont:"asia", tz:"Asia/Bangkok", pre:"฿", post:"", budget:[0,18900,100,0,18900,9400], start:"20:00",
    bbox:[13.65, 13.85, 100.45, 100.65], ride:"rideMetro",
    areas:["Sukhumvit", "Thonglor", "Ekkamai", "Silom", "Khao San", "Ari", "Yaowarat", "Siam"]},
-  {id:"singapore", cont:"asia", tz:"Asia/Singapore", pre:"S$", post:"", budget:[15,200,5,15,200,110], start:"20:00",
+  {id:"singapore", cont:"asia", tz:"Asia/Singapore", pre:"S$", post:"", budget:[0,700,5,0,700,350], start:"20:00",
    bbox:[1.24, 1.42, 103.75, 103.95], ride:"rideMetro",
    areas:["Clarke Quay", "Chinatown", "Kampong Glam", "Marina Bay", "Tiong Bahru", "Little India", "Orchard", "Dempsey Hill"]},
-  {id:"marrakech", cont:"africa", tz:"Africa/Casablanca", pre:"", post:" MAD", budget:[100,1000,50,100,1000,550], start:"20:00",
+  {id:"marrakech", cont:"africa", tz:"Africa/Casablanca", pre:"", post:" MAD", budget:[0,5400,50,0,5400,2700], start:"20:00",
    bbox:[31.58, 31.68, -8.08, -7.95], ride:"rideWalk",
    areas:["Médina", "Jemaa el-Fna", "Guéliz", "Hivernage", "Kasbah", "Mellah"]},
-  {id:"cape-town", cont:"africa", tz:"Africa/Johannesburg", pre:"R", post:"", budget:[150,2000,50,150,2000,1100], start:"20:00",
+  {id:"cape-town", cont:"africa", tz:"Africa/Johannesburg", pre:"R", post:"", budget:[0,10300,100,0,10300,5200], start:"20:00",
    bbox:[-34.1, -33.85, 18.35, 18.55], ride:"rideWalk",
    areas:["City Bowl", "Bree Street", "Long Street", "Gardens", "Woodstock", "Observatory", "Sea Point", "V&A Waterfront"]},
-  {id:"buenos-aires", cont:"south-america", tz:"America/Argentina/Buenos_Aires", pre:"US$", post:"", budget:[10,120,5,10,120,65], start:"20:00",
+  {id:"buenos-aires", cont:"south-america", tz:"America/Argentina/Buenos_Aires", pre:"US$", post:"", budget:[0,600,5,0,600,300], start:"20:00",
    bbox:[-34.7, -34.53, -58.53, -58.33], ride:"rideMetro",
    areas:["Palermo Soho", "Palermo Hollywood", "Villa Crespo", "San Telmo", "Recoleta", "Almagro", "Belgrano", "Puerto Madero"]},
-  {id:"rio", cont:"south-america", tz:"America/Sao_Paulo", pre:"R$", post:"", budget:[50,600,25,50,600,325], start:"20:00",
+  {id:"rio", cont:"south-america", tz:"America/Sao_Paulo", pre:"R$", post:"", budget:[0,3200,25,0,3200,1600], start:"20:00",
    bbox:[-23.02, -22.87, -43.3, -43.15], ride:"rideMetro",
    areas:["Lapa", "Copacabana", "Ipanema", "Leblon", "Botafogo", "Santa Teresa", "Centro"]},
-  {id:"sao-paulo", cont:"south-america", tz:"America/Sao_Paulo", pre:"R$", post:"", budget:[50,600,25,50,600,325], start:"20:00",
+  {id:"sao-paulo", cont:"south-america", tz:"America/Sao_Paulo", pre:"R$", post:"", budget:[0,3200,25,0,3200,1600], start:"20:00",
    bbox:[-23.65, -23.48, -46.75, -46.55], ride:"rideMetro",
    areas:["Vila Madalena", "Pinheiros", "Rua Augusta", "Jardins", "Centro", "Bela Vista", "Itaim Bibi", "Vila Mariana"]},
-  {id:"sydney", cont:"oceania", tz:"Australia/Sydney", pre:"A$", post:"", budget:[15,200,5,15,200,110], start:"20:00",
+  {id:"sydney", cont:"oceania", tz:"Australia/Sydney", pre:"A$", post:"", budget:[0,900,10,0,900,450], start:"20:00",
    bbox:[-33.95, -33.83, 151.15, 151.3], ride:"rideTrain",
    areas:["Surry Hills", "Newtown", "Darlinghurst", "CBD", "The Rocks", "Glebe", "Paddington", "Bondi"]},
-  {id:"melbourne", cont:"oceania", tz:"Australia/Melbourne", pre:"A$", post:"", budget:[15,200,5,15,200,110], start:"20:00",
+  {id:"melbourne", cont:"oceania", tz:"Australia/Melbourne", pre:"A$", post:"", budget:[0,900,10,0,900,450], start:"20:00",
    bbox:[-37.88, -37.77, 144.9, 145.03], ride:"rideTrain",
    areas:["Fitzroy", "Collingwood", "CBD", "Brunswick", "Carlton", "Richmond", "St Kilda", "South Yarra"]},
-  {id:"vienna", cont:"europe", tz:"Europe/Vienna", pre:"", post:" €", budget:[10,100,5,10,100,55], start:"20:00",
+  {id:"vienna", cont:"europe", tz:"Europe/Vienna", pre:"", post:" €", budget:[0,500,5,0,500,250], start:"20:00",
    bbox:[48.12, 48.32, 16.2, 16.55], ride:"rideMetro",
    areas:["Innere Stadt", "Neubau", "Mariahilf", "Leopoldstadt", "Gürtel", "Josefstadt", "Wieden", "MuseumsQuartier"]},
-  {id:"toronto", cont:"north-america", tz:"America/Toronto", pre:"CA$", post:"", budget:[15,200,5,15,200,110], start:"20:00",
+  {id:"toronto", cont:"north-america", tz:"America/Toronto", pre:"CA$", post:"", budget:[0,800,10,0,800,400], start:"20:00",
    bbox:[43.58, 43.86, -79.64, -79.12], ride:"rideSubway",
    areas:["Queen West", "Ossington", "Kensington Market", "Entertainment District", "Liberty Village", "Downtown Yonge", "The Annex", "Little Italy", "Leslieville", "Distillery District"]},
-  {id:"sharm-el-sheikh", cont:"africa", tz:"Africa/Cairo", pre:"", post:" EGP", budget:[500,8000,250,500,8000,4250], start:"20:00",
+  {id:"sharm-el-sheikh", cont:"africa", tz:"Africa/Cairo", pre:"", post:" EGP", budget:[0,28000,250,0,28000,14000], start:"20:00",
    bbox:[27.84, 28.05, 34.25, 34.45], ride:"rideWalk",
    areas:["Naama Bay", "Soho Square", "Old Market", "Hadaba", "Sharks Bay", "Nabq Bay"]}
 ];
@@ -624,11 +635,11 @@ function syncSettings(){
   if(!isAdmin()) return;
   clearTimeout(settingsTimer); pending++;
   settingsTimer=setTimeout(async()=>{
-    await api({action:"settings",id:outing.id,adminToken:me.admin,area:$("#area").value,start:$("#start").value,stops,metro:$("#metro").checked});
+    await api({action:"settings",id:outing.id,adminToken:me.admin,area:$("#area").value,start:$("#start").value,end:$("#end").value,stops,metro:$("#metro").checked});
     pending=Math.max(0,pending-1);
   },500);
 }
-["#area","#start","#metro"].forEach(sel=>$(sel).addEventListener("change",e=>{ e.target.removeAttribute("aria-invalid"); if(outing) syncSettings(); }));
+["#area","#start","#end","#metro"].forEach(sel=>$(sel).addEventListener("change",()=>{ $("#status").textContent=""; if(outing) syncSettings(); }));
 $("#friends").addEventListener("change",e=>{ if(e.target.dataset.k==="vibe") e.target.removeAttribute("aria-invalid"); });
 function renderJoin(){
   $("#jName").placeholder=t("yourName");
@@ -645,11 +656,9 @@ function renderJoin(){
 }
 $("#joinBtn").onclick=async()=>{
   const nick=$("#jName").value.trim(), bud=$("#jBudget"), vib=$("#jVibe");
-  const miss=[[ $("#jName"),!nick ],[ bud,bud.classList.contains("unset") ],[ vib,!vib.value ]];
-  miss.forEach(([el,bad])=>bad?el.setAttribute("aria-invalid","true"):el.removeAttribute("aria-invalid"));
-  if(miss.some(x=>x[1])){ $("#joinStatus").textContent=t("needJoin"); return; }
+  if(!nick || bud.classList.contains("unset")){ $("#joinStatus").textContent=t("needJoin"); return; }
   $("#joinBtn").disabled=true;
-  const r=await api({action:"join",id:outing.id,adminToken:me.admin,self:isAdmin(),member:{nick,budget:+$("#jBudget").value,vibe:$("#jVibe").value,flag:$("#jFlag").checked}});
+  const r=await api({action:"join",id:outing.id,adminToken:me.admin,self:isAdmin(),member:{nick,budget:+$("#jBudget").value,vibe:vib.value||"",flag:$("#jFlag").checked}});
   $("#joinBtn").disabled=false;
   if(r.error){ $("#joinStatus").textContent=t(ERR[r.error]||"errGeneric"); return; }
   me={...me,mid:r.mid,token:r.token}; saveCreds(outing.id,me);
@@ -672,9 +681,9 @@ function applyOuting(o, force){
     $("#area").innerHTML=`<option value="" disabled hidden>${t("choose")}</option>`+areas.map(a=>`<option>${esc(a)}</option>`).join(""); $("#area").dataset.city=city.id;
   }
   $("#area").value=o.area||"";
-  fillTimes(o.start||""); setStops(o.stops||0); $("#metro").checked=o.metro===true;
+  fillTimes(o.start||""); fillEnd(o.end||""); setStops(o.stops||0); $("#metro").checked=o.metro===true;
   const admin=isAdmin();
-  ["#area","#start","#metro"].forEach(sel=>$(sel).disabled=!admin);
+  ["#area","#start","#end","#metro"].forEach(sel=>$(sel).disabled=!admin);
   document.querySelectorAll("#stops button").forEach(b=>b.disabled=!admin);
   friends=o.members; renderFriends();
   $("#groupHint").hidden=true;
@@ -709,7 +718,7 @@ async function createOuting(c){
   $("#hostBtn").disabled=true;
   const fromPlanner=!$("#planner").hidden && !outing;
   const body={action:"create",mode,city:c.id,
-    area:fromPlanner?$("#area").value:"", start:fromPlanner?$("#start").value:"",
+    area:fromPlanner?$("#area").value:"", start:fromPlanner?$("#start").value:"", end:fromPlanner?$("#end").value:"",
     stops:fromPlanner?stops:0, metro:fromPlanner?$("#metro").checked:false};
   const r=await api(body);
   $("#hostBtn").disabled=false; hostingPick=false;
@@ -723,18 +732,24 @@ $("#hostBtn").onclick=()=>{
 };
 
 let lastIsExample=false;
+function travelText(min,mode,from){
+  if(!min) return "";
+  const k=mode==="transit"?"transitMin":mode==="drive"?"driveMin":"walkMin";
+  return t(k,{n:min})+(from?" "+t("fromStart",{a:from}):"");
+}
 function renderPlan(p, isExample, quiet){
   lastPlan = p; lastIsExample=!!isExample;
-  const steps = (p.etapes||[]).map(s=>`
+  const timed=(p.etapes||[]).some(s=>s.heure);
+  const steps = (p.etapes||[]).map((s,idx)=>`
     <li class="stop">
       <div class="time">${esc(fmtTime(s.heure))}</div>
       <div class="station" aria-hidden="true"></div>
       <div>
         <p class="stop-type">${esc(s.type)}</p>
         <h3>${esc(s.lieu)}</h3>
-        <p class="area">${esc(s.quartier)}</p>
+        <p class="area">${esc(s.adresse||s.quartier)}</p>
         <p class="why">${esc(s.pourquoi)}</p>
-        <p class="meta"><b>${esc(fmt(s.prix_pp))} ${t("perPerson")}</b>${s.trajet?` · ${esc(s.trajet)}`:""}</p>
+        <p class="meta"><b>${esc(fmt(s.prix_pp))} ${t("perPerson")}</b>${s.trajet_min?` · ${esc(travelText(s.trajet_min,s.trajet_mode,idx===0?$("#area").value:""))}`:(s.trajet?` · ${esc(s.trajet)}`:"")}</p>
       </div>
     </li>`).join("");
   const bs=friends.map(f=>f.budget).filter(b=>typeof b==="number"), minB = bs.length?Math.min(...bs):p.total_pp;
@@ -748,11 +763,11 @@ function renderPlan(p, isExample, quiet){
     </div>
     <p class="compromis">${esc(p.compromis)}</p>
     <div class="map" id="map"></div>
-    <ol class="line">${steps}
+    <ol class="line${timed?"":" notimes"}">${steps}
       <li class="stop home">
         <div class="time"></div>
         <div class="station" aria-hidden="true"></div>
-        <div><p class="stop-type">${t("returnLabel")}</p><h3>${t(M().end)}</h3><p class="why">${esc(p.retour)}</p></div>
+        <div><p class="stop-type">${t("returnLabel")}</p><h3>${t(M().end)}</h3><p class="why">${esc(p.retour)}</p>${p.retour_min?`<p class="meta">${esc(travelText(p.retour_min,p.retour_mode,""))}${p.retour_station?" · "+esc(p.retour_station):""}</p>`:""}</div>
       </li>
     </ol>
     <div class="actions">
@@ -887,7 +902,7 @@ async function drawMap(p){
 
 async function copyPlan(){
   const p=lastPlan; if(!p) return;
-  const txt = `${M().emoji} ${p.titre} (${cityName(city)})\n${p.resume}\n\n` + p.etapes.map(s=>`${fmtTime(s.heure)} · ${s.type} : ${s.lieu} (${s.quartier}), ${fmt(s.prix_pp)}`).join("\n") + `\n\n${t("total")} : ${fmt(p.total_pp)} ${t("perPerson")}\n${t("returnLabel")} : ${p.retour}\n\n${t("plannedWith")}`;
+  const txt = `${M().emoji} ${p.titre} (${cityName(city)})\n${p.resume}\n\n` + p.etapes.map((s,i)=>`${s.heure?fmtTime(s.heure)+" · ":(i+1)+". "}${s.type} : ${s.lieu} (${s.adresse||s.quartier}), ${fmt(s.prix_pp)}${s.trajet_min?" · "+travelText(s.trajet_min,s.trajet_mode,""):""}`).join("\n") + `\n\n${t("total")} : ${fmt(p.total_pp)} ${t("perPerson")}\n${t("returnLabel")} : ${p.retour}\n\n${t("plannedWith")}`;
   const b=$("#copy");
   try{ await navigator.clipboard.writeText(txt); b.textContent=t("copied"); }
   catch{
@@ -913,7 +928,7 @@ const ERR = {rate_limited:"errRate", no_key:"errKey", group:"needTwo", full:"ful
 const seenKey=()=>`tournee-seen-${mode}-${city.id}`;
 const getSeen=()=>{ try{ return JSON.parse(localStorage.getItem(seenKey()))||[]; }catch{ return []; } };
 function addSeen(p){
-  const names=(p.etapes||[]).map(s=>String(s.lieu||"").trim()).filter(Boolean);
+  const names=[...(p.etapes||[]).map(s=>String(s.lieu||"").trim()),...(p.excluded||[])].filter(Boolean);
   const list=[...names,...getSeen().filter(n=>!names.includes(n))].slice(0,40);
   try{ localStorage.setItem(seenKey(),JSON.stringify(list)); }catch{}
 }
@@ -923,7 +938,7 @@ async function plan(){
   ctl?.abort(); ctl = new AbortController();
   try{
     const r = await fetch("/api/plan",{method:"POST",headers:{"Content-Type":"application/json"},signal:ctl.signal,
-      body:JSON.stringify({lang, mode:mode==="day"?"culture":mode, city:city.id, friends:friends.map((f,i)=>({...f,nick:(f.nick||"").trim()||t("friend")+" "+(i+1)})), area:$("#area").value, start:$("#start").value, metro:$("#metro").checked, stops, avoid:getSeen()})});
+      body:JSON.stringify({lang, mode:mode==="day"?"culture":mode, city:city.id, friends:friends.map((f,i)=>({...f,nick:(f.nick||"").trim()||t("friend")+" "+(i+1)})), area:$("#area").value, start:$("#start").value, end:$("#end").value, metro:$("#metro").checked, stops, avoid:getSeen()})});
     const data = await r.json().catch(()=>({}));
     if(!r.ok) throw {code:data.error||"server"};
     const p = data.plan;
@@ -938,18 +953,21 @@ async function plan(){
   }finally{ go.disabled=false; }
 }
 
-function validatePlan(){
-  let ok=true;
-  const mark=(el,bad)=>{ if(!el) return; if(bad){ el.setAttribute("aria-invalid","true"); ok=false; } else el.removeAttribute("aria-invalid"); };
-  friends.forEach((f,i)=>{ if(!canEdit(f)) { if(!f.nick||f.budget==null||!f.vibe) ok=false; return; }
-    mark(document.querySelector(`#friends [data-i="${i}"][data-k="nick"]`),!String(f.nick||"").trim());
-    mark($("#b"+i),f.budget==null); mark($("#v"+i),!f.vibe); });
-  mark($("#area"),!$("#area").value); mark($("#start"),!$("#start").value); mark($("#stops"),!stops);
-  return ok;
+const mins=v=>{ const [h,m]=v.split(":").map(Number); return h*60+m; };
+function missingKey(){
+  if(friends.some(f=>!String(f.nick||"").trim())) return "needNames";
+  if(friends.some(f=>f.budget==null)) return "needBudgets";
+  if(!friends.some(f=>f.vibe)) return "needVibe";
+  if(!$("#area").value) return "needArea";
+  if(!$("#start").value) return "needStart";
+  if(!stops) return "needStopsMsg";
+  const st=$("#start").value, en=$("#end").value;
+  if(en){ let e=mins(en); if(e<=6*60 && mins(st)>e) e+=24*60; if(e<=mins(st)) return "needEndAfter"; }
+  return null;
 }
 $("#go").onclick=()=>{
   if(friends.length<1){ $("#status").textContent=t("needTwo"); return; }
-  if(!validatePlan()){ $("#status").textContent=t("needFields"); const first=document.querySelector('#planner [aria-invalid="true"]'); first?.scrollIntoView({behavior:"smooth",block:"center"}); return; }
+  const miss=missingKey(); if(miss){ $("#status").textContent=t(miss); return; }
   plan(false);
 };
 /* Home screen and city routing */
@@ -1014,7 +1032,7 @@ function setStops(n){ stops=n; if(n) $("#stops").removeAttribute("aria-invalid")
 $("#stops").addEventListener("click",e=>{const b=e.target.closest("[data-n]"); if(b&&!b.disabled){ setStops(+b.dataset.n); if(outing) syncSettings(); }});
 function openCity(c){
   outing=null; me={}; planShown="";
-  ["#area","#start","#metro"].forEach(sel=>$(sel).disabled=false);
+  ["#area","#start","#end","#metro"].forEach(sel=>$(sel).disabled=false);
   document.querySelectorAll("#stops button").forEach(b=>b.disabled=false);
   $("#sharePanel").hidden=true; $("#joinPanel").hidden=true; $("#groupHint").hidden=false; $("#planner").classList.remove("loading");
   delete $("#area").dataset.city;
@@ -1023,7 +1041,7 @@ function openCity(c){
   city=c; friends=[blankFriend()];
   const m=M();
   $("#area").innerHTML=`<option value="" disabled hidden>${t("choose")}</option>`+c.areas.map(a=>`<option>${esc(a)}</option>`).join(""); $("#area").value="";
-  fillTimes(""); $("#metro").checked=false;
+  fillTimes(""); fillEnd(""); $("#metro").checked=false;
   cityTexts();
   $("#result").innerHTML="";
   renderFriends();
@@ -1065,7 +1083,7 @@ function applyLang(){
 $("#homeLink").addEventListener("click",e=>{ e.preventDefault(); go(""); });
 $("#lang").addEventListener("change",e=>{
   lang=e.target.value; try{localStorage.setItem("tournee-lang",lang)}catch{}
-  const keep=$("#start").value; applyLang(); fillTimes(keep); route(true);
+  const keep=$("#start").value, keepEnd=$("#end").value; applyLang(); fillTimes(keep); fillEnd(keepEnd); route(true);
   if(!$("#planner").hidden){ if(outing){ applyOuting(outing,"lang"); } else { cityTexts(); renderFriends(); if(lastPlan) renderPlan(lastPlan,lastIsExample,true); } }
 });
 applyLang();
