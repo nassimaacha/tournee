@@ -47,7 +47,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font
   font-size:16px;line-height:1.65;letter-spacing:.036em;-webkit-font-smoothing:antialiased;overflow-x:hidden;
   transition:background .35s,color .35s}
 .wrap{max-width:640px;margin:0 auto;padding:0 20px}
-.view[hidden]{display:none}
+[hidden]{display:none !important}
 
 /* labels: Inter 600 uppercase, wide tracking */
 .label,.brand,.city-tag,.switch,.remove,.stop-type,.badge,.budget label,.field label,.map a,.map button,.cta,.btn,.add{
@@ -59,7 +59,8 @@ header{display:flex;align-items:center;gap:12px;padding:16px 20px;margin:0 -20px
 .brand{font-size:12px}
 .mark{width:28px;height:28px}
 .city-tag{border:1px solid var(--accent);color:var(--accent);border-radius:30px;padding:3px 12px;font-size:11px}
-.controls{margin-inline-start:auto;display:flex;align-items:center;gap:16px}
+.controls{margin-inline-start:auto;display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:6px 14px}
+@media (max-width:560px){header .city-tag{display:none}}
 .switch{background:none;border:0;color:var(--jewel);font-size:11px;cursor:pointer;padding:8px 0;white-space:nowrap}
 header select.lang{width:auto;padding:4px 30px 4px 14px;font-size:12px;font-weight:600;letter-spacing:.111em;border:1px solid var(--accent);color:var(--accent);
   background-position:calc(100% - 16px) 55%,calc(100% - 11px) 55%}
@@ -173,6 +174,20 @@ input[type=range]{width:100%;accent-color:var(--accent);margin-top:10px}
 .city:hover .city-time .night,.city:focus-visible .city-time .night{background:currentColor}
 .city-time .day{width:7px;height:7px;border-radius:50%;border:1px solid currentColor}
 
+[hidden]{display:none!important}
+[aria-invalid="true"]{border-style:dashed!important;border-color:var(--accent)!important}
+.stops[aria-invalid="true"]{border:none!important}
+.stops[aria-invalid="true"] button{border-style:dashed;border-color:var(--accent)}
+input[type=range].unset{opacity:.45}
+.share-row{display:flex;gap:10px;flex-wrap:wrap}
+.share-row input{flex:1 1 220px}
+.share-row .btn{flex:0 0 auto}
+.friend.ro .friend-top{gap:10px}
+.ro-name{font-size:18px}
+.ro-meta{grid-column:1/-1;margin:0;color:var(--muted);font-size:14px}
+.tag{border:1px solid var(--line);border-radius:30px;padding:1px 10px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.111em;color:var(--jewel);white-space:nowrap}
+select:disabled,input:disabled,.stops button:disabled{opacity:.6;cursor:not-allowed}
+#planner.loading .panel,#planner.loading .cta,#planner.loading .note{display:none}
 footer{color:var(--muted);font-size:12px;padding:28px 0 44px;border-top:1px solid var(--line)}
 #result + footer{border-top:0}
 @media (max-width:420px){.grid2{grid-template-columns:1fr}.friend-row{grid-template-columns:1fr}}
@@ -192,6 +207,7 @@ footer{color:var(--muted);font-size:12px;padding:28px 0 44px;border-top:1px soli
     </a>
     <span class="city-tag" id="cityTag" hidden></span>
     <div class="controls">
+      <button class="switch" id="hostBtn" type="button" hidden data-i18n="host"></button>
       <button class="switch" id="switchCity" type="button" hidden></button>
       <select class="lang" id="lang"></select>
     </div>
@@ -219,9 +235,25 @@ footer{color:var(--muted);font-size:12px;padding:28px 0 44px;border-top:1px soli
     <p id="heroText"></p>
   </section>
 
+  <section class="panel" id="sharePanel" hidden>
+    <h2 data-i18n="shareTitle"></h2>
+    <p class="hint" data-i18n="shareHint"></p>
+    <div class="share-row"><input type="text" id="shareUrl" readonly aria-label="URL"><button class="btn" type="button" id="copyLink" data-i18n="copyLink"></button></div>
+  </section>
+
+  <section class="panel" id="joinPanel" hidden>
+    <h2 data-i18n="joinTitle"></h2>
+    <p class="hint" id="joinHint"></p>
+    <div class="field"><label for="jName" data-i18n="yourName"></label><input type="text" id="jName" maxlength="20" autocomplete="given-name"></div>
+    <div class="friend-row" id="jRow" style="margin-top:14px"></div>
+    <p class="check" style="margin:14px 0 0"><input type="checkbox" id="jFlag"><label for="jFlag" id="jFlagLabel"></label></p>
+    <button class="add" id="joinBtn" type="button" data-i18n="joinBtn"></button>
+    <p class="note" id="joinStatus" style="margin:12px 0 0;text-align:left"></p>
+  </section>
+
   <section class="panel" aria-labelledby="g-title">
     <h2 id="g-title" data-i18n="group"></h2>
-    <p class="hint" data-i18n="groupHint"></p>
+    <p class="hint" id="groupHint" data-i18n="groupHint"></p>
     <div id="friends"></div>
     <button class="add" id="addFriend" type="button" data-i18n="add"></button>
   </section>
@@ -261,66 +293,66 @@ footer{color:var(--muted);font-size:12px;padding:28px 0 44px;border-top:1px soli
 const GMAPS_KEY = "AIzaSyB-K5Z8agH0iJ5zSslPaSNzefRy4X-ryVs";
 const LANGS = {fr:"FR", en:"EN", es:"ES"};
 const T = {
-fr:{srTitle:"Tournée : choisissez votre sortie",pickNight:"Soirée",pickNightSub:"Bars, clubs, concerts. Du premier verre au dernier métro.",pickDay:"Journée",pickDaySub:"Musées, expos, parcs. Du premier musée au dernier café.",
- nightTitle:"On sort où<br>ce soir&nbsp;?",nightText:"Choisissez la ville. Tournée trouve la soirée qui convient à tout le groupe, du premier verre au retour.",
- dayTitle:"On visite<br>quoi&nbsp;?",dayText:"Choisissez la ville. Tournée trouve la journée culturelle qui plaît à tout le groupe, du premier musée au dernier café.",
+fr:{namePh:"Prénom",choose:"Choisir…",needFields:"Complétez les champs manquants (bordure en pointillés).",needJoin:"Ajoutez votre prénom, votre budget et votre envie.",host:"Organiser une sortie",hostPick:"Choisissez la ville de votre sortie.",shareTitle:"Invitez le groupe",shareHint:"Envoyez ce lien. Chacun ajoute son prénom et son budget.",copyLink:"Copier le lien",linkCopied:"Lien copié",joinTitle:"Rejoindre la sortie",joinHint:"Ajoutez votre prénom et votre budget. Seul l'organisateur peut modifier les autres.",joinHostHint:"Ajoutez-vous aussi au groupe.",joinBtn:"Rejoindre",yourName:"Votre prénom",youHost:"Organisateur",you:"Vous",waitHost:"L'organisateur lancera le plan quand tout le monde sera là.",full:"Cette sortie est complète (8 personnes max).",notFound:"Cette sortie n'existe pas ou a expiré.",needName:"Ajoutez votre prénom.",noStore:"Le partage n'est pas encore activé sur le serveur.",creating:"Création de la sortie…",groupEmpty:"Personne n'a encore rejoint.",flagShortNight:"sans alcool",flagShortDay:"moins de 26 ans",srTitle:"Tournée : choisissez votre sortie",pickNight:"Soirée",pickNightSub:"Bars, clubs, concerts. Du premier verre au dernier métro.",pickDay:"Journée",pickDaySub:"Musées, expos, parcs. Du premier musée au dernier café.",
+ nightTitle:"On sort où<br>ce soir&nbsp;?",nightText:"Choisissez une ville. Tournée trouve la soirée qui convient à tout le groupe, du premier verre au retour.",
+ dayTitle:"On visite<br>quoi&nbsp;?",dayText:"Choisissez une ville. Tournée organise une journée qui plaira à tout le groupe, du premier musée au dernier café.",
  citiesLabel:"Villes",clockAria:"{t} à {c}",evening:", c'est le soir",switchCity:"Changer de ville",switchMode:"Soirée ou journée",langLabel:"Langue",
  heroH1:"Tout le groupe.<br>Un seul plan.",
  heroNight:"Chacun donne son budget et son envie. En 30 secondes, Tournée trouve la soirée à {c} qui convient à tout le monde, du premier verre au retour.",
- heroDay:"Chacun donne son budget et ce qu'il aime. En 30 secondes, Tournée trouve la journée à {c} qui plaît à tout le monde, du premier musée au dernier café.",
- group:"Le groupe",groupHint:"Un pseudo suffit, pas besoin de vrais noms.",add:"Ajouter quelqu'un",panelNight:"La soirée",panelDay:"La journée",
+ heroDay:"Chacun donne son budget et ce qu'il aime. En 30 secondes, Tournée organise une journée à {c} qui plaira à tout le monde, du premier musée au dernier café.",
+ group:"Le groupe",groupHint:"Un prénom ou un surnom suffit.",add:"Ajouter quelqu'un",panelNight:"La soirée",panelDay:"La journée",
  panelHint:"Où vous vous retrouvez et à quelle heure.",startLabel:"Point de départ",timeLabel:"Heure de rendez‑vous",ctaNight:"Planifier la soirée",ctaDay:"Planifier la journée",
  status:"Vérifiez horaires et prix avant d'y aller.",footer:"© 2026 Tournée",
- nick:"Pseudo",remove:"Retirer",budget:"Budget max",vibe:"Envie",flagNight:"Ne boit pas d'alcool",flagDay:"Moins de 26 ans (tarifs jeunes)",friend:"Ami",needTwo:"Ajoutez au moins une personne.",stopsLabel:"Nombre d'étapes",
+ nick:"Prénom",remove:"Retirer",budget:"Budget max",vibe:"Envie",flagNight:"Ne boit pas d'alcool",flagDay:"Moins de 26 ans (tarifs jeunes)",friend:"Ami",needTwo:"Ajoutez au moins une personne.",stopsLabel:"Nombre d'étapes",
  rideMetro:"On rentre en métro (pas de taxi)",rideTube:"On rentre en Tube (pas de taxi)",rideTransit:"On rentre en transports (pas d'Uber)",rideTram:"On rentre en tram (pas de taxi)",rideDay:"On se déplace en transports (pas de taxi)",
  perPerson:"par personne",tightest:"Budget le plus serré :",people:"personnes",ready:"Plan prêt",returnLabel:"Retour",endNight:"Tout le monde rentre",endDay:"Fin de la journée",
  copy:"Copier pour le groupe",again:"Un autre plan",copied:"Copié, collez dans le groupe",copyFail:"Copie impossible ici",total:"Total",plannedWith:"Planifié avec Tournée",
  thinking:"On cherche le plan qui convient à tout le monde…",retry:"Relancer",errRate:"Trop de demandes d'un coup. Attendez quelques secondes puis réessayez.",
- errKey:"La clé Anthropic n'est pas configurée sur le serveur.",errGeneric:"Le plan n'a pas pu être généré. Relancez la planification.",
+ errKey:"Le service est momentanément indisponible. Réessayez plus tard.",errGeneric:"Impossible de créer le plan. Réessayez.",
  mapCheck:"Vérifiez les adresses avant d'y aller",mapOpen:"Ouvrir l'itinéraire",mapAria:"Carte des étapes",svgCap:"Positions approximatives, carte simplifiée",svgAll:"Voir tout Paris",svgZoom:"Zoomer sur le plan"},
-en:{srTitle:"Tournée: pick your outing",pickNight:"Nightlife",pickNightSub:"Bars, clubs, live music. From first drink to last train.",pickDay:"Daylife",pickDaySub:"Museums, galleries, parks. From first museum to last coffee.",
+en:{namePh:"Name",choose:"Choose…",needFields:"Fill in the missing fields (dashed border).",needJoin:"Add your name, budget and vibe.",host:"Host an outing",hostPick:"Choose the city for your outing.",shareTitle:"Invite the group",shareHint:"Send this link. Everyone adds their name and budget.",copyLink:"Copy link",linkCopied:"Link copied",joinTitle:"Join the outing",joinHint:"Add your name and budget. Only the host can change other people's details.",joinHostHint:"Add yourself to the group too.",joinBtn:"Join",yourName:"Your name",youHost:"Host",you:"You",waitHost:"The host will plan the outing once everyone's in.",full:"This outing is full (8 people max).",notFound:"This outing doesn't exist or has expired.",needName:"Add your name.",noStore:"Sharing isn't set up on the server yet.",creating:"Creating the outing…",groupEmpty:"Nobody has joined yet.",flagShortNight:"no alcohol",flagShortDay:"under 26",srTitle:"Tournée: pick your outing",pickNight:"Nightlife",pickNightSub:"Bars, clubs, live music. From first drink to last train.",pickDay:"Daylife",pickDaySub:"Museums, galleries, parks. From first museum to last coffee.",
  nightTitle:"Where are we<br>going tonight?",nightText:"Pick a city. Tournée finds the night out that works for the whole group, from first drink to the ride home.",
- dayTitle:"What are we<br>seeing today?",dayText:"Pick a city. Tournée finds the culture day the whole group will enjoy, from first museum to last coffee.",
+ dayTitle:"What are we<br>seeing today?",dayText:"Pick a city. Tournée plans a day the whole group will love, from the first museum to the last coffee.",
  citiesLabel:"Cities",clockAria:"{t} in {c}",evening:", it's evening",switchCity:"Change city",switchMode:"Nightlife or daylife",langLabel:"Language",
  heroH1:"The whole group.<br>One plan.",
- heroNight:"Everyone sets a budget and a vibe. In 30 seconds, Tournée finds the night out in {c} that works for everyone, from first drink to the ride home.",
- heroDay:"Everyone sets a budget and what they love. In 30 seconds, Tournée finds the day in {c} everyone will enjoy, from first museum to last coffee.",
- group:"The group",groupHint:"A nickname is enough, no real names needed.",add:"Add someone",panelNight:"The night",panelDay:"The day",
- panelHint:"Where you meet and at what time.",startLabel:"Meeting point",timeLabel:"Meeting time",ctaNight:"Plan the night",ctaDay:"Plan the day",
+ heroNight:"Everyone picks a budget and a vibe. In 30 seconds, Tournée plans a night out in {c} that works for everyone, from the first drink to the ride home.",
+ heroDay:"Everyone picks a budget and what they're into. In 30 seconds, Tournée plans a day in {c} the whole group will love, from the first museum to the last coffee.",
+ group:"The group",groupHint:"A first name or nickname is enough.",add:"Add someone",panelNight:"The night",panelDay:"The day",
+ panelHint:"Where and when you're meeting.",startLabel:"Meeting point",timeLabel:"Meeting time",ctaNight:"Plan the night",ctaDay:"Plan the day",
  status:"Check opening hours and prices before you go.",footer:"© 2026 Tournée",
- nick:"Nickname",remove:"Remove",budget:"Max budget",vibe:"Vibe",flagNight:"Doesn't drink alcohol",flagDay:"Under 26 (youth prices)",friend:"Friend",needTwo:"Add at least one person.",stopsLabel:"Number of stops",
- rideMetro:"We go home by metro (no taxi)",rideTube:"We go home by Tube (no taxi)",rideTransit:"We go home by public transport (no Uber)",rideTram:"We go home by tram (no taxi)",rideDay:"We get around by public transport (no taxi)",
+ nick:"Name",remove:"Remove",budget:"Max budget",vibe:"Vibe",flagNight:"Doesn't drink alcohol",flagDay:"Under 26 (youth discounts)",friend:"Friend",needTwo:"Add at least one person.",stopsLabel:"Number of stops",
+ rideMetro:"Getting home by metro (no taxi)",rideTube:"Getting home by Tube (no taxi)",rideTransit:"Getting home by public transit (no Uber)",rideTram:"Getting home by tram (no taxi)",rideDay:"Getting around by public transport (no taxi)",
  perPerson:"per person",tightest:"Tightest budget:",people:"people",ready:"Plan ready",returnLabel:"Getting home",endNight:"Everyone heads home",endDay:"End of the day",
  copy:"Copy for the group",again:"Another plan",copied:"Copied, paste it in the group chat",copyFail:"Can't copy here",total:"Total",plannedWith:"Planned with Tournée",
  thinking:"Finding a plan that works for everyone…",retry:"Try again",errRate:"Too many requests at once. Wait a few seconds and try again.",
- errKey:"The Anthropic key isn't set up on the server.",errGeneric:"The plan couldn't be generated. Try again.",
- mapCheck:"Check addresses before you go",mapOpen:"Open route",mapAria:"Map of the stops",svgCap:"Approximate positions, simplified map",svgAll:"See all of Paris",svgZoom:"Zoom to the plan"},
-es:{srTitle:"Tournée: elige tu plan",pickNight:"De noche",pickNightSub:"Bares, discotecas, conciertos. De la primera copa al último metro.",pickDay:"De día",pickDaySub:"Museos, exposiciones, parques. Del primer museo al último café.",
- nightTitle:"¿Dónde salimos<br>esta noche?",nightText:"Elige la ciudad. Tournée encuentra la noche que le va bien a todo el grupo, de la primera copa a la vuelta a casa.",
- dayTitle:"¿Qué vemos<br>hoy?",dayText:"Elige la ciudad. Tournée encuentra el día cultural que gusta a todo el grupo, del primer museo al último café.",
+ errKey:"The service is temporarily unavailable. Try again later.",errGeneric:"Couldn't create the plan. Try again.",
+ mapCheck:"Check addresses before you go",mapOpen:"Open directions",mapAria:"Map of the stops",svgCap:"Approximate positions, simplified map",svgAll:"See all of Paris",svgZoom:"Zoom in on the plan"},
+es:{namePh:"Nombre",choose:"Elegir…",needFields:"Completa los campos que faltan (borde discontinuo).",needJoin:"Añade tu nombre, tu presupuesto y lo que te apetece.",host:"Organizar una quedada",hostPick:"Elige la ciudad de tu quedada.",shareTitle:"Invita al grupo",shareHint:"Envía este enlace. Cada uno añade su nombre y su presupuesto.",copyLink:"Copiar enlace",linkCopied:"Enlace copiado",joinTitle:"Únete a la quedada",joinHint:"Añade tu nombre y tu presupuesto. Solo el organizador puede cambiar los datos de los demás.",joinHostHint:"Añádete tú también al grupo.",joinBtn:"Unirme",yourName:"Tu nombre",youHost:"Organizador",you:"Tú",waitHost:"El organizador creará el plan cuando estén todos.",full:"Esta quedada está completa (máx. 8 personas).",notFound:"Esta quedada no existe o ha caducado.",needName:"Añade tu nombre.",noStore:"Compartir aún no está activado en el servidor.",creating:"Creando la quedada…",groupEmpty:"Aún no se ha unido nadie.",flagShortNight:"sin alcohol",flagShortDay:"menor de 26",srTitle:"Tournée: elige tu plan",pickNight:"De noche",pickNightSub:"Bares, discotecas, conciertos. De la primera copa al último metro.",pickDay:"De día",pickDaySub:"Museos, exposiciones, parques. Del primer museo al último café.",
+ nightTitle:"¿Dónde salimos<br>esta noche?",nightText:"Elige una ciudad. Tournée encuentra el plan de noche que le va bien a todo el grupo, de la primera copa a la vuelta a casa.",
+ dayTitle:"¿Qué vemos<br>hoy?",dayText:"Elige una ciudad. Tournée organiza un día que le encantará a todo el grupo, del primer museo al último café.",
  citiesLabel:"Ciudades",clockAria:"{t} en {c}",evening:", es de noche",switchCity:"Cambiar de ciudad",switchMode:"De noche o de día",langLabel:"Idioma",
  heroH1:"Todo el grupo.<br>Un solo plan.",
- heroNight:"Cada uno pone su presupuesto y sus ganas. En 30 segundos, Tournée encuentra la noche en {c} que le va bien a todos, de la primera copa a la vuelta a casa.",
- heroDay:"Cada uno pone su presupuesto y lo que le gusta. En 30 segundos, Tournée encuentra el día en {c} que gusta a todos, del primer museo al último café.",
- group:"El grupo",groupHint:"Basta un apodo, no hacen falta nombres reales.",add:"Añadir a alguien",panelNight:"La noche",panelDay:"El día",
- panelHint:"Dónde quedáis y a qué hora.",startLabel:"Punto de encuentro",timeLabel:"Hora de encuentro",ctaNight:"Planear la noche",ctaDay:"Planear el día",
+ heroNight:"Cada uno pone su presupuesto y sus ganas. En 30 segundos, Tournée organiza una noche en {c} que le va bien a todos, de la primera copa a la vuelta a casa.",
+ heroDay:"Cada uno pone su presupuesto y lo que le gusta. En 30 segundos, Tournée organiza un día en {c} que gustará a todos, del primer museo al último café.",
+ group:"El grupo",groupHint:"Basta con un nombre o un apodo.",add:"Añadir a alguien",panelNight:"La noche",panelDay:"El día",
+ panelHint:"Dónde quedáis y a qué hora.",startLabel:"Punto de encuentro",timeLabel:"Hora de encuentro",ctaNight:"Organizar la noche",ctaDay:"Organizar el día",
  status:"Comprueba horarios y precios antes de ir.",footer:"© 2026 Tournée",
- nick:"Apodo",remove:"Quitar",budget:"Presupuesto máx.",vibe:"Le apetece",flagNight:"No bebe alcohol",flagDay:"Menor de 26 (tarifa joven)",friend:"Amigo",needTwo:"Añade al menos una persona.",stopsLabel:"Número de paradas",
+ nick:"Nombre",remove:"Quitar",budget:"Presupuesto máx.",vibe:"Le apetece",flagNight:"No bebe alcohol",flagDay:"Menor de 26 años (tarifa joven)",friend:"Amigo",needTwo:"Añade al menos una persona.",stopsLabel:"Número de paradas",
  rideMetro:"Volvemos en metro (sin taxi)",rideTube:"Volvemos en metro (sin taxi)",rideTransit:"Volvemos en transporte público (sin Uber)",rideTram:"Volvemos en tranvía (sin taxi)",rideDay:"Nos movemos en transporte público (sin taxi)",
  perPerson:"por persona",tightest:"Presupuesto más ajustado:",people:"personas",ready:"Plan listo",returnLabel:"Vuelta",endNight:"Todos a casa",endDay:"Fin del día",
  copy:"Copiar para el grupo",again:"Otro plan",copied:"Copiado, pégalo en el grupo",copyFail:"No se puede copiar aquí",total:"Total",plannedWith:"Planeado con Tournée",
  thinking:"Buscando el plan que le va bien a todos…",retry:"Reintentar",errRate:"Demasiadas solicitudes. Espera unos segundos y vuelve a intentarlo.",
- errKey:"La clave de Anthropic no está configurada en el servidor.",errGeneric:"No se pudo generar el plan. Vuelve a intentarlo.",
- mapCheck:"Comprueba las direcciones antes de ir",mapOpen:"Abrir ruta",mapAria:"Mapa de las paradas",svgCap:"Posiciones aproximadas, mapa simplificado",svgAll:"Ver todo París",svgZoom:"Acercar al plan"}
+ errKey:"El servicio no está disponible en este momento. Inténtalo más tarde.",errGeneric:"No se pudo crear el plan. Vuelve a intentarlo.",
+ mapCheck:"Comprueba las direcciones antes de ir",mapOpen:"Abrir ruta",mapAria:"Mapa de las paradas",svgCap:"Posiciones aproximadas, mapa simplificado",svgAll:"Ver todo París",svgZoom:"Ver el plan de cerca"}
 };
 const VIBE_T = {
- chill:{fr:"Chill, on discute",en:"Chill, just talking",es:"Tranqui, charlar"},
+ chill:{fr:"Chill, on discute",en:"Chill, just chatting",es:"Tranqui, para charlar"},
  cocktails:{fr:"Bar à cocktails",en:"Cocktail bar",es:"Bar de cócteles"},
  dance:{fr:"Danser",en:"Dancing",es:"Bailar"},
  karaoke:{fr:"Karaoké",en:"Karaoke",es:"Karaoke"},
  food:{fr:"Bien manger",en:"Good food",es:"Comer bien"},
  cheap:{fr:"Bar pas cher",en:"Cheap bar",es:"Bar barato"},
- music:{fr:"Concert ou DJ set",en:"Live music or DJ",es:"Concierto o DJ"},
+ music:{fr:"Concert ou DJ set",en:"Live music or DJ",es:"Concierto o sesión de DJ"},
  rooftop:{fr:"Rooftop",en:"Rooftop",es:"Azotea"},
  museums:{fr:"Musées",en:"Museums",es:"Museos"},
  contemporary:{fr:"Art contemporain",en:"Contemporary art",es:"Arte contemporáneo"},
@@ -351,7 +383,7 @@ function fmtTime(v){
 function fillTimes(val){
   const sel=document.getElementById("start"), opts=[];
   for(let m=8*60;m<24*60;m+=15){ const v=`${String(Math.floor(m/60)).padStart(2,"0")}:${String(m%60).padStart(2,"0")}`; opts.push(`<option value="${v}">${fmtTime(v)}</option>`); }
-  sel.innerHTML=opts.join(""); sel.value=val||"20:00";
+  sel.innerHTML=`<option value="" disabled hidden>${t("choose")}</option>`+opts.join(""); sel.value=val||"";
 }
 
 const MODES = {
@@ -385,51 +417,185 @@ const CITIES = [
 let city = CITIES.find(c=>c.id==="paris");
 const fmt = n => city.pre + n + city.post;
 let friends = [];
-function defaultFriends(){
-  const b=city.budget, m=M();
-  return ["Inès","Yanis","Léa"].map((nick,i)=>({nick, budget:b[[3,4,5][i]], vibe:m.picks[i], flag:m.flags[i]}));
-}
-let lastPlan = null, ctl = null, stops = 3;
+const blankFriend=()=>({nick:"", budget:null, vibe:"", flag:false});
+const midBudget=()=>Math.round((city.budget[0]+city.budget[1])/2/city.budget[2])*city.budget[2];
+let lastPlan = null, ctl = null, stops = 0;
 const $ = s => document.querySelector(s);
 
 function esc(s){return String(s ?? "").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
 
+let outing=null, me={}, hostingPick=false, syncTimers={}, pending=0;
+const isAdmin=()=>!!(outing&&me.admin);
+const canEdit=f=>!outing||isAdmin()||(f.mid&&f.mid===me.mid);
+const creds=id=>{ try{ return JSON.parse(localStorage.getItem("tournee-o-"+id))||{}; }catch{ return {}; } };
+const saveCreds=(id,c)=>{ try{ localStorage.setItem("tournee-o-"+id,JSON.stringify(c)); }catch{} };
+function tagsFor(f){ return (f.host?`<span class="tag">${t("youHost")}</span>`:"")+(outing&&f.mid&&f.mid===me.mid?`<span class="tag">${t("you")}</span>`:""); }
 function renderFriends(){
   const box = $("#friends");
-  box.innerHTML = friends.map((f,i)=>`
+  if(outing && !friends.length){ box.innerHTML=`<p class="hint" style="margin:0">${t("groupEmpty")}</p>`; }
+  else box.innerHTML = friends.map((f,i)=> canEdit(f) ? `
     <div class="friend">
       <div class="friend-top">
         <span class="dot" aria-hidden="true"></span>
-        <input type="text" aria-label="${t("nick")}" value="${esc(f.nick)}" data-i="${i}" data-k="nick" maxlength="20" placeholder="${t("nick")}">
-        ${friends.length>1?`<button class="remove" type="button" data-rm="${i}" aria-label="${t("remove")} ${esc(f.nick)}">${t("remove")}</button>`:""}
+        <input type="text" aria-label="${t("namePh")}" value="${esc(f.nick)}" data-i="${i}" data-k="nick" maxlength="20" placeholder="${t("namePh")}" autocomplete="off">
+        ${tagsFor(f)}
+        ${(outing?isAdmin():friends.length>1)?`<button class="remove" type="button" data-rm="${i}" aria-label="${t("remove")} ${esc(f.nick)}">${t("remove")}</button>`:""}
       </div>
       <div class="friend-row">
         <div class="budget">
-          <label for="b${i}">${t("budget")} <span class="budget-val" id="bv${i}">${fmt(f.budget)}</span></label>
-          <input type="range" id="b${i}" min="${city.budget[0]}" max="${city.budget[1]}" step="${city.budget[2]}" value="${f.budget}" data-i="${i}" data-k="budget">
+          <label for="b${i}">${t("budget")} <span class="budget-val" id="bv${i}">${f.budget==null?"—":fmt(f.budget)}</span></label>
+          <input type="range" id="b${i}"${f.budget==null?' class="unset"':""} min="${city.budget[0]}" max="${city.budget[1]}" step="${city.budget[2]}" value="${f.budget??midBudget()}" data-i="${i}" data-k="budget">
         </div>
         <div class="field">
           <label for="v${i}">${t("vibe")}</label>
-          <select id="v${i}" data-i="${i}" data-k="vibe">${M().vibes.map(v=>`<option value="${v}"${v===f.vibe?" selected":""}>${VIBE_T[v][lang]}</option>`).join("")}</select>
+          <select id="v${i}" data-i="${i}" data-k="vibe"><option value="" disabled hidden${f.vibe?"":" selected"}>${t("choose")}</option>${M().vibes.map(v=>`<option value="${v}"${v===f.vibe?" selected":""}>${VIBE_T[v][lang]}</option>`).join("")}</select>
         </div>
       </div>
       <label class="check"><input type="checkbox" data-i="${i}" data-k="flag"${f.flag?" checked":""}> ${t(M().flag)}</label>
+    </div>` : `
+    <div class="friend ro">
+      <div class="friend-top"><span class="dot" aria-hidden="true"></span><span class="ro-name">${esc(f.nick||t("friend")+" "+(i+1))}</span>${tagsFor(f)}</div>
+      <p class="ro-meta">${f.budget==null?"—":esc(fmt(f.budget))} · ${esc(VIBE_T[f.vibe]?.[lang]||"—")}${f.flag?" · "+t(mode==="day"?"flagShortDay":"flagShortNight"):""}</p>
     </div>`).join("");
-  $("#addFriend").style.display = friends.length>=8 ? "none" : "";
+  $("#addFriend").style.display = (friends.length>=8 || (outing && !isAdmin())) ? "none" : "";
 }
 
 $("#friends").addEventListener("input", e=>{
   const t=e.target, i=+t.dataset.i, k=t.dataset.k; if(!k) return;
-  if(k==="budget"){friends[i].budget=+t.value; $("#bv"+i).textContent=fmt(t.value);}
+  t.removeAttribute("aria-invalid");
+  if(k==="budget"){friends[i].budget=+t.value; $("#bv"+i).textContent=fmt(t.value); t.classList.remove("unset");}
   else if(k==="flag"){friends[i].flag=t.checked;}
   else friends[i][k]=t.value;
+  if(outing) syncMember(friends[i]);
 });
-$("#friends").addEventListener("change", e=>{ if(e.target.dataset.k==="flag") friends[+e.target.dataset.i].flag=e.target.checked; });
-$("#friends").addEventListener("click", e=>{
+$("#friends").addEventListener("change", e=>{ if(e.target.dataset.k==="flag"){ const f=friends[+e.target.dataset.i]; f.flag=e.target.checked; if(outing) syncMember(f); } });
+$("#friends").addEventListener("click", async e=>{
   const rm=e.target.dataset.rm; if(rm===undefined) return;
+  if(outing){ const f=friends[+rm]; const r=await api({action:"remove",id:outing.id,mid:f.mid,adminToken:me.admin}); if(r.outing) applyOuting(r.outing,true); return; }
   friends.splice(+rm,1); renderFriends();
 });
-$("#addFriend").onclick=()=>{ friends.push({nick:t("friend")+" "+(friends.length+1), budget:city.budget[5], vibe:M().vibes[0], flag:M().flags[0]}); renderFriends(); };
+$("#addFriend").onclick=async()=>{
+  const m=blankFriend();
+  if(outing){ const r=await api({action:"join",id:outing.id,adminToken:me.admin,member:{...m,nick:t("friend")+" "+(friends.length+1)}}); if(r.outing) applyOuting(r.outing,true); return; }
+  friends.push(m); renderFriends();
+};
+
+/* Hosted outings */
+async function api(body){
+  try{
+    const r=await fetch("/api/outing",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+    const d=await r.json().catch(()=>({})); if(!r.ok) d.error=d.error||"server"; return d;
+  }catch{ return {error:"server"}; }
+}
+function syncMember(f){
+  clearTimeout(syncTimers[f.mid]); pending++;
+  syncTimers[f.mid]=setTimeout(async()=>{
+    await api({action:"update",id:outing.id,mid:f.mid,token:f.mid===me.mid?me.token:undefined,adminToken:me.admin,member:{nick:f.nick,budget:f.budget,vibe:f.vibe,flag:f.flag}});
+    pending=Math.max(0,pending-1);
+  },600);
+}
+let settingsTimer=null;
+function syncSettings(){
+  if(!isAdmin()) return;
+  clearTimeout(settingsTimer); pending++;
+  settingsTimer=setTimeout(async()=>{
+    await api({action:"settings",id:outing.id,adminToken:me.admin,area:$("#area").value,start:$("#start").value,stops,metro:$("#metro").checked});
+    pending=Math.max(0,pending-1);
+  },500);
+}
+["#area","#start","#metro"].forEach(sel=>$(sel).addEventListener("change",e=>{ e.target.removeAttribute("aria-invalid"); if(outing) syncSettings(); }));
+$("#friends").addEventListener("change",e=>{ if(e.target.dataset.k==="vibe") e.target.removeAttribute("aria-invalid"); });
+function renderJoin(){
+  $("#jName").placeholder=t("yourName");
+  const b=city.budget, v=M().vibes;
+  $("#joinHint").textContent=t(isAdmin()?"joinHostHint":"joinHint");
+  const touched=$("#jBudget")&&!$("#jBudget").classList.contains("unset"), cur=touched?+$("#jBudget").value:null, curV=$("#jVibe")?.value||"";
+  $("#jRow").innerHTML=`<div class="budget"><label for="jBudget">${t("budget")} <span class="budget-val" id="jbv">${cur==null?"—":fmt(cur)}</span></label>
+      <input type="range" id="jBudget"${cur==null?' class="unset"':""} min="${b[0]}" max="${b[1]}" step="${b[2]}" value="${cur??midBudget()}"></div>
+    <div class="field"><label for="jVibe">${t("vibe")}</label><select id="jVibe"><option value="" disabled hidden${curV?"":" selected"}>${t("choose")}</option>${v.map(x=>`<option value="${x}"${x===curV?" selected":""}>${VIBE_T[x][lang]}</option>`).join("")}</select></div>`;
+  $("#jBudget").oninput=e=>{ $("#jbv").textContent=fmt(e.target.value); e.target.classList.remove("unset"); e.target.removeAttribute("aria-invalid"); };
+  $("#jVibe").onchange=e=>e.target.removeAttribute("aria-invalid");
+  $("#jName").placeholder=t("namePh");
+  $("#jFlagLabel").textContent=t(M().flag);
+}
+$("#joinBtn").onclick=async()=>{
+  const nick=$("#jName").value.trim(), bud=$("#jBudget"), vib=$("#jVibe");
+  const miss=[[ $("#jName"),!nick ],[ bud,bud.classList.contains("unset") ],[ vib,!vib.value ]];
+  miss.forEach(([el,bad])=>bad?el.setAttribute("aria-invalid","true"):el.removeAttribute("aria-invalid"));
+  if(miss.some(x=>x[1])){ $("#joinStatus").textContent=t("needJoin"); return; }
+  $("#joinBtn").disabled=true;
+  const r=await api({action:"join",id:outing.id,adminToken:me.admin,self:isAdmin(),member:{nick,budget:+$("#jBudget").value,vibe:$("#jVibe").value,flag:$("#jFlag").checked}});
+  $("#joinBtn").disabled=false;
+  if(r.error){ $("#joinStatus").textContent=t(ERR[r.error]||"errGeneric"); return; }
+  me={...me,mid:r.mid,token:r.token}; saveCreds(outing.id,me);
+  $("#joinStatus").textContent=""; applyOuting(r.outing,true);
+};
+$("#copyLink").onclick=async()=>{
+  const u=$("#shareUrl").value, b=$("#copyLink");
+  try{ await navigator.clipboard.writeText(u); }catch{ $("#shareUrl").select(); try{document.execCommand("copy")}catch{} }
+  b.textContent=t("linkCopied"); setTimeout(()=>b.textContent=t("copyLink"),2000);
+};
+let planShown="";
+function applyOuting(o, force){
+  const busy=document.activeElement && document.activeElement.closest && document.activeElement.closest("#friends,#joinPanel,.panel select");
+  if(!force && (pending>0 || busy)) return;
+  outing=o; mode=o.mode; city=CITIES.find(c=>c.id===o.city)||CITIES[0];
+  applyMode(); cityTexts();
+  $("#planner").classList.remove("loading");
+  if($("#area").dataset.city!==city.id){
+    const areas=city.areas.includes(o.area)||!o.area?city.areas:[o.area,...city.areas];
+    $("#area").innerHTML=`<option value="" disabled hidden>${t("choose")}</option>`+areas.map(a=>`<option>${esc(a)}</option>`).join(""); $("#area").dataset.city=city.id;
+  }
+  $("#area").value=o.area||"";
+  fillTimes(o.start||""); setStops(o.stops||0); $("#metro").checked=o.metro===true;
+  const admin=isAdmin();
+  ["#area","#start","#metro"].forEach(sel=>$(sel).disabled=!admin);
+  document.querySelectorAll("#stops button").forEach(b=>b.disabled=!admin);
+  friends=o.members; renderFriends();
+  $("#groupHint").hidden=true;
+  $("#sharePanel").hidden=!admin; $("#shareUrl").value=location.origin+"/o/"+o.id;
+  const joined=!!(me.mid && o.members.some(m=>m.mid===me.mid));
+  if(me.mid && !joined){ me={admin:me.admin}; saveCreds(o.id,me); }
+  $("#joinPanel").hidden=joined;
+  if(!joined){ renderJoin(); const isFull=o.members.length>=8; $("#joinBtn").disabled=isFull; $("#joinStatus").textContent=isFull?t("full"):""; }
+  $("#go").hidden=!admin; $("#status").textContent=admin?t("status"):t("waitHost");
+  const key=o.plan?JSON.stringify(o.plan).length+":"+(o.plan.titre||""):"";
+  if(o.plan && (key!==planShown || force==="lang")){ planShown=key; renderPlan(o.plan,false,true); }
+  document.title="Tournée, "+cityName(city);
+}
+async function loadOuting(id){
+  outing=null; me=creds(id); planShown="";
+  $("#planner").classList.add("loading"); $("#result").innerHTML="";
+  $("#sharePanel").hidden=true; $("#joinPanel").hidden=true;
+  try{
+    const r=await fetch("/api/outing?id="+encodeURIComponent(id)); const d=await r.json().catch(()=>({}));
+    if(!r.ok) throw d.error||"server";
+    applyOuting(d.outing,true);
+  }catch(err){
+    document.documentElement.dataset.theme="dark";
+    $("#heroText").textContent=t(err==="not_found"?"notFound":err==="no_store"?"noStore":"errGeneric");
+  }
+}
+setInterval(async()=>{
+  if(!outing || document.hidden || $("#planner").hidden) return;
+  try{ const r=await fetch("/api/outing?id="+encodeURIComponent(outing.id)); if(r.ok){ const d=await r.json(); applyOuting(d.outing,false); } }catch{}
+},6000);
+async function createOuting(c){
+  $("#hostBtn").disabled=true;
+  const fromPlanner=!$("#planner").hidden && !outing;
+  const body={action:"create",mode,city:c.id,
+    area:fromPlanner?$("#area").value:"", start:fromPlanner?$("#start").value:"",
+    stops:fromPlanner?stops:0, metro:fromPlanner?$("#metro").checked:false};
+  const r=await api(body);
+  $("#hostBtn").disabled=false; hostingPick=false;
+  if(r.error){ const msg=t(ERR[r.error]||"errGeneric"); if(fromPlanner) $("#status").textContent=msg; else $("#homeText").textContent=msg; return; }
+  saveCreds(r.outing.id,{admin:r.adminToken});
+  go("o/"+r.outing.id);
+}
+$("#hostBtn").onclick=()=>{
+  if(!$("#planner").hidden && !outing){ createOuting(city); return; }
+  hostingPick=true; $("#homeText").textContent=t("hostPick"); $("#cities").scrollIntoView({behavior:"smooth",block:"start"});
+};
 
 let lastIsExample=false;
 function renderPlan(p, isExample, quiet){
@@ -446,7 +612,7 @@ function renderPlan(p, isExample, quiet){
         <p class="meta"><b>${esc(fmt(s.prix_pp))} ${t("perPerson")}</b>${s.trajet?` · ${esc(s.trajet)}`:""}</p>
       </div>
     </li>`).join("");
-  const minB = Math.min(...friends.map(f=>f.budget));
+  const bs=friends.map(f=>f.budget).filter(b=>typeof b==="number"), minB = bs.length?Math.min(...bs):p.total_pp;
   $("#result").innerHTML = `
     ${isExample?`<span class="badge ex">Exemple</span>`:`<span class="badge">${t("ready")}</span>`}
     <div class="res-head"><h2>${esc(p.titre)}</h2><p>${esc(p.resume)}</p></div>
@@ -466,7 +632,7 @@ function renderPlan(p, isExample, quiet){
     </ol>
     <div class="actions">
       <button class="btn primary" type="button" id="copy">${t("copy")}</button>
-      ${isExample?"":`<button class="btn" type="button" id="again">${t("again")}</button>`}
+      ${isExample||(outing&&!isAdmin())?"":`<button class="btn" type="button" id="again">${t("again")}</button>`}
     </div>`;
   drawMap(p);
   $("#copy").onclick = copyPlan;
@@ -616,7 +782,7 @@ const EXAMPLE = {titre:"Bastille, du canal au dancefloor",resume:"Une soirée qu
 
 function showExample(){ renderPlan(EXAMPLE,true); }
 
-const ERR = {rate_limited:"errRate", no_key:"errKey", group:"needTwo"};
+const ERR = {rate_limited:"errRate", no_key:"errKey", group:"needTwo", full:"full", not_found:"notFound", no_store:"noStore", name:"needName"};
 
 async function plan(){
   const go=$("#go"); go.disabled=true;
@@ -624,12 +790,13 @@ async function plan(){
   ctl?.abort(); ctl = new AbortController();
   try{
     const r = await fetch("/api/plan",{method:"POST",headers:{"Content-Type":"application/json"},signal:ctl.signal,
-      body:JSON.stringify({lang, mode:mode==="day"?"culture":mode, city:city.id, friends, area:$("#area").value, start:$("#start").value, metro:$("#metro").checked, stops})});
+      body:JSON.stringify({lang, mode:mode==="day"?"culture":mode, city:city.id, friends:friends.map((f,i)=>({...f,nick:(f.nick||"").trim()||t("friend")+" "+(i+1)})), area:$("#area").value, start:$("#start").value, metro:$("#metro").checked, stops})});
     const data = await r.json().catch(()=>({}));
     if(!r.ok) throw {code:data.error||"server"};
     const p = data.plan;
     if(!p || !Array.isArray(p.etapes) || !p.etapes.length) throw {code:"bad_shape"};
     renderPlan(p,false);
+    if(outing && isAdmin()){ const r2=await api({action:"plan",id:outing.id,adminToken:me.admin,plan:p}); if(r2.outing){ planShown=JSON.stringify(p).length+":"+(p.titre||""); outing=r2.outing; } }
   }catch(e){
     if(e?.name==="AbortError") return;
     $("#result").innerHTML = `<div class="error"><p style="margin:0 0 12px">${esc(t(ERR[e?.code] || "errGeneric"))}</p>
@@ -638,8 +805,18 @@ async function plan(){
   }finally{ go.disabled=false; }
 }
 
+function validatePlan(){
+  let ok=true;
+  const mark=(el,bad)=>{ if(!el) return; if(bad){ el.setAttribute("aria-invalid","true"); ok=false; } else el.removeAttribute("aria-invalid"); };
+  friends.forEach((f,i)=>{ if(!canEdit(f)) { if(!f.nick||f.budget==null||!f.vibe) ok=false; return; }
+    mark(document.querySelector(`#friends [data-i="${i}"][data-k="nick"]`),!String(f.nick||"").trim());
+    mark($("#b"+i),f.budget==null); mark($("#v"+i),!f.vibe); });
+  mark($("#area"),!$("#area").value); mark($("#start"),!$("#start").value); mark($("#stops"),!stops);
+  return ok;
+}
 $("#go").onclick=()=>{
   if(friends.length<1){ $("#status").textContent=t("needTwo"); return; }
+  if(!validatePlan()){ $("#status").textContent=t("needFields"); const first=document.querySelector('#planner [aria-invalid="true"]'); first?.scrollIntoView({behavior:"smooth",block:"center"}); return; }
   plan(false);
 };
 /* Home screen and city routing */
@@ -658,7 +835,7 @@ function renderCities(){
       <span class="city-time" aria-label="${t("clockAria",{t:k.txt,c:cityName(c)})}${k.night?t("evening"):""}"><span class="${k.night?"night":"day"}" aria-hidden="true"></span><bdi>${k.txt}</bdi></span>
     </button></li>`;}).join("");
 }
-$("#cities").addEventListener("click",e=>{const b=e.target.closest("[data-city]"); if(b) go(mode+"/"+b.dataset.city);});
+$("#cities").addEventListener("click",e=>{const b=e.target.closest("[data-city]"); if(!b) return; if(hostingPick){ createOuting(CITIES.find(c=>c.id===b.dataset.city)); return; } go(mode+"/"+b.dataset.city);});
 document.querySelector(".split").addEventListener("click",e=>{const b=e.target.closest("[data-pick]"); if(b) go(b.dataset.pick);});
 $("#switchCity").onclick=()=>{ go($("#planner").hidden ? "" : mode); };
 function go(path){ const url="/"+path; if(location.pathname!==url) history.pushState(null,"",url); route(); }
@@ -676,15 +853,20 @@ function cityTexts(){
   $("#cityTag").textContent=cityName(c);
   $("#status").textContent=t("status");
 }
-function setStops(n){ stops=n; document.querySelectorAll("#stops button").forEach(b=>b.setAttribute("aria-pressed",String(+b.dataset.n===n))); }
-$("#stops").addEventListener("click",e=>{const b=e.target.closest("[data-n]"); if(b) setStops(+b.dataset.n);});
+function setStops(n){ stops=n; if(n) $("#stops").removeAttribute("aria-invalid"); document.querySelectorAll("#stops button").forEach(b=>b.setAttribute("aria-pressed",String(+b.dataset.n===n))); }
+$("#stops").addEventListener("click",e=>{const b=e.target.closest("[data-n]"); if(b&&!b.disabled){ setStops(+b.dataset.n); if(outing) syncSettings(); }});
 function openCity(c){
-  setStops(3);
+  outing=null; me={}; planShown="";
+  ["#area","#start","#metro"].forEach(sel=>$(sel).disabled=false);
+  document.querySelectorAll("#stops button").forEach(b=>b.disabled=false);
+  $("#sharePanel").hidden=true; $("#joinPanel").hidden=true; $("#groupHint").hidden=false; $("#planner").classList.remove("loading");
+  delete $("#area").dataset.city;
+  setStops(0);
   ctl?.abort(); lastPlan=null;
-  city=c; friends=defaultFriends();
+  city=c; friends=[blankFriend()];
   const m=M();
-  $("#area").innerHTML=c.areas.map(a=>`<option>${esc(a)}</option>`).join("");
-  fillTimes(mode==="day"?"14:00":c.start);
+  $("#area").innerHTML=`<option value="" disabled hidden>${t("choose")}</option>`+c.areas.map(a=>`<option>${esc(a)}</option>`).join(""); $("#area").value="";
+  fillTimes(""); $("#metro").checked=false;
   cityTexts();
   $("#result").innerHTML="";
   renderFriends();
@@ -692,20 +874,24 @@ function openCity(c){
 let opened="";
 function route(keepScroll){
   const [m0,c0,extra]=location.pathname.split("/").filter(Boolean);
-  const valid=!m0 || (MODES[m0] && (!c0 || CITIES.some(x=>x.id===c0)) && !extra);
+  const isOuting=m0==="o" && !!c0 && !extra;
+  const valid=!m0 || isOuting || (MODES[m0] && (!c0 || CITIES.some(x=>x.id===c0)) && !extra);
   if(!valid){ history.replaceState(null,"","/"); return route(keepScroll); }
   const c=MODES[m0]?CITIES.find(x=>x.id===c0):null;
-  const view=!MODES[m0]?"start":c?"planner":"home";
+  const view=isOuting?"planner":!MODES[m0]?"start":c?"planner":"home";
   if(MODES[m0]){ mode=m0; applyMode(); }
-  else { document.documentElement.dataset.theme="light"; delete document.documentElement.dataset.mode; }
+  else if(!isOuting){ document.documentElement.dataset.theme="light"; delete document.documentElement.dataset.mode; }
+  if(view!=="home") hostingPick=false;
   $("#landing").hidden=view!=="start"; $("#home").hidden=view!=="home"; $("#planner").hidden=view!=="planner";
-  $("#cityTag").hidden=view!=="planner"; $("#switchCity").hidden=view==="start";
-  $("#switchCity").textContent=t(view==="planner"?"switchCity":"switchMode");
+  $("#cityTag").hidden=view!=="planner";
+  $("#switchCity").hidden=!(view==="planner"&&!isOuting); $("#switchCity").textContent=t("switchCity");
+  $("#hostBtn").hidden=!(view==="home"||(view==="planner"&&!isOuting));
   $("#go").hidden=view!=="planner"; $("#status").hidden=view!=="planner";
   document.querySelector("footer").hidden=view==="start";
-  if(view==="planner"){ const key=mode+"/"+c.id; if(key!==opened){ openCity(c); opened=key; } document.title="Tournée, "+cityName(c); }
-  else if(view==="home"){ renderCities(); document.title="Tournée, "+t(M().label).toLowerCase(); }
-  else document.title="Tournée";
+  if(isOuting){ const key="o/"+c0; if(key!==opened){ opened=key; loadOuting(c0); } }
+  else if(view==="planner"){ const key=mode+"/"+c.id; if(key!==opened){ openCity(c); opened=key; } document.title="Tournée, "+cityName(c); }
+  else if(view==="home"){ opened=""; outing=null; renderCities(); document.title="Tournée, "+t(M().label).toLowerCase(); }
+  else { opened=""; outing=null; document.title="Tournée"; }
   if(keepScroll!==true) window.scrollTo(0,0);
 }
 window.addEventListener("popstate",route);
@@ -724,7 +910,7 @@ $("#homeLink").addEventListener("click",e=>{ e.preventDefault(); go(""); });
 $("#lang").addEventListener("change",e=>{
   lang=e.target.value; try{localStorage.setItem("tournee-lang",lang)}catch{}
   const keep=$("#start").value; applyLang(); fillTimes(keep); route(true);
-  if(!$("#planner").hidden){ cityTexts(); renderFriends(); if(lastPlan) renderPlan(lastPlan,lastIsExample,true); }
+  if(!$("#planner").hidden){ if(outing){ applyOuting(outing,"lang"); } else { cityTexts(); renderFriends(); if(lastPlan) renderPlan(lastPlan,lastIsExample,true); } }
 });
 applyLang();
 route();
