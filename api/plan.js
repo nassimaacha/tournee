@@ -6,6 +6,9 @@ const VIBES = {
   culture: { museums: "Musées", contemporary: "Art contemporain", galleries: "Expos et galeries", streetart: "Street art", architecture: "Architecture", parks: "Parcs et jardins", markets: "Marchés", views: "Balade et points de vue" },
 };
 const LANGS = { fr: "français", en: "anglais", es: "espagnol", ar: "arabe standard moderne" };
+const avoidRule = (avoid) => avoid.length
+  ? `- Lieux déjà proposés à ce groupe, à NE PAS reprendre : ${avoid.join(", ")}. Choisis d'autres lieux. Seulement s'il n'existe vraiment plus d'autre option adaptée près du point de départ, tu peux réutiliser certains de ces lieux, mais jamais la même combinaison ni dans le même ordre.\n`
+  : "";
 const style = (lang) => `- Écris toutes les valeurs texte du JSON en ${LANGS[lang]}, ton direct et complice, phrases courtes. Garde les noms propres des lieux tels quels. Les clés JSON restent identiques.\n- Le champ "heure" est toujours au format 24 h HH:MM. ${lang === "en" ? "Dans les textes (retour, trajet, pourquoi...), écris les heures au format 12 h avec AM/PM (ex : 11:30 PM)." : "Dans les textes, écris les heures au format 24 h (ex : 23:30)."}`;
 const CITIES = {
   "paris": { tz: "Europe/Paris", cultureNotes: "Beaucoup de musées nationaux sont gratuits pour les moins de 26 ans résidents de l'UE.", name: "Paris", cur: "€", curName: "euros", min: 10, max: 100,
@@ -37,7 +40,7 @@ function today(c) {
 const JSON_SHAPE = (first) => `Réponds UNIQUEMENT avec un objet JSON valide, sans texte autour, de cette forme :
 {"titre":"nom accrocheur (5 mots max)","resume":"une phrase","compromis":"une ou deux phrases qui expliquent comment le plan respecte chaque personne, en citant les pseudos","etapes":[{"heure":"${first}","type":"type d'étape","lieu":"nom du lieu","quartier":"quartier ou rue","pourquoi":"une phrase","prix_pp":10,"trajet":"comment venir de l'étape précédente","lat":48.8534,"lng":2.3711}],"total_pp":28,"retour":"comment rentrer et à quelle heure partir","retour_station":"nom de l'arrêt","retour_lat":48.8532,"retour_lng":2.3692}`;
 
-function buildCulturePrompt({ c, lang, stops, friends, area, start, metro }) {
+function buildCulturePrompt({ c, lang, avoid, stops, friends, area, start, metro }) {
   const group = friends.map(f => `- ${f.nick} : budget max ${f.budget} ${c.cur}, aime "${f.vibe}"${f.flag ? ", a moins de 26 ans" : ""}`).join("\n");
   const minB = Math.min(...friends.map(f => f.budget));
   return `Tu es Tournée, une IA qui organise des sorties culturelles à ${c.name} pour des groupes d'étudiants de 18 à 25 ans.
@@ -62,12 +65,12 @@ Règles :
 - Propose des lieux réels et connus à ${c.name}. Prix réalistes en ${c.curName} : prix_pp et total_pp sont des nombres dans cette monnaie.
 - Contexte local : ${c.cultureNotes}
 - Donne pour chaque lieu ses coordonnées GPS précises (lat, lng, 4 décimales), et celles de l'arrêt de transport du retour (retour_station).
-${style(lang)}
+${avoidRule(avoid)}${style(lang)}
 
 ${JSON_SHAPE(start)}`;
 }
 
-function buildPrompt({ c, lang, stops, friends, area, start, metro }) {
+function buildPrompt({ c, lang, avoid, stops, friends, area, start, metro }) {
   const group = friends.map(f => `- ${f.nick} : budget max ${f.budget} ${c.cur}, envie "${f.vibe}"${f.flag ? ", ne boit pas d'alcool" : ""}`).join("\n");
   const minB = Math.min(...friends.map(f => f.budget));
   return `Tu es Tournée, une IA qui organise des soirées à ${c.name} pour des groupes d'étudiants de 18 à 25 ans.
@@ -89,7 +92,7 @@ Règles :
 - Propose des lieux réels et connus à ${c.name}, adaptés aux étudiants. Prix réalistes en ${c.curName} : prix_pp et total_pp sont des nombres dans cette monnaie.
 - Contexte local : ${c.notes}
 - Donne pour chaque lieu ses coordonnées GPS précises (lat, lng, 4 décimales), et celles de l'arrêt de transport du retour (retour_station).
-${style(lang)}
+${avoidRule(avoid)}${style(lang)}
 
 ${JSON_SHAPE("20:00")}`;
 }
@@ -113,9 +116,11 @@ module.exports = async (req, res) => {
   }));
   if (friends.length < 1) return res.status(400).json({ error: "group" });
 
+  const avoid = (Array.isArray(body.avoid) ? body.avoid : []).slice(0, 40).map(x => clean(x, 60)).filter(Boolean);
   const input = {
     c,
     lang,
+    avoid,
     stops: Math.min(5, Math.max(1, parseInt(body.stops, 10) || 3)),
     friends,
     area: clean(body.area, 40) || "Bastille",
