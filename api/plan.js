@@ -37,7 +37,7 @@ function today(c) {
 const JSON_SHAPE = (first) => `Réponds UNIQUEMENT avec un objet JSON valide, sans texte autour, de cette forme :
 {"titre":"nom accrocheur (5 mots max)","resume":"une phrase","compromis":"une ou deux phrases qui expliquent comment le plan respecte chaque personne, en citant les pseudos","etapes":[{"heure":"${first}","type":"type d'étape","lieu":"nom du lieu","quartier":"quartier ou rue","pourquoi":"une phrase","prix_pp":10,"trajet":"comment venir de l'étape précédente","lat":48.8534,"lng":2.3711}],"total_pp":28,"retour":"comment rentrer et à quelle heure partir","retour_station":"nom de l'arrêt","retour_lat":48.8532,"retour_lng":2.3692}`;
 
-function buildCulturePrompt({ c, lang, friends, area, start, metro }) {
+function buildCulturePrompt({ c, lang, stops, friends, area, start, metro }) {
   const group = friends.map(f => `- ${f.nick} : budget max ${f.budget} ${c.cur}, aime "${f.vibe}"${f.flag ? ", a moins de 26 ans" : ""}`).join("\n");
   const minB = Math.min(...friends.map(f => f.budget));
   return `Tu es Tournée, une IA qui organise des sorties culturelles à ${c.name} pour des groupes d'étudiants de 18 à 25 ans.
@@ -56,7 +56,7 @@ Règles :
 - Chaque centre d'intérêt du groupe doit être servi au moins une fois.
 - Utilise les gratuités et les tarifs jeunes quand quelqu'un a moins de 26 ans.
 - Tiens compte du jour : évite les lieux habituellement fermés ce jour là.
-- 3 ou 4 étapes proches les unes des autres. Au moins 2 étapes doivent être de vrais lieux culturels ou de plein air : musée, expo, galerie, monument, parc, jardin, marché, point de vue, street art.
+- Exactement ${stops} étapes, proches les unes des autres. Au moins ${Math.min(2, stops)} étapes doivent être de vrais lieux culturels ou de plein air : musée, expo, galerie, monument, parc, jardin, marché, point de vue, street art.
 - Une seule pause café ou snack maximum, jamais de bar ni d'alcool. Fin de journée vers 19h.
 - Le champ "type" décrit l'activité (ex : Musée, Parc, Galerie, Marché, Balade, Pause café).
 - Propose des lieux réels et connus à ${c.name}. Prix réalistes en ${c.curName} : prix_pp et total_pp sont des nombres dans cette monnaie.
@@ -67,7 +67,7 @@ ${style(lang)}
 ${JSON_SHAPE(start)}`;
 }
 
-function buildPrompt({ c, lang, friends, area, start, metro }) {
+function buildPrompt({ c, lang, stops, friends, area, start, metro }) {
   const group = friends.map(f => `- ${f.nick} : budget max ${f.budget} ${c.cur}, envie "${f.vibe}"${f.flag ? ", ne boit pas d'alcool" : ""}`).join("\n");
   const minB = Math.min(...friends.map(f => f.budget));
   return `Tu es Tournée, une IA qui organise des soirées à ${c.name} pour des groupes d'étudiants de 18 à 25 ans.
@@ -85,7 +85,7 @@ Règles :
 - Le coût total par personne ne doit pas dépasser ${minB} ${c.cur} (le plus petit budget du groupe). Personne ne doit se sentir exclu.
 - Chaque envie du groupe doit être servie au moins une fois dans la soirée.
 - Si quelqu'un ne boit pas d'alcool, chaque bar doit avoir de vraies options sans alcool.
-- 3 ou 4 étapes, proches les unes des autres (à pied ou 1 ou 2 stations de métro).
+- Exactement ${stops} étapes, proches les unes des autres (à pied ou 1 ou 2 stations de métro).
 - Propose des lieux réels et connus à ${c.name}, adaptés aux étudiants. Prix réalistes en ${c.curName} : prix_pp et total_pp sont des nombres dans cette monnaie.
 - Contexte local : ${c.notes}
 - Donne pour chaque lieu ses coordonnées GPS précises (lat, lng, 4 décimales), et celles de l'arrêt de transport du retour (retour_station).
@@ -111,11 +111,12 @@ module.exports = async (req, res) => {
     vibe: VIBES[mode][f?.vibe] || Object.values(VIBES[mode]).find(v => v === f?.vibe) || Object.values(VIBES[mode])[0],
     flag: !!(f?.flag ?? f?.sober),
   }));
-  if (friends.length < 2) return res.status(400).json({ error: "group" });
+  if (friends.length < 1) return res.status(400).json({ error: "group" });
 
   const input = {
     c,
     lang,
+    stops: Math.min(6, Math.max(2, parseInt(body.stops, 10) || 3)),
     friends,
     area: clean(body.area, 40) || "Bastille",
     start: /^\d{2}:\d{2}$/.test(body.start) ? body.start : "20:00",
@@ -132,7 +133,7 @@ module.exports = async (req, res) => {
       },
       body: JSON.stringify({
         model: "claude-haiku-4-5-20251001",
-        max_tokens: 2000,
+        max_tokens: 3000,
         messages: [{ role: "user", content: mode === "culture" ? buildCulturePrompt(input) : buildPrompt(input) }],
       }),
     });
