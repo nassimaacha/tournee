@@ -132,13 +132,14 @@ body{transition:background .35s,color .35s}
   border:0;text-align:left;font:inherit;letter-spacing:.06em;cursor:pointer}
 .pick.night{background:#000;color:#fff;--dot:#7FFEB1}
 .pick.day{background:#fff;color:#000;--dot:#FF9AD5;border-bottom:1px solid #D9D9D9}
-.pick b{font-family:"Antonio","Cairo","Arial Narrow",Impact,sans-serif;font-weight:700;text-transform:uppercase;font-size:clamp(3.2rem,16vw,7rem);line-height:1.15;letter-spacing:0;display:flex;align-items:center;gap:16px}
-.pick b::after{content:"";width:.18em;height:.18em;border-radius:50%;background:var(--dot);transition:transform .25s}
-.pick span{font-size:16px;opacity:.8;max-width:34ch}
-.pick:hover b::after,.pick:focus-visible b::after{transform:scale(1.6)}
+.pick b{font-family:"Antonio","Cairo","Arial Narrow",Impact,sans-serif;font-weight:700;text-transform:uppercase;font-size:clamp(3rem,14vw,7rem);line-height:1.15;letter-spacing:0;display:block}
+.pick b .last{white-space:nowrap}
+.pick b .last::after{content:"";display:inline-block;vertical-align:middle;margin-inline-start:.25em;width:.18em;height:.18em;border-radius:50%;background:var(--dot);transition:transform .25s}
+.pick > span{font-size:16px;opacity:.8;max-width:34ch}
+.pick:hover b .last::after,.pick:focus-visible b .last::after{transform:scale(1.6)}
 .pick:focus-visible{outline:3px solid var(--dot);outline-offset:-6px}
 @media (min-width:760px){.split{grid-template-columns:1fr 1fr}.pick{min-height:calc(100svh - 72px);padding:40px}.pick b{font-size:clamp(3.2rem,8vw,6.5rem)}.pick.day{border-bottom:0}}
-@media (prefers-reduced-motion: reduce){body,.pick b::after{transition:none}}
+@media (prefers-reduced-motion: reduce){body,.pick b .last::after{transition:none}}
 .city-tag{border:1px solid var(--line);border-radius:100px;padding:4px 12px;font-size:12px;font-weight:700;text-transform:uppercase}
 .controls{margin-inline-start:auto;display:flex;align-items:center;gap:16px}
 .switch{background:none;border:0;color:var(--ink);font:inherit;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;cursor:pointer;padding:8px 0}
@@ -238,12 +239,12 @@ footer{color:var(--stone);font-size:12px;padding:24px 0 40px;border-top:1px soli
 
 <script>
 const GMAPS_KEY = "AIzaSyB-K5Z8agH0iJ5zSslPaSNzefRy4X-ryVs";
-const LANGS = {fr:"FR", en:"EN", es:"ES", ar:"عربي"};
+const LANGS = {fr:"FR", en:"EN", es:"ES"};
 const T = {
-fr:{srTitle:"Tournée : choisissez votre sortie",pickNight:"Soirée",pickNightSub:"Bars, clubs, concerts. Du premier verre au dernier métro.",pickDay:"Journée",pickDaySub:"Musées, expos, parcs. Du premier musée au dernier café.",
+fr:{srTitle:"Tournée : choisissez votre sortie",pickNight:"Vie nocturne",pickNightSub:"Bars, clubs, concerts. Du premier verre au dernier métro.",pickDay:"Vie diurne",pickDaySub:"Musées, expos, parcs. Du premier musée au dernier café.",
  nightTitle:"On sort où<br>ce soir&nbsp;?",nightText:"Choisissez la ville. Tournée trouve la soirée qui convient à tout le groupe, du premier verre au retour.",
  dayTitle:"On visite<br>quoi&nbsp;?",dayText:"Choisissez la ville. Tournée trouve la journée culturelle qui plaît à tout le groupe, du premier musée au dernier café.",
- citiesLabel:"Villes",clockAria:"{t} à {c}",evening:", c'est le soir",switchCity:"Changer de ville",switchMode:"Soirée ou journée",langLabel:"Langue",
+ citiesLabel:"Villes",clockAria:"{t} à {c}",evening:", c'est le soir",switchCity:"Changer de ville",switchMode:"Nocturne ou diurne",langLabel:"Langue",
  heroH1:"Tout le groupe.<br>Un seul plan.",
  heroNight:"Chacun donne son budget et son envie. En 30 secondes, l'IA trouve la soirée à {c} qui convient à tout le monde, du premier verre au retour.",
  heroDay:"Chacun donne son budget et ce qu'il aime. En 30 secondes, l'IA trouve la journée à {c} qui plaît à tout le monde, du premier musée au dernier café.",
@@ -257,10 +258,10 @@ fr:{srTitle:"Tournée : choisissez votre sortie",pickNight:"Soirée",pickNightSu
  thinking:"L'IA cherche le plan qui convient à tout le monde…",retry:"Relancer",errRate:"Trop de demandes d'un coup. Attendez quelques secondes puis réessayez.",
  errKey:"La clé Anthropic n'est pas configurée sur le serveur.",errGeneric:"Le plan n'a pas pu être généré. Relancez la planification.",
  mapCheck:"Vérifiez les adresses avant d'y aller",mapOpen:"Ouvrir l'itinéraire",mapAria:"Carte des étapes",svgCap:"Positions approximatives, carte simplifiée",svgAll:"Voir tout Paris",svgZoom:"Zoomer sur le plan"},
-en:{srTitle:"Tournée: pick your outing",pickNight:"Night out",pickNightSub:"Bars, clubs, live music. From first drink to last train.",pickDay:"Daytime",pickDaySub:"Museums, galleries, parks. From first museum to last coffee.",
+en:{srTitle:"Tournée: pick your outing",pickNight:"Nightlife",pickNightSub:"Bars, clubs, live music. From first drink to last train.",pickDay:"Daylife",pickDaySub:"Museums, galleries, parks. From first museum to last coffee.",
  nightTitle:"Where are we<br>going tonight?",nightText:"Pick a city. Tournée finds the night out that works for the whole group, from first drink to the ride home.",
  dayTitle:"What are we<br>seeing today?",dayText:"Pick a city. Tournée finds the culture day the whole group will enjoy, from first museum to last coffee.",
- citiesLabel:"Cities",clockAria:"{t} in {c}",evening:", it's evening",switchCity:"Change city",switchMode:"Night or day",langLabel:"Language",
+ citiesLabel:"Cities",clockAria:"{t} in {c}",evening:", it's evening",switchCity:"Change city",switchMode:"Nightlife or daylife",langLabel:"Language",
  heroH1:"The whole group.<br>One plan.",
  heroNight:"Everyone sets a budget and a vibe. In 30 seconds, the AI finds the night out in {c} that works for everyone, from first drink to the ride home.",
  heroDay:"Everyone sets a budget and what they love. In 30 seconds, the AI finds the day in {c} everyone will enjoy, from first museum to last coffee.",
@@ -274,10 +275,10 @@ en:{srTitle:"Tournée: pick your outing",pickNight:"Night out",pickNightSub:"Bar
  thinking:"The AI is finding a plan that works for everyone…",retry:"Try again",errRate:"Too many requests at once. Wait a few seconds and try again.",
  errKey:"The Anthropic key isn't set up on the server.",errGeneric:"The plan couldn't be generated. Try again.",
  mapCheck:"Check addresses before you go",mapOpen:"Open route",mapAria:"Map of the stops",svgCap:"Approximate positions, simplified map",svgAll:"See all of Paris",svgZoom:"Zoom to the plan"},
-es:{srTitle:"Tournée: elige tu plan",pickNight:"Noche",pickNightSub:"Bares, discotecas, conciertos. De la primera copa al último metro.",pickDay:"Día",pickDaySub:"Museos, exposiciones, parques. Del primer museo al último café.",
+es:{srTitle:"Tournée: elige tu plan",pickNight:"Vida nocturna",pickNightSub:"Bares, discotecas, conciertos. De la primera copa al último metro.",pickDay:"Vida diurna",pickDaySub:"Museos, exposiciones, parques. Del primer museo al último café.",
  nightTitle:"¿Dónde salimos<br>esta noche?",nightText:"Elige la ciudad. Tournée encuentra la noche que le va bien a todo el grupo, de la primera copa a la vuelta a casa.",
  dayTitle:"¿Qué vemos<br>hoy?",dayText:"Elige la ciudad. Tournée encuentra el día cultural que gusta a todo el grupo, del primer museo al último café.",
- citiesLabel:"Ciudades",clockAria:"{t} en {c}",evening:", es de noche",switchCity:"Cambiar de ciudad",switchMode:"Noche o día",langLabel:"Idioma",
+ citiesLabel:"Ciudades",clockAria:"{t} en {c}",evening:", es de noche",switchCity:"Cambiar de ciudad",switchMode:"Nocturna o diurna",langLabel:"Idioma",
  heroH1:"Todo el grupo.<br>Un solo plan.",
  heroNight:"Cada uno pone su presupuesto y sus ganas. En 30 segundos, la IA encuentra la noche en {c} que le va bien a todos, de la primera copa a la vuelta a casa.",
  heroDay:"Cada uno pone su presupuesto y lo que le gusta. En 30 segundos, la IA encuentra el día en {c} que gusta a todos, del primer museo al último café.",
@@ -290,50 +291,33 @@ es:{srTitle:"Tournée: elige tu plan",pickNight:"Noche",pickNightSub:"Bares, dis
  copy:"Copiar para el grupo",again:"Otro plan",copied:"Copiado, pégalo en el grupo",copyFail:"No se puede copiar aquí",total:"Total",plannedWith:"Planeado con Tournée",
  thinking:"La IA busca el plan que le va bien a todos…",retry:"Reintentar",errRate:"Demasiadas solicitudes. Espera unos segundos y vuelve a intentarlo.",
  errKey:"La clave de Anthropic no está configurada en el servidor.",errGeneric:"No se pudo generar el plan. Vuelve a intentarlo.",
- mapCheck:"Comprueba las direcciones antes de ir",mapOpen:"Abrir ruta",mapAria:"Mapa de las paradas",svgCap:"Posiciones aproximadas, mapa simplificado",svgAll:"Ver todo París",svgZoom:"Acercar al plan"},
-ar:{srTitle:"Tournée: اختر خرجتك",pickNight:"سهرة",pickNightSub:"مقاهٍ ونوادٍ وحفلات. من أول لقاء حتى آخر مترو.",pickDay:"نهار",pickDaySub:"متاحف ومعارض وحدائق. من أول متحف حتى آخر قهوة.",
- nightTitle:"أين نسهر<br>الليلة؟",nightText:"اختر المدينة. تجد Tournée السهرة التي تناسب المجموعة كلها، من أول لقاء حتى العودة.",
- dayTitle:"ماذا نزور<br>اليوم؟",dayText:"اختر المدينة. تجد Tournée يوماً ثقافياً يعجب المجموعة كلها، من أول متحف حتى آخر قهوة.",
- citiesLabel:"المدن",clockAria:"{t} في {c}",evening:"، إنه المساء",switchCity:"تغيير المدينة",switchMode:"سهرة أو نهار",langLabel:"اللغة",
- heroH1:"المجموعة كلها.<br>خطة واحدة.",
- heroNight:"كل واحد يحدد ميزانيته ومزاجه. خلال 30 ثانية، يجد الذكاء الاصطناعي السهرة في {c} التي تناسب الجميع، من أول لقاء حتى العودة.",
- heroDay:"كل واحد يحدد ميزانيته وما يحب. خلال 30 ثانية، يجد الذكاء الاصطناعي يوماً في {c} يعجب الجميع، من أول متحف حتى آخر قهوة.",
- group:"المجموعة",groupHint:"يكفي لقب، لا حاجة للأسماء الحقيقية.",add:"أضف شخصاً",panelNight:"السهرة",panelDay:"اليوم",
- panelHint:"أين تلتقون وفي أي ساعة.",startLabel:"نقطة الانطلاق",timeLabel:"وقت اللقاء",ctaNight:"خطط للسهرة",ctaDay:"خطط لليوم",
- status:"أماكن يقترحها الذكاء الاصطناعي: تحقق من الأوقات والأسعار قبل الذهاب.",footer:"Tournée، نموذج أولي أُنجز لتحدي Défi 100K. الخطط من إنشاء الذكاء الاصطناعي.",
- nick:"اللقب",remove:"إزالة",budget:"الميزانية القصوى",vibe:"يفضّل",flagNight:"لا يشرب الكحول",flagDay:"أقل من 26 سنة (أسعار الشباب)",friend:"صديق",needTwo:"أضف شخصين على الأقل.",
- rideMetro:"نعود بالمترو (بدون تاكسي)",rideTube:"نعود بالمترو (بدون تاكسي)",rideTransit:"نعود بالمواصلات العامة (بدون أوبر)",rideTram:"نعود بالترامواي (بدون تاكسي)",rideDay:"نتنقل بالمواصلات العامة (بدون تاكسي)",
- perPerson:"للشخص",tightest:"أضيق ميزانية:",people:"أشخاص",ready:"الخطة جاهزة",returnLabel:"العودة",endNight:"الجميع يعود",endDay:"نهاية اليوم",
- copy:"انسخ للمجموعة",again:"خطة أخرى",copied:"تم النسخ، الصقه في المجموعة",copyFail:"لا يمكن النسخ هنا",total:"المجموع",plannedWith:"خُططت مع Tournée",
- thinking:"الذكاء الاصطناعي يبحث عن خطة تناسب الجميع…",retry:"أعد المحاولة",errRate:"طلبات كثيرة في وقت واحد. انتظر بضع ثوانٍ ثم أعد المحاولة.",
- errKey:"مفتاح Anthropic غير مُعدّ على الخادم.",errGeneric:"تعذّر إنشاء الخطة. أعد المحاولة.",
- mapCheck:"تحقق من العناوين قبل الذهاب",mapOpen:"افتح المسار",mapAria:"خريطة المحطات",svgCap:"مواقع تقريبية، خريطة مبسطة",svgAll:"عرض باريس كلها",svgZoom:"تكبير على الخطة"}
+ mapCheck:"Comprueba las direcciones antes de ir",mapOpen:"Abrir ruta",mapAria:"Mapa de las paradas",svgCap:"Posiciones aproximadas, mapa simplificado",svgAll:"Ver todo París",svgZoom:"Acercar al plan"}
 };
 const VIBE_T = {
- chill:{fr:"Chill, on discute",en:"Chill, just talking",es:"Tranqui, charlar",ar:"هادئ، للدردشة"},
- cocktails:{fr:"Bar à cocktails",en:"Cocktail bar",es:"Bar de cócteles",ar:"بار كوكتيلات"},
- dance:{fr:"Danser",en:"Dancing",es:"Bailar",ar:"رقص"},
- karaoke:{fr:"Karaoké",en:"Karaoke",es:"Karaoke",ar:"كاريوكي"},
- food:{fr:"Bien manger",en:"Good food",es:"Comer bien",ar:"أكل جيد"},
- cheap:{fr:"Bar pas cher",en:"Cheap bar",es:"Bar barato",ar:"مكان رخيص"},
- music:{fr:"Concert ou DJ set",en:"Live music or DJ",es:"Concierto o DJ",ar:"حفلة أو دي جي"},
- rooftop:{fr:"Rooftop",en:"Rooftop",es:"Azotea",ar:"سطح بإطلالة"},
- museums:{fr:"Musées",en:"Museums",es:"Museos",ar:"متاحف"},
- contemporary:{fr:"Art contemporain",en:"Contemporary art",es:"Arte contemporáneo",ar:"فن معاصر"},
- galleries:{fr:"Expos et galeries",en:"Exhibitions and galleries",es:"Exposiciones y galerías",ar:"معارض وصالات فنية"},
- streetart:{fr:"Street art",en:"Street art",es:"Arte urbano",ar:"فن الشارع"},
- architecture:{fr:"Architecture",en:"Architecture",es:"Arquitectura",ar:"عمارة"},
- parks:{fr:"Parcs et jardins",en:"Parks and gardens",es:"Parques y jardines",ar:"حدائق ومتنزهات"},
- markets:{fr:"Marchés",en:"Markets",es:"Mercados",ar:"أسواق"},
- views:{fr:"Balade et points de vue",en:"Walks and viewpoints",es:"Paseos y miradores",ar:"نزهات وإطلالات"}
+ chill:{fr:"Chill, on discute",en:"Chill, just talking",es:"Tranqui, charlar"},
+ cocktails:{fr:"Bar à cocktails",en:"Cocktail bar",es:"Bar de cócteles"},
+ dance:{fr:"Danser",en:"Dancing",es:"Bailar"},
+ karaoke:{fr:"Karaoké",en:"Karaoke",es:"Karaoke"},
+ food:{fr:"Bien manger",en:"Good food",es:"Comer bien"},
+ cheap:{fr:"Bar pas cher",en:"Cheap bar",es:"Bar barato"},
+ music:{fr:"Concert ou DJ set",en:"Live music or DJ",es:"Concierto o DJ"},
+ rooftop:{fr:"Rooftop",en:"Rooftop",es:"Azotea"},
+ museums:{fr:"Musées",en:"Museums",es:"Museos"},
+ contemporary:{fr:"Art contemporain",en:"Contemporary art",es:"Arte contemporáneo"},
+ galleries:{fr:"Expos et galeries",en:"Exhibitions and galleries",es:"Exposiciones y galerías"},
+ streetart:{fr:"Street art",en:"Street art",es:"Arte urbano"},
+ architecture:{fr:"Architecture",en:"Architecture",es:"Arquitectura"},
+ parks:{fr:"Parcs et jardins",en:"Parks and gardens",es:"Parques y jardines"},
+ markets:{fr:"Marchés",en:"Markets",es:"Mercados"},
+ views:{fr:"Balade et points de vue",en:"Walks and viewpoints",es:"Paseos y miradores"}
 };
 const CITY_T = {
- london:{fr:"Londres",en:"London",es:"Londres",ar:"لندن"},
- dubai:{fr:"Dubaï",en:"Dubai",es:"Dubái",ar:"دبي"},
- paris:{fr:"Paris",en:"Paris",es:"París",ar:"باريس"},
- madrid:{fr:"Madrid",en:"Madrid",es:"Madrid",ar:"مدريد"},
- "los-angeles":{fr:"Los Angeles",en:"Los Angeles",es:"Los Ángeles",ar:"لوس أنجلوس"},
- casablanca:{fr:"Casablanca",en:"Casablanca",es:"Casablanca",ar:"الدار البيضاء"}
+ london:{fr:"Londres",en:"London",es:"Londres"},
+ dubai:{fr:"Dubaï",en:"Dubai",es:"Dubái"},
+ paris:{fr:"Paris",en:"Paris",es:"París"},
+ madrid:{fr:"Madrid",en:"Madrid",es:"Madrid"},
+ "los-angeles":{fr:"Los Angeles",en:"Los Angeles",es:"Los Ángeles"},
+ casablanca:{fr:"Casablanca",en:"Casablanca",es:"Casablanca"}
 };
 let lang = (()=>{ try{ const s=localStorage.getItem("tournee-lang"); if(T[s]) return s; }catch{} const n=(navigator.language||"fr").slice(0,2); return T[n]?n:"fr"; })();
 const t = (k, v={}) => (T[lang][k] ?? T.fr[k] ?? k).replace(/\{(\w)\}/g,(_,x)=>v[x]??"");
@@ -692,6 +676,7 @@ function applyLang(){
   const root=document.documentElement;
   root.lang=lang; root.dir=lang==="ar"?"rtl":"ltr";
   document.querySelectorAll("[data-i18n]").forEach(el=>el.textContent=t(el.dataset.i18n));
+  document.querySelectorAll(".pick b").forEach(el=>{ const w=el.textContent.split(" "), last=w.pop(); el.innerHTML=(w.length?esc(w.join(" "))+" ":"")+`<span class="last">${esc(last)}</span>`; });
   document.querySelectorAll("[data-i18n-html]").forEach(el=>el.innerHTML=t(el.dataset.i18nHtml));
   const sel=$("#lang"); sel.setAttribute("aria-label",t("langLabel"));
   sel.innerHTML=Object.entries(LANGS).map(([k,v])=>`<option value="${k}"${k===lang?" selected":""}>${v}</option>`).join("");
