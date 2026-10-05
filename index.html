@@ -163,12 +163,23 @@ input[type=range]{width:100%;accent-color:var(--accent);margin-top:10px}
 @media (min-width:760px){.split{grid-template-columns:1fr 1fr}.pick{min-height:calc(100svh - 62px);padding:48px}.pick b{font-size:clamp(3.4rem,8.5vw,7.5rem)}}
 
 /* city list: journal rows */
-.cities{list-style:none;margin:0 -20px 64px;padding:0;border-top:1px solid var(--line)}
-.city{display:flex;align-items:center;justify-content:space-between;gap:16px;width:100%;padding:16px 20px;border:0;border-bottom:1px solid var(--line);
-  background:var(--bg);color:var(--accent);font:inherit;cursor:pointer;text-align:left;transition:background .15s,color .15s}
+/* home: hero in the top third, continents + cities fill the rest, no rules */
+#home .hero{min-height:28svh;display:flex;flex-direction:column;justify-content:flex-end;padding:28px 0 18px}
+#home .hero h1{font-size:clamp(2.4rem,10vw,4.4rem);margin:0 0 12px}
+#home .hero p{font-size:15px}
+.world{--rowh:max(44px,calc((100svh - 28svh - 62px - 64px) / 8));padding-bottom:24px}
+.conts{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;margin:0 -20px 8px;padding:4px 20px 8px}
+.conts::-webkit-scrollbar{display:none}
+.cont{flex:none;background:none;border:0;border-radius:30px;padding:7px 14px;color:var(--muted);font:inherit;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.111em;cursor:pointer;white-space:nowrap;transition:background .15s,color .15s}
+.cont:hover{color:var(--accent)}
+.cont[aria-selected="true"]{background:var(--accent);color:var(--bg)}
+.cont:focus-visible{outline:1px solid var(--accent);outline-offset:2px}
+.cities{list-style:none;margin:0 -20px;padding:0}
+.city{display:flex;align-items:center;justify-content:space-between;gap:16px;width:100%;height:var(--rowh);padding:0 20px;border:0;
+  background:transparent;color:var(--accent);font:inherit;cursor:pointer;text-align:left;transition:background .15s,color .15s}
 .city:hover,.city:focus-visible{background:var(--accent);color:var(--bg)}
 .city:focus-visible{outline:none}
-.city-name{font-family:var(--serif);font-weight:400;font-size:clamp(2.4rem,11vw,3.8rem);line-height:1.05;letter-spacing:0;min-width:0;overflow-wrap:anywhere}
+.city-name{font-family:var(--serif);font-weight:400;font-size:clamp(1.7rem,min(7.5vw,calc(var(--rowh) * .62)),3rem);line-height:1.05;letter-spacing:0;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .city-time{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600;letter-spacing:.111em;white-space:nowrap}
 .city-time .night{width:7px;height:7px;border-radius:50%;background:var(--jewel)}
 .city:hover .city-time .night,.city:focus-visible .city-time .night{background:currentColor}
@@ -225,7 +236,10 @@ footer{color:var(--muted);font-size:12px;padding:28px 0 44px;border-top:1px soli
       <h1 id="homeTitle"></h1>
       <p id="homeText"></p>
     </section>
-    <ul class="cities" id="cities"></ul>
+    <div class="world">
+      <div class="conts" id="conts" role="tablist"></div>
+      <ul class="cities" id="cities" role="tabpanel"></ul>
+    </div>
   </main>
 
   <main id="planner" class="view" hidden>
@@ -292,7 +306,7 @@ footer{color:var(--muted);font-size:12px;padding:28px 0 44px;border-top:1px soli
 const GMAPS_KEY = "AIzaSyB-K5Z8agH0iJ5zSslPaSNzefRy4X-ryVs";
 const LANGS = {fr:"FR", en:"EN", es:"ES"};
 const T = {
-fr:{namePh:"Prénom",choose:"Choisir…",needFields:"Complétez les champs manquants (bordure en pointillés).",needJoin:"Ajoutez votre prénom, votre budget et votre envie.",host:"Organiser",hostPick:"Choisissez la ville de votre sortie.",shareTitle:"Invitez le groupe",shareHint:"Envoyez ce lien. Chacun ajoute son prénom et son budget.",copyLink:"Copier le lien",linkCopied:"Lien copié",joinTitle:"Rejoindre la sortie",joinHint:"Ajoutez votre prénom et votre budget. Seul l'organisateur peut modifier les autres.",joinHostHint:"Ajoutez-vous aussi au groupe.",joinBtn:"Rejoindre",yourName:"Votre prénom",youHost:"Organisateur",you:"Vous",waitHost:"L'organisateur lancera le plan quand tout le monde sera là.",full:"Cette sortie est complète (8 personnes max).",notFound:"Cette sortie n'existe pas ou a expiré.",needName:"Ajoutez votre prénom.",noStore:"Le partage n'est pas encore activé sur le serveur.",creating:"Création de la sortie…",groupEmpty:"Personne n'a encore rejoint.",flagShortNight:"sans alcool",flagShortDay:"étudiant",srTitle:"Tournée : choisissez votre sortie",pickNight:"Soirée",pickNightSub:"Bars, clubs, concerts. Du premier verre au dernier métro.",pickDay:"Journée",pickDaySub:"Musées, expos, parcs. Du premier musée au dernier café.",
+fr:{contEurope:"Europe",contNA:"Amérique du Nord",contSA:"Amérique du Sud",contAsia:"Asie",contAfrica:"Afrique",contOceania:"Océanie",rideTrain:"On rentre en train ou métro (pas de taxi)",rideWalk:"On rentre à pied (pas de taxi)",namePh:"Prénom",choose:"Choisir…",needFields:"Complétez les champs manquants (bordure en pointillés).",needJoin:"Ajoutez votre prénom, votre budget et votre envie.",host:"Organiser",hostPick:"Choisissez la ville de votre sortie.",shareTitle:"Invitez le groupe",shareHint:"Envoyez ce lien. Chacun ajoute son prénom et son budget.",copyLink:"Copier le lien",linkCopied:"Lien copié",joinTitle:"Rejoindre la sortie",joinHint:"Ajoutez votre prénom et votre budget. Seul l'organisateur peut modifier les autres.",joinHostHint:"Ajoutez-vous aussi au groupe.",joinBtn:"Rejoindre",yourName:"Votre prénom",youHost:"Organisateur",you:"Vous",waitHost:"L'organisateur lancera le plan quand tout le monde sera là.",full:"Cette sortie est complète (8 personnes max).",notFound:"Cette sortie n'existe pas ou a expiré.",needName:"Ajoutez votre prénom.",noStore:"Le partage n'est pas encore activé sur le serveur.",creating:"Création de la sortie…",groupEmpty:"Personne n'a encore rejoint.",flagShortNight:"sans alcool",flagShortDay:"étudiant",srTitle:"Tournée : choisissez votre sortie",pickNight:"Soirée",pickNightSub:"Bars, clubs, concerts. Du premier verre au dernier métro.",pickDay:"Journée",pickDaySub:"Musées, expos, parcs. Du premier musée au dernier café.",
  nightTitle:"On sort où<br>ce soir&nbsp;?",nightText:"Choisissez une ville. Tournée trouve la soirée qui convient à tout le groupe, du premier verre au retour.",
  dayTitle:"On visite<br>quoi&nbsp;?",dayText:"Choisissez une ville. Tournée organise une journée qui plaira à tout le groupe, du premier musée au dernier café.",
  citiesLabel:"Villes",clockAria:"{t} à {c}",evening:", c'est le soir",langLabel:"Langue",
@@ -309,7 +323,7 @@ fr:{namePh:"Prénom",choose:"Choisir…",needFields:"Complétez les champs manqu
  thinking:"On cherche le plan qui convient à tout le monde…",retry:"Relancer",errRate:"Trop de demandes d'un coup. Attendez quelques secondes puis réessayez.",
  errKey:"Le service est momentanément indisponible. Réessayez plus tard.",errGeneric:"Impossible de créer le plan. Réessayez.",
  mapCheck:"Vérifiez les adresses avant d'y aller",mapOpen:"Ouvrir l'itinéraire",mapAria:"Carte des étapes",svgCap:"Positions approximatives, carte simplifiée",svgAll:"Voir tout Paris",svgZoom:"Zoomer sur le plan"},
-en:{namePh:"Name",choose:"Choose…",needFields:"Fill in the missing fields (dashed border).",needJoin:"Add your name, budget and vibe.",host:"Host",hostPick:"Choose the city for your outing.",shareTitle:"Invite the group",shareHint:"Send this link. Everyone adds their name and budget.",copyLink:"Copy link",linkCopied:"Link copied",joinTitle:"Join the outing",joinHint:"Add your name and budget. Only the host can change other people's details.",joinHostHint:"Add yourself to the group too.",joinBtn:"Join",yourName:"Your name",youHost:"Host",you:"You",waitHost:"The host will plan the outing once everyone's in.",full:"This outing is full (8 people max).",notFound:"This outing doesn't exist or has expired.",needName:"Add your name.",noStore:"Sharing isn't set up on the server yet.",creating:"Creating the outing…",groupEmpty:"Nobody has joined yet.",flagShortNight:"no alcohol",flagShortDay:"student",srTitle:"Tournée: pick your outing",pickNight:"Nightlife",pickNightSub:"Bars, clubs, live music. From first drink to last train.",pickDay:"Daylife",pickDaySub:"Museums, galleries, parks. From first museum to last coffee.",
+en:{contEurope:"Europe",contNA:"North America",contSA:"South America",contAsia:"Asia",contAfrica:"Africa",contOceania:"Oceania",rideTrain:"Getting home by train or metro (no taxi)",rideWalk:"Getting home on foot (no taxi)",namePh:"Name",choose:"Choose…",needFields:"Fill in the missing fields (dashed border).",needJoin:"Add your name, budget and vibe.",host:"Host",hostPick:"Choose the city for your outing.",shareTitle:"Invite the group",shareHint:"Send this link. Everyone adds their name and budget.",copyLink:"Copy link",linkCopied:"Link copied",joinTitle:"Join the outing",joinHint:"Add your name and budget. Only the host can change other people's details.",joinHostHint:"Add yourself to the group too.",joinBtn:"Join",yourName:"Your name",youHost:"Host",you:"You",waitHost:"The host will plan the outing once everyone's in.",full:"This outing is full (8 people max).",notFound:"This outing doesn't exist or has expired.",needName:"Add your name.",noStore:"Sharing isn't set up on the server yet.",creating:"Creating the outing…",groupEmpty:"Nobody has joined yet.",flagShortNight:"no alcohol",flagShortDay:"student",srTitle:"Tournée: pick your outing",pickNight:"Nightlife",pickNightSub:"Bars, clubs, live music. From first drink to last train.",pickDay:"Daylife",pickDaySub:"Museums, galleries, parks. From first museum to last coffee.",
  nightTitle:"Where are we<br>going tonight?",nightText:"Pick a city. Tournée finds the night out that works for the whole group, from first drink to the ride home.",
  dayTitle:"What are we<br>seeing today?",dayText:"Pick a city. Tournée plans a day the whole group will love, from the first museum to the last coffee.",
  citiesLabel:"Cities",clockAria:"{t} in {c}",evening:", it's evening",langLabel:"Language",
@@ -326,7 +340,7 @@ en:{namePh:"Name",choose:"Choose…",needFields:"Fill in the missing fields (das
  thinking:"Finding a plan that works for everyone…",retry:"Try again",errRate:"Too many requests at once. Wait a few seconds and try again.",
  errKey:"The service is temporarily unavailable. Try again later.",errGeneric:"Couldn't create the plan. Try again.",
  mapCheck:"Check addresses before you go",mapOpen:"Open directions",mapAria:"Map of the stops",svgCap:"Approximate positions, simplified map",svgAll:"See all of Paris",svgZoom:"Zoom in on the plan"},
-es:{namePh:"Nombre",choose:"Elegir…",needFields:"Completa los campos que faltan (borde discontinuo).",needJoin:"Añade tu nombre, tu presupuesto y lo que te apetece.",host:"Organizar",hostPick:"Elige la ciudad de tu quedada.",shareTitle:"Invita al grupo",shareHint:"Envía este enlace. Cada uno añade su nombre y su presupuesto.",copyLink:"Copiar enlace",linkCopied:"Enlace copiado",joinTitle:"Únete a la quedada",joinHint:"Añade tu nombre y tu presupuesto. Solo el organizador puede cambiar los datos de los demás.",joinHostHint:"Añádete tú también al grupo.",joinBtn:"Unirme",yourName:"Tu nombre",youHost:"Organizador",you:"Tú",waitHost:"El organizador creará el plan cuando estén todos.",full:"Esta quedada está completa (máx. 8 personas).",notFound:"Esta quedada no existe o ha caducado.",needName:"Añade tu nombre.",noStore:"Compartir aún no está activado en el servidor.",creating:"Creando la quedada…",groupEmpty:"Aún no se ha unido nadie.",flagShortNight:"sin alcohol",flagShortDay:"estudiante",srTitle:"Tournée: elige tu plan",pickNight:"De noche",pickNightSub:"Bares, discotecas, conciertos. De la primera copa al último metro.",pickDay:"De día",pickDaySub:"Museos, exposiciones, parques. Del primer museo al último café.",
+es:{contEurope:"Europa",contNA:"Norteamérica",contSA:"Sudamérica",contAsia:"Asia",contAfrica:"África",contOceania:"Oceanía",rideTrain:"Volvemos en tren o metro (sin taxi)",rideWalk:"Volvemos a pie (sin taxi)",namePh:"Nombre",choose:"Elegir…",needFields:"Completa los campos que faltan (borde discontinuo).",needJoin:"Añade tu nombre, tu presupuesto y lo que te apetece.",host:"Organizar",hostPick:"Elige la ciudad de tu quedada.",shareTitle:"Invita al grupo",shareHint:"Envía este enlace. Cada uno añade su nombre y su presupuesto.",copyLink:"Copiar enlace",linkCopied:"Enlace copiado",joinTitle:"Únete a la quedada",joinHint:"Añade tu nombre y tu presupuesto. Solo el organizador puede cambiar los datos de los demás.",joinHostHint:"Añádete tú también al grupo.",joinBtn:"Unirme",yourName:"Tu nombre",youHost:"Organizador",you:"Tú",waitHost:"El organizador creará el plan cuando estén todos.",full:"Esta quedada está completa (máx. 8 personas).",notFound:"Esta quedada no existe o ha caducado.",needName:"Añade tu nombre.",noStore:"Compartir aún no está activado en el servidor.",creating:"Creando la quedada…",groupEmpty:"Aún no se ha unido nadie.",flagShortNight:"sin alcohol",flagShortDay:"estudiante",srTitle:"Tournée: elige tu plan",pickNight:"De noche",pickNightSub:"Bares, discotecas, conciertos. De la primera copa al último metro.",pickDay:"De día",pickDaySub:"Museos, exposiciones, parques. Del primer museo al último café.",
  nightTitle:"¿Dónde salimos<br>esta noche?",nightText:"Elige una ciudad. Tournée encuentra el plan de noche que le va bien a todo el grupo, de la primera copa a la vuelta a casa.",
  dayTitle:"¿Qué vemos<br>hoy?",dayText:"Elige una ciudad. Tournée organiza un día que le encantará a todo el grupo, del primer museo al último café.",
  citiesLabel:"Ciudades",clockAria:"{t} en {c}",evening:", es de noche",langLabel:"Idioma",
@@ -369,7 +383,27 @@ const CITY_T = {
  madrid:{fr:"Madrid",en:"Madrid",es:"Madrid"},
  "new-york":{fr:"New York",en:"New York",es:"Nueva York"},
  "los-angeles":{fr:"Los Angeles",en:"Los Angeles",es:"Los Ángeles"},
- casablanca:{fr:"Casablanca",en:"Casablanca",es:"Casablanca"}
+ casablanca:{fr:"Casablanca",en:"Casablanca",es:"Casablanca"},
+ "barcelona":{fr:"Barcelone",en:"Barcelona",es:"Barcelona"},
+ "berlin":{fr:"Berlin",en:"Berlin",es:"Berlín"},
+ "amsterdam":{fr:"Amsterdam",en:"Amsterdam",es:"Ámsterdam"},
+ "lisbon":{fr:"Lisbonne",en:"Lisbon",es:"Lisboa"},
+ "rome":{fr:"Rome",en:"Rome",es:"Roma"},
+ "miami":{fr:"Miami",en:"Miami",es:"Miami"},
+ "houston":{fr:"Houston",en:"Houston",es:"Houston"},
+ "mexico-city":{fr:"Mexico",en:"Mexico City",es:"Ciudad de México"},
+ "montreal":{fr:"Montréal",en:"Montreal",es:"Montreal"},
+ "tokyo":{fr:"Tokyo",en:"Tokyo",es:"Tokio"},
+ "seoul":{fr:"Séoul",en:"Seoul",es:"Seúl"},
+ "bangkok":{fr:"Bangkok",en:"Bangkok",es:"Bangkok"},
+ "singapore":{fr:"Singapour",en:"Singapore",es:"Singapur"},
+ "marrakech":{fr:"Marrakech",en:"Marrakesh",es:"Marrakech"},
+ "cape-town":{fr:"Le Cap",en:"Cape Town",es:"Ciudad del Cabo"},
+ "buenos-aires":{fr:"Buenos Aires",en:"Buenos Aires",es:"Buenos Aires"},
+ "rio":{fr:"Rio de Janeiro",en:"Rio de Janeiro",es:"Río de Janeiro"},
+ "sao-paulo":{fr:"São Paulo",en:"São Paulo",es:"São Paulo"},
+ "sydney":{fr:"Sydney",en:"Sydney",es:"Sídney"},
+ "melbourne":{fr:"Melbourne",en:"Melbourne",es:"Melbourne"}
 };
 let lang = (()=>{ try{ const s=localStorage.getItem("tournee-lang"); if(T[s]) return s; }catch{} const n=(navigator.language||"fr").slice(0,2); return T[n]?n:"fr"; })();
 const t = (k, v={}) => (T[lang][k] ?? T.fr[k] ?? k).replace(/\{(\w)\}/g,(_,x)=>v[x]??"");
@@ -395,27 +429,87 @@ const MODES = {
 let mode = "night";
 const M = () => MODES[mode];
 const CITIES = [
-  {id:"london", tz:"Europe/London", pre:"£", post:"", budget:[10,100,5,20,45,30], start:"20:00",
+  {id:"london", cont:"europe", tz:"Europe/London", pre:"£", post:"", budget:[10,100,5,20,45,30], start:"20:00",
    bbox:[51.38,51.62,-0.35,0.10], ride:"rideTube",
    areas:["Shoreditch","Soho","Camden","Brixton","Hackney","Dalston","Peckham","Covent Garden","Notting Hill","King's Cross","Islington","Clapham"]},
-  {id:"dubai", tz:"Asia/Dubai", pre:"", post:" AED", budget:[50,600,25,100,300,200], start:"20:00",
+  {id:"dubai", cont:"asia", tz:"Asia/Dubai", pre:"", post:" AED", budget:[50,600,25,100,300,200], start:"20:00",
    bbox:[24.90,25.35,55.00,55.50], ride:"rideMetro",
    areas:["Dubai Marina","JBR","Downtown","DIFC","Business Bay","Jumeirah","City Walk","Al Barsha","Bur Dubai","Deira","Palm Jumeirah"]},
-  {id:"paris", tz:"Europe/Paris", pre:"", post:" €", budget:[10,100,5,20,45,30], start:"20:00",
+  {id:"paris", cont:"europe", tz:"Europe/Paris", pre:"", post:" €", budget:[10,100,5,20,45,30], start:"20:00",
    bbox:[48.80,48.91,2.22,2.47], ride:"rideMetro",
    areas:["Bastille","Oberkampf","Pigalle","Le Marais","Canal Saint‑Martin","Belleville","Quartier Latin","Montmartre","Châtelet","Butte‑aux‑Cailles","Saint‑Germain‑des‑Prés","Batignolles","Ménilmontant","Bercy","Strasbourg‑Saint‑Denis"]},
-  {id:"madrid", tz:"Europe/Madrid", pre:"", post:" €", budget:[10,100,5,20,45,30], start:"21:00",
+  {id:"madrid", cont:"europe", tz:"Europe/Madrid", pre:"", post:" €", budget:[10,100,5,20,45,30], start:"21:00",
    bbox:[40.35,40.50,-3.80,-3.60], ride:"rideMetro",
    areas:["Malasaña","Chueca","La Latina","Lavapiés","Sol","Huertas","Chamberí","Conde Duque","Salamanca","Moncloa"]},
-  {id:"new-york", tz:"America/New_York", pre:"$", post:"", budget:[10,150,5,25,60,40], start:"20:00",
+  {id:"new-york", cont:"north-america", tz:"America/New_York", pre:"$", post:"", budget:[10,150,5,25,60,40], start:"20:00",
    bbox:[40.49,40.92,-74.27,-73.68], ride:"rideSubway",
    areas:["Lower East Side","East Village","West Village","SoHo","Chelsea","Midtown","Harlem","Williamsburg","Greenpoint","Bushwick","Astoria"]},
-  {id:"los-angeles", tz:"America/Los_Angeles", pre:"$", post:"", budget:[10,150,5,25,60,40], start:"19:30",
+  {id:"los-angeles", cont:"north-america", tz:"America/Los_Angeles", pre:"$", post:"", budget:[10,150,5,25,60,40], start:"19:30",
    bbox:[33.70,34.35,-118.70,-118.00], ride:"rideTransit",
    areas:["Downtown LA","Arts District","Hollywood","West Hollywood","Silver Lake","Echo Park","Los Feliz","Koreatown","Santa Monica","Venice"]},
-  {id:"casablanca", tz:"Africa/Casablanca", pre:"", post:" MAD", budget:[100,1000,50,200,500,300], start:"20:00",
+  {id:"casablanca", cont:"africa", tz:"Africa/Casablanca", pre:"", post:" MAD", budget:[100,1000,50,200,500,300], start:"20:00",
    bbox:[33.45,33.65,-7.75,-7.45], ride:"rideTram",
-   areas:["Maârif","Gauthier","Racine","Bourgogne","Centre ville","Habous","Anfa","Ain Diab","Corniche","Marina"]}
+   areas:["Maârif","Gauthier","Racine","Bourgogne","Centre ville","Habous","Anfa","Ain Diab","Corniche","Marina"]},
+  {id:"barcelona", cont:"europe", tz:"Europe/Madrid", pre:"", post:" €", budget:[10,100,5,10,100,55], start:"20:00",
+   bbox:[41.32, 41.47, 2.05, 2.25], ride:"rideMetro",
+   areas:["Gràcia", "El Born", "Barri Gòtic", "El Raval", "Eixample", "Poble Sec", "Sant Antoni", "Barceloneta", "Poblenou"]},
+  {id:"berlin", cont:"europe", tz:"Europe/Berlin", pre:"", post:" €", budget:[10,100,5,10,100,55], start:"20:00",
+   bbox:[52.4, 52.62, 13.2, 13.6], ride:"rideMetro",
+   areas:["Kreuzberg", "Neukölln", "Friedrichshain", "Mitte", "Prenzlauer Berg", "Schöneberg", "Wedding"]},
+  {id:"amsterdam", cont:"europe", tz:"Europe/Amsterdam", pre:"", post:" €", budget:[10,100,5,10,100,55], start:"20:00",
+   bbox:[52.3, 52.42, 4.78, 5.02], ride:"rideTransit",
+   areas:["De Pijp", "Jordaan", "Leidseplein", "Rembrandtplein", "Centrum", "Oud-West", "Oost", "Noord"]},
+  {id:"lisbon", cont:"europe", tz:"Europe/Lisbon", pre:"", post:" €", budget:[10,100,5,10,100,55], start:"20:00",
+   bbox:[38.68, 38.8, -9.25, -9.08], ride:"rideMetro",
+   areas:["Bairro Alto", "Cais do Sodré", "Chiado", "Príncipe Real", "Alfama", "Baixa", "Intendente", "Alcântara", "Belém"]},
+  {id:"rome", cont:"europe", tz:"Europe/Rome", pre:"", post:" €", budget:[10,100,5,10,100,55], start:"20:00",
+   bbox:[41.8, 41.99, 12.4, 12.6], ride:"rideMetro",
+   areas:["Trastevere", "Monti", "Testaccio", "Pigneto", "San Lorenzo", "Centro Storico", "Ostiense", "Prati"]},
+  {id:"miami", cont:"north-america", tz:"America/New_York", pre:"$", post:"", budget:[10,150,5,10,150,80], start:"20:00",
+   bbox:[25.7, 25.9, -80.32, -80.11], ride:"rideTransit",
+   areas:["Wynwood", "South Beach", "Brickell", "Downtown Miami", "Little Havana", "Design District", "Coconut Grove"]},
+  {id:"houston", cont:"north-america", tz:"America/Chicago", pre:"$", post:"", budget:[10,150,5,10,150,80], start:"20:00",
+   bbox:[29.6, 29.95, -95.65, -95.2], ride:"rideTransit",
+   areas:["Montrose", "Midtown", "Downtown", "The Heights", "EaDo", "Museum District", "Rice Village", "Washington Avenue"]},
+  {id:"mexico-city", cont:"north-america", tz:"America/Mexico_City", pre:"", post:" MXN", budget:[200,3000,100,200,3000,1600], start:"20:00",
+   bbox:[19.25, 19.55, -99.3, -99.0], ride:"rideMetro",
+   areas:["Roma Norte", "Condesa", "Juárez", "Centro Histórico", "Coyoacán", "Polanco", "San Rafael", "Santa María la Ribera"]},
+  {id:"montreal", cont:"north-america", tz:"America/Toronto", pre:"CA$", post:"", budget:[15,200,5,15,200,110], start:"20:00",
+   bbox:[45.42, 45.62, -73.75, -73.48], ride:"rideMetro",
+   areas:["Plateau Mont-Royal", "Mile End", "Quartier des spectacles", "Vieux-Montréal", "Quartier latin", "Le Village", "Griffintown", "Saint-Henri"]},
+  {id:"tokyo", cont:"asia", tz:"Asia/Tokyo", pre:"¥", post:"", budget:[1000,15000,500,1000,15000,8000], start:"20:00",
+   bbox:[35.55, 35.8, 139.6, 139.85], ride:"rideTrain",
+   areas:["Shibuya", "Shinjuku", "Shimokitazawa", "Harajuku", "Roppongi", "Nakameguro", "Koenji", "Asakusa", "Ueno", "Ginza"]},
+  {id:"seoul", cont:"asia", tz:"Asia/Seoul", pre:"₩", post:"", budget:[10000,150000,5000,10000,150000,80000], start:"20:00",
+   bbox:[37.45, 37.65, 126.85, 127.15], ride:"rideMetro",
+   areas:["Hongdae", "Itaewon", "Gangnam", "Seongsu", "Euljiro", "Yeonnam-dong", "Myeongdong", "Insadong"]},
+  {id:"bangkok", cont:"asia", tz:"Asia/Bangkok", pre:"฿", post:"", budget:[300,5000,100,300,5000,2600], start:"20:00",
+   bbox:[13.65, 13.85, 100.45, 100.65], ride:"rideMetro",
+   areas:["Sukhumvit", "Thonglor", "Ekkamai", "Silom", "Khao San", "Ari", "Yaowarat", "Siam"]},
+  {id:"singapore", cont:"asia", tz:"Asia/Singapore", pre:"S$", post:"", budget:[15,200,5,15,200,110], start:"20:00",
+   bbox:[1.24, 1.42, 103.75, 103.95], ride:"rideMetro",
+   areas:["Clarke Quay", "Chinatown", "Kampong Glam", "Marina Bay", "Tiong Bahru", "Little India", "Orchard", "Dempsey Hill"]},
+  {id:"marrakech", cont:"africa", tz:"Africa/Casablanca", pre:"", post:" MAD", budget:[100,1000,50,100,1000,550], start:"20:00",
+   bbox:[31.58, 31.68, -8.08, -7.95], ride:"rideWalk",
+   areas:["Médina", "Jemaa el-Fna", "Guéliz", "Hivernage", "Kasbah", "Mellah"]},
+  {id:"cape-town", cont:"africa", tz:"Africa/Johannesburg", pre:"R", post:"", budget:[150,2000,50,150,2000,1100], start:"20:00",
+   bbox:[-34.1, -33.85, 18.35, 18.55], ride:"rideWalk",
+   areas:["City Bowl", "Bree Street", "Long Street", "Gardens", "Woodstock", "Observatory", "Sea Point", "V&A Waterfront"]},
+  {id:"buenos-aires", cont:"south-america", tz:"America/Argentina/Buenos_Aires", pre:"US$", post:"", budget:[10,120,5,10,120,65], start:"20:00",
+   bbox:[-34.7, -34.53, -58.53, -58.33], ride:"rideMetro",
+   areas:["Palermo Soho", "Palermo Hollywood", "Villa Crespo", "San Telmo", "Recoleta", "Almagro", "Belgrano", "Puerto Madero"]},
+  {id:"rio", cont:"south-america", tz:"America/Sao_Paulo", pre:"R$", post:"", budget:[50,600,25,50,600,325], start:"20:00",
+   bbox:[-23.02, -22.87, -43.3, -43.15], ride:"rideMetro",
+   areas:["Lapa", "Copacabana", "Ipanema", "Leblon", "Botafogo", "Santa Teresa", "Centro"]},
+  {id:"sao-paulo", cont:"south-america", tz:"America/Sao_Paulo", pre:"R$", post:"", budget:[50,600,25,50,600,325], start:"20:00",
+   bbox:[-23.65, -23.48, -46.75, -46.55], ride:"rideMetro",
+   areas:["Vila Madalena", "Pinheiros", "Rua Augusta", "Jardins", "Centro", "Bela Vista", "Itaim Bibi", "Vila Mariana"]},
+  {id:"sydney", cont:"oceania", tz:"Australia/Sydney", pre:"A$", post:"", budget:[15,200,5,15,200,110], start:"20:00",
+   bbox:[-33.95, -33.83, 151.15, 151.3], ride:"rideTrain",
+   areas:["Surry Hills", "Newtown", "Darlinghurst", "CBD", "The Rocks", "Glebe", "Paddington", "Bondi"]},
+  {id:"melbourne", cont:"oceania", tz:"Australia/Melbourne", pre:"A$", post:"", budget:[15,200,5,15,200,110], start:"20:00",
+   bbox:[-37.88, -37.77, 144.9, 145.03], ride:"rideTrain",
+   areas:["Fitzroy", "Collingwood", "CBD", "Brunswick", "Carlton", "Richmond", "St Kilda", "South Yarra"]}
 ];
 let city = CITIES.find(c=>c.id==="paris");
 const fmt = n => city.pre + n + city.post;
@@ -836,11 +930,25 @@ function cityClock(c){
   const h=+parts.find(x=>x.type==="hour").value % 24, m=parts.find(x=>x.type==="minute").value;
   return {txt:fmtTime(`${h}:${m}`), night:h>=18||h<5};
 }
+const CONTS=[["europe","contEurope"],["north-america","contNA"],["south-america","contSA"],["asia","contAsia"],["africa","contAfrica"],["oceania","contOceania"]];
+let cont=(()=>{ const z=(Intl.DateTimeFormat().resolvedOptions().timeZone||"");
+  if(/^America\/(Argentina|Sao_Paulo|Bogota|Lima|Santiago|Caracas|Montevideo|La_Paz|Asuncion|Guayaquil|Belem|Fortaleza|Recife|Manaus|Bahia)/.test(z)) return "south-america";
+  if(z.startsWith("America/")) return "north-america";
+  if(z.startsWith("Asia/")) return "asia";
+  if(z.startsWith("Africa/")) return "africa";
+  if(z.startsWith("Australia/")||z.startsWith("Pacific/")) return "oceania";
+  return "europe"; })();
+$("#conts").addEventListener("click",e=>{const b=e.target.closest("[data-cont]"); if(!b) return; cont=b.dataset.cont; renderCities(); b.focus();});
+$("#conts").addEventListener("keydown",e=>{ if(e.key!=="ArrowRight"&&e.key!=="ArrowLeft") return;
+  const i=CONTS.findIndex(c=>c[0]===cont), n=(i+(e.key==="ArrowRight"?1:-1)+CONTS.length)%CONTS.length;
+  cont=CONTS[n][0]; renderCities(); $(`[data-cont="${cont}"]`).focus(); e.preventDefault(); });
 function renderCities(){
+  $("#conts").innerHTML=CONTS.map(([id,k])=>`<button class="cont" type="button" role="tab" data-cont="${id}" aria-selected="${id===cont}" tabindex="${id===cont?0:-1}">${t(k)}</button>`).join("");
+  $(`[data-cont="${cont}"]`)?.scrollIntoView({block:"nearest",inline:"nearest"});
   $("#cities").setAttribute("aria-label",t("citiesLabel"));
   const now=new Date(), utc=new Date(now.toLocaleString("en-US",{timeZone:"UTC"}));
   const off=c=>new Date(now.toLocaleString("en-US",{timeZone:c.tz}))-utc;
-  $("#cities").innerHTML=[...CITIES].sort((a,b)=>off(a)-off(b)).map(c=>{const k=cityClock(c);
+  $("#cities").innerHTML=CITIES.filter(c=>c.cont===cont).sort((a,b)=>off(a)-off(b)).map(c=>{const k=cityClock(c);
     return `<li><button class="city" type="button" data-city="${c.id}">
       <span class="city-name">${cityName(c)}</span>
       <span class="city-time" aria-label="${t("clockAria",{t:k.txt,c:cityName(c)})}${k.night?t("evening"):""}"><span class="${k.night?"night":"day"}" aria-hidden="true"></span><bdi>${k.txt}</bdi></span>
