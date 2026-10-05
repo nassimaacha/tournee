@@ -167,14 +167,14 @@ input[type=range]{width:100%;accent-color:var(--accent);margin-top:10px}
 #home .hero{min-height:28svh;display:flex;flex-direction:column;justify-content:flex-end;padding:28px 0 18px}
 #home .hero h1{font-size:clamp(2.4rem,10vw,4.4rem);margin:0 0 12px}
 #home .hero p{font-size:15px}
-.world{--rowh:max(44px,calc((100svh - 28svh - 62px - 64px) / 8));padding-bottom:24px}
+.world{--rows:9;--rowh:max(44px,calc((100svh - 28svh - 62px - 64px) / var(--rows)));padding-bottom:24px}
 .conts{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;margin:0 -20px 8px;padding:4px 20px 8px}
 .conts::-webkit-scrollbar{display:none}
 .cont{flex:none;background:none;border:0;border-radius:30px;padding:7px 14px;color:var(--muted);font:inherit;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.111em;cursor:pointer;white-space:nowrap;transition:background .15s,color .15s}
 .cont:hover{color:var(--accent)}
 .cont[aria-selected="true"]{background:var(--accent);color:var(--bg)}
 .cont:focus-visible{outline:1px solid var(--accent);outline-offset:2px}
-.cities{list-style:none;margin:0 -20px;padding:0}
+.cities{list-style:none;margin:0 -20px;padding:0;height:calc(var(--rowh) * var(--rows))}
 .city{display:flex;align-items:center;justify-content:space-between;gap:16px;width:100%;height:var(--rowh);padding:0 20px;border:0;
   background:transparent;color:var(--accent);font:inherit;cursor:pointer;text-align:left;transition:background .15s,color .15s}
 .city:hover,.city:focus-visible{background:var(--accent);color:var(--bg)}
@@ -403,7 +403,10 @@ const CITY_T = {
  "rio":{fr:"Rio de Janeiro",en:"Rio de Janeiro",es:"Río de Janeiro"},
  "sao-paulo":{fr:"São Paulo",en:"São Paulo",es:"São Paulo"},
  "sydney":{fr:"Sydney",en:"Sydney",es:"Sídney"},
- "melbourne":{fr:"Melbourne",en:"Melbourne",es:"Melbourne"}
+ "melbourne":{fr:"Melbourne",en:"Melbourne",es:"Melbourne"},
+ "toronto":{fr:"Toronto",en:"Toronto",es:"Toronto"},
+ "sharm-el-sheikh":{fr:"Charm el-Cheikh",en:"Sharm El Sheikh",es:"Sharm el-Sheij"},
+ "vienna":{fr:"Vienne",en:"Vienna",es:"Viena"}
 };
 let lang = (()=>{ try{ const s=localStorage.getItem("tournee-lang"); if(T[s]) return s; }catch{} const n=(navigator.language||"fr").slice(0,2); return T[n]?n:"fr"; })();
 const t = (k, v={}) => (T[lang][k] ?? T.fr[k] ?? k).replace(/\{(\w)\}/g,(_,x)=>v[x]??"");
@@ -509,7 +512,16 @@ const CITIES = [
    areas:["Surry Hills", "Newtown", "Darlinghurst", "CBD", "The Rocks", "Glebe", "Paddington", "Bondi"]},
   {id:"melbourne", cont:"oceania", tz:"Australia/Melbourne", pre:"A$", post:"", budget:[15,200,5,15,200,110], start:"20:00",
    bbox:[-37.88, -37.77, 144.9, 145.03], ride:"rideTrain",
-   areas:["Fitzroy", "Collingwood", "CBD", "Brunswick", "Carlton", "Richmond", "St Kilda", "South Yarra"]}
+   areas:["Fitzroy", "Collingwood", "CBD", "Brunswick", "Carlton", "Richmond", "St Kilda", "South Yarra"]},
+  {id:"vienna", cont:"europe", tz:"Europe/Vienna", pre:"", post:" €", budget:[10,100,5,10,100,55], start:"20:00",
+   bbox:[48.12, 48.32, 16.2, 16.55], ride:"rideMetro",
+   areas:["Innere Stadt", "Neubau", "Mariahilf", "Leopoldstadt", "Gürtel", "Josefstadt", "Wieden", "MuseumsQuartier"]},
+  {id:"toronto", cont:"north-america", tz:"America/Toronto", pre:"CA$", post:"", budget:[15,200,5,15,200,110], start:"20:00",
+   bbox:[43.58, 43.86, -79.64, -79.12], ride:"rideSubway",
+   areas:["Queen West", "Ossington", "Kensington Market", "Entertainment District", "Liberty Village", "Downtown Yonge", "The Annex", "Little Italy", "Leslieville", "Distillery District"]},
+  {id:"sharm-el-sheikh", cont:"africa", tz:"Africa/Cairo", pre:"", post:" EGP", budget:[500,8000,250,500,8000,4250], start:"20:00",
+   bbox:[27.84, 28.05, 34.25, 34.45], ride:"rideWalk",
+   areas:["Naama Bay", "Soho Square", "Old Market", "Hadaba", "Sharks Bay", "Nabq Bay"]}
 ];
 let city = CITIES.find(c=>c.id==="paris");
 const fmt = n => city.pre + n + city.post;
@@ -938,13 +950,14 @@ let cont=(()=>{ const z=(Intl.DateTimeFormat().resolvedOptions().timeZone||"");
   if(z.startsWith("Africa/")) return "africa";
   if(z.startsWith("Australia/")||z.startsWith("Pacific/")) return "oceania";
   return "europe"; })();
-$("#conts").addEventListener("click",e=>{const b=e.target.closest("[data-cont]"); if(!b) return; cont=b.dataset.cont; renderCities(); b.focus();});
+$("#conts").addEventListener("click",e=>{const b=e.target.closest("[data-cont]"); if(!b) return; cont=b.dataset.cont; renderCities(); $(`[data-cont="${cont}"]`)?.focus({preventScroll:true});});
 $("#conts").addEventListener("keydown",e=>{ if(e.key!=="ArrowRight"&&e.key!=="ArrowLeft") return;
   const i=CONTS.findIndex(c=>c[0]===cont), n=(i+(e.key==="ArrowRight"?1:-1)+CONTS.length)%CONTS.length;
-  cont=CONTS[n][0]; renderCities(); $(`[data-cont="${cont}"]`).focus(); e.preventDefault(); });
+  cont=CONTS[n][0]; renderCities(); $(`[data-cont="${cont}"]`).focus({preventScroll:true}); e.preventDefault(); });
 function renderCities(){
   $("#conts").innerHTML=CONTS.map(([id,k])=>`<button class="cont" type="button" role="tab" data-cont="${id}" aria-selected="${id===cont}" tabindex="${id===cont?0:-1}">${t(k)}</button>`).join("");
-  $(`[data-cont="${cont}"]`)?.scrollIntoView({block:"nearest",inline:"nearest"});
+  const tab=$(`[data-cont="${cont}"]`), row=$("#conts");
+  if(tab){ const l=tab.offsetLeft-row.offsetLeft, r=l+tab.offsetWidth; if(l<row.scrollLeft) row.scrollLeft=l-20; else if(r>row.scrollLeft+row.clientWidth) row.scrollLeft=r-row.clientWidth+20; }
   $("#cities").setAttribute("aria-label",t("citiesLabel"));
   const now=new Date(), utc=new Date(now.toLocaleString("en-US",{timeZone:"UTC"}));
   const off=c=>new Date(now.toLocaleString("en-US",{timeZone:c.tz}))-utc;
