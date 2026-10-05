@@ -11,6 +11,15 @@ const avoidRule = (avoid) => avoid.length
   : "";
 const style = (lang) => `- Écris toutes les valeurs texte du JSON en ${LANGS[lang]}, ton direct et complice, phrases courtes. Garde les noms propres des lieux tels quels. Les clés JSON restent identiques.\n- Le champ "heure" est toujours au format 24 h HH:MM. ${lang === "en" ? "Dans les textes (retour, trajet, pourquoi...), écris les heures au format 12 h avec AM/PM (ex : 11:30 PM)." : "Dans les textes, écris les heures au format 24 h (ex : 23:30)."}`;
 const CITIES = {
+  "vienna": { tz: "Europe/Vienna", cultureNotes: "Beaucoup de musées ont des tarifs étudiants ; le MuseumsQuartier et le Prater se visitent gratuitement.", name: "Vienne", cur: "€", curName: "euros", min: 10, max: 100,
+    transit: "en U-Bahn, qui roule toute la nuit le vendredi, le samedi et les veilles de jours fériés, sinon bus de nuit (NightLine)",
+    notes: "Âge légal : 16 ans pour la bière et le vin, 18 ans pour les alcools forts. Le Gürtel concentre beaucoup de bars sous les arches du métro." },
+  "toronto": { tz: "America/Toronto", cultureNotes: "Plusieurs musées ont des tarifs jeunes ou des créneaux gratuits ; Kensington Market et le Distillery District se visitent gratuitement.", name: "Toronto", cur: "CA$", curName: "dollars canadiens", min: 15, max: 200,
+    transit: "en métro (TTC), qui ferme vers 1h30, ensuite bus et tramways de nuit (Blue Night)",
+    notes: "Âge légal pour l'alcool en Ontario : 19 ans. Les bars ferment à 2h." },
+  "sharm-el-sheikh": { tz: "Africa/Cairo", cultureNotes: "Peu de musées : privilégie les plages et le snorkeling (Naama Bay, Ras Um Sid), l'Old Market et la mosquée Al Sahaba. Il fait très chaud l'après midi, prévois de l'ombre.", name: "Charm el-Cheikh", cur: "EGP", curName: "livres égyptiennes (EGP)", min: 500, max: 8000,
+    transit: "à pied : reste dans une seule zone comme Naama Bay, les zones sont éloignées les unes des autres",
+    notes: "Ville balnéaire : la vie nocturne se concentre à Naama Bay et Soho Square. L'alcool est servi dans les hôtels et lieux touristiques licenciés, à partir de 21 ans : prévois aussi des cafés, chichas et lieux sans alcool." },
   "barcelona": { tz: "Europe/Madrid", cultureNotes: "La Sagrada Família et le Park Güell se réservent à l'avance ; plusieurs musées sont gratuits certains dimanches après midi.", name: "Barcelone", cur: "€", curName: "euros", min: 10, max: 100,
     transit: "en métro, qui ferme vers minuit en semaine, vers 2h le vendredi et roule toute la nuit le samedi, sinon NitBus",
     notes: "On sort tard : dîner vers 21h30, les clubs se remplissent après 1h. Âge légal pour l'alcool : 18 ans." },

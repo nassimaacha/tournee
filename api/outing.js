@@ -9,7 +9,7 @@ const KV_TOKEN = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST
 const TTL = 60 * 60 * 24 * 30; // outings expire after 30 days
 const MAX_MEMBERS = 8;
 
-const BUDGETS = { "barcelona": [10, 100], "berlin": [10, 100], "amsterdam": [10, 100], "lisbon": [10, 100], "rome": [10, 100], "miami": [10, 150], "houston": [10, 150], "mexico-city": [200, 3000], "montreal": [15, 200], "tokyo": [1000, 15000], "seoul": [10000, 150000], "bangkok": [300, 5000], "singapore": [15, 200], "marrakech": [100, 1000], "cape-town": [150, 2000], "buenos-aires": [10, 120], "rio": [50, 600], "sao-paulo": [50, 600], "sydney": [15, 200], "melbourne": [15, 200], paris: [10, 100], london: [10, 100], dubai: [50, 600], madrid: [10, 100], "new-york": [10, 150], "los-angeles": [10, 150], casablanca: [100, 1000] };
+const BUDGETS = { "vienna": [10, 100], "sharm-el-sheikh": [500, 8000], "toronto": [15, 200], "barcelona": [10, 100], "berlin": [10, 100], "amsterdam": [10, 100], "lisbon": [10, 100], "rome": [10, 100], "miami": [10, 150], "houston": [10, 150], "mexico-city": [200, 3000], "montreal": [15, 200], "tokyo": [1000, 15000], "seoul": [10000, 150000], "bangkok": [300, 5000], "singapore": [15, 200], "marrakech": [100, 1000], "cape-town": [150, 2000], "buenos-aires": [10, 120], "rio": [50, 600], "sao-paulo": [50, 600], "sydney": [15, 200], "melbourne": [15, 200], paris: [10, 100], london: [10, 100], dubai: [50, 600], madrid: [10, 100], "new-york": [10, 150], "los-angeles": [10, 150], casablanca: [100, 1000] };
 const VIBES = {
   night: ["chill", "cocktails", "dance", "karaoke", "food", "cheap", "music", "rooftop"],
   day: ["museums", "contemporary", "galleries", "streetart", "architecture", "parks", "markets", "views"],
