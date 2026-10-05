@@ -6,7 +6,7 @@
 <title>Tournée</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Antonio:wght@700&family=Inter:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Antonio:wght@700&family=Cairo:wght@400;700&family=Inter:wght@400;700&display=swap" rel="stylesheet">
 <style>
 :root{
   --bg:#FFFFFF; --surface:#FFFFFF; --ash:#EEEEEE; --ink:#000000; --charcoal:#333333;
@@ -48,14 +48,14 @@
 *,*::before,*::after{box-sizing:inherit}
 html{scroll-padding-top:env(safe-area-inset-top,0px)}
 body{margin:0;background:var(--bg);color:var(--ink);
-  font-family:"Inter",ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  font-family:"Inter","Cairo",ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
   font-size:16px;line-height:1.4;letter-spacing:.06em;-webkit-font-smoothing:antialiased;overflow-x:hidden}
 .wrap{max-width:640px;margin:0 auto;padding:0 20px}
 header{display:flex;align-items:center;gap:10px;padding:20px 0;border-bottom:1px solid var(--line);margin:0 -20px;padding-left:20px;padding-right:20px}
 .brand{font-weight:700;font-size:14px;text-transform:uppercase}
 .mark{width:30px;height:30px}
 .hero{padding:40px 0 48px}
-.hero h1{font-family:"Antonio","Arial Narrow",Impact,sans-serif;font-weight:700;text-transform:uppercase;
+.hero h1{font-family:"Antonio","Cairo","Arial Narrow",Impact,sans-serif;font-weight:700;text-transform:uppercase;
   font-size:clamp(3.6rem,18vw,6.6rem);line-height:1.15;letter-spacing:0;margin:0 0 24px}
 .hero p{color:var(--charcoal);margin:0;max-width:40ch;font-size:18px}
 .panel{padding:32px 0;border-top:1px solid var(--line)}
@@ -88,7 +88,7 @@ input[type=range]{width:100%;accent-color:var(--ink);margin-top:8px}
 #result{padding:48px 0 56px}
 .badge{display:inline-block;background:var(--lamp);color:#000;border-radius:100px;padding:6px 14px;font-size:12px;font-weight:700;text-transform:uppercase;margin-bottom:20px}
 .badge.ex{background:var(--ash);color:var(--ink)}
-.res-head h2{font-family:"Antonio","Arial Narrow",Impact,sans-serif;font-weight:700;text-transform:uppercase;
+.res-head h2{font-family:"Antonio","Cairo","Arial Narrow",Impact,sans-serif;font-weight:700;text-transform:uppercase;
   font-size:clamp(2.6rem,12vw,5rem);overflow-wrap:anywhere;line-height:1.15;letter-spacing:0;margin:0 0 20px}
 .res-head p{margin:0;color:var(--charcoal);font-size:18px}
 .pill-row{display:flex;flex-wrap:wrap;gap:8px;margin:20px 0 24px}
@@ -132,7 +132,7 @@ body{transition:background .35s,color .35s}
   border:0;text-align:left;font:inherit;letter-spacing:.06em;cursor:pointer}
 .pick.night{background:#000;color:#fff;--dot:#7FFEB1}
 .pick.day{background:#fff;color:#000;--dot:#FF9AD5;border-bottom:1px solid #D9D9D9}
-.pick b{font-family:"Antonio","Arial Narrow",Impact,sans-serif;font-weight:700;text-transform:uppercase;font-size:clamp(3.2rem,16vw,7rem);line-height:1.15;letter-spacing:0;display:flex;align-items:center;gap:16px}
+.pick b{font-family:"Antonio","Cairo","Arial Narrow",Impact,sans-serif;font-weight:700;text-transform:uppercase;font-size:clamp(3.2rem,16vw,7rem);line-height:1.15;letter-spacing:0;display:flex;align-items:center;gap:16px}
 .pick b::after{content:"";width:.18em;height:.18em;border-radius:50%;background:var(--dot);transition:transform .25s}
 .pick span{font-size:16px;opacity:.8;max-width:34ch}
 .pick:hover b::after,.pick:focus-visible b::after{transform:scale(1.6)}
@@ -140,17 +140,27 @@ body{transition:background .35s,color .35s}
 @media (min-width:760px){.split{grid-template-columns:1fr 1fr}.pick{min-height:calc(100svh - 72px);padding:40px}.pick b{font-size:clamp(3.2rem,8vw,6.5rem)}.pick.day{border-bottom:0}}
 @media (prefers-reduced-motion: reduce){body,.pick b::after{transition:none}}
 .city-tag{border:1px solid var(--line);border-radius:100px;padding:4px 12px;font-size:12px;font-weight:700;text-transform:uppercase}
-.switch{margin-left:auto;background:none;border:0;color:var(--ink);font:inherit;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;cursor:pointer;padding:8px 0}
+.controls{margin-inline-start:auto;display:flex;align-items:center;gap:16px}
+.switch{background:none;border:0;color:var(--ink);font:inherit;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;cursor:pointer;padding:8px 0}
 .switch:focus-visible,.city:focus-visible{outline:2px solid var(--ink);outline-offset:-2px}
 .cities{list-style:none;margin:0 -20px 48px;padding:0;border-top:1px solid var(--line)}
 .city{display:flex;align-items:center;justify-content:space-between;gap:16px;width:100%;padding:14px 20px;border:0;border-bottom:1px solid var(--line);
   background:var(--bg);color:var(--ink);font:inherit;letter-spacing:.06em;cursor:pointer;text-align:left;transition:background .15s,color .15s}
 .city:hover,.city:focus-visible{background:var(--ink);color:var(--bg)}
-.city-name{font-family:"Antonio","Arial Narrow",Impact,sans-serif;font-weight:700;text-transform:uppercase;font-size:clamp(2rem,10vw,3.8rem);line-height:1.15;letter-spacing:0;min-width:0;overflow-wrap:anywhere}
+.city-name{font-family:"Antonio","Cairo","Arial Narrow",Impact,sans-serif;font-weight:700;text-transform:uppercase;font-size:clamp(2rem,10vw,3.8rem);line-height:1.15;letter-spacing:0;min-width:0;overflow-wrap:anywhere}
 .city-time{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:700;white-space:nowrap}
 .city-time .night{width:10px;height:10px;border-radius:50%;background:var(--lamp)}
 .city-time .day{width:10px;height:10px;border-radius:50%;border:2px solid currentColor;opacity:.5}
 @media (prefers-reduced-motion: reduce){.city{transition:none}}
+header select.lang{width:auto;padding:6px 30px 6px 12px;font-size:12px;font-weight:700;background-position:calc(100% - 16px) 55%,calc(100% - 11px) 55%}
+[dir="rtl"] body,[dir="rtl"] input,[dir="rtl"] select,[dir="rtl"] button,[dir="rtl"] .brand,[dir="rtl"] .remove,[dir="rtl"] .add,[dir="rtl"] .cta,[dir="rtl"] .btn,[dir="rtl"] .switch,[dir="rtl"] .pick,[dir="rtl"] .city{letter-spacing:0}
+[dir="rtl"] .hero h1,[dir="rtl"] .res-head h2,[dir="rtl"] .city-name,[dir="rtl"] .pick b{line-height:1.45}
+[dir="rtl"] .pick,[dir="rtl"] .city{text-align:right}
+[dir="rtl"] select{background-position:16px 55%,21px 55%;padding-right:16px;padding-left:36px}
+[dir="rtl"] header select.lang{padding:6px 12px 6px 30px;background-position:11px 55%,16px 55%}
+[dir="rtl"] .line::before{left:auto;right:58px}
+[dir="rtl"] .time{text-align:left}
+[dir="rtl"] .station{margin:4px 8px 0 0}
 footer{color:var(--stone);font-size:12px;padding:24px 0 40px;border-top:1px solid var(--line)}
 #result + footer{border-top:0}
 @media (max-width:420px){.grid2{grid-template-columns:1fr}.friend-row{grid-template-columns:1fr}}
@@ -166,14 +176,17 @@ footer{color:var(--stone);font-size:12px;padding:24px 0 40px;border-top:1px soli
     </svg>
     <span class="brand">Tournée</span>
     <span class="city-tag" id="cityTag" hidden></span>
-    <button class="switch" id="switchCity" type="button" hidden>Changer de ville</button>
+    <div class="controls">
+      <button class="switch" id="switchCity" type="button" hidden></button>
+      <select class="lang" id="lang"></select>
+    </div>
   </header>
 
-  <main id="start" class="view">
-    <h1 class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">Tournée : choisissez votre sortie</h1>
+  <main id="landing" class="view">
+    <h1 class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)" data-i18n="srTitle"></h1>
     <div class="split">
-      <button class="pick night" type="button" data-pick="night"><b>Soirée</b><span>Bars, clubs, concerts. Du premier verre au dernier métro.</span></button>
-      <button class="pick day" type="button" data-pick="culture"><b>Journée</b><span>Musées, expos, parcs. Du premier musée au dernier café.</span></button>
+      <button class="pick night" type="button" data-pick="night"><b data-i18n="pickNight"></b><span data-i18n="pickNightSub"></span></button>
+      <button class="pick day" type="button" data-pick="culture"><b data-i18n="pickDay"></b><span data-i18n="pickDaySub"></span></button>
     </div>
   </main>
 
@@ -182,32 +195,32 @@ footer{color:var(--stone);font-size:12px;padding:24px 0 40px;border-top:1px soli
       <h1 id="homeTitle"></h1>
       <p id="homeText"></p>
     </section>
-    <ul class="cities" id="cities" aria-label="Villes"></ul>
+    <ul class="cities" id="cities"></ul>
   </main>
 
   <main id="planner" class="view" hidden>
   <section class="hero">
-    <h1>Tout le groupe.<br>Un seul plan.</h1>
+    <h1 data-i18n-html="heroH1"></h1>
     <p id="heroText"></p>
   </section>
 
   <section class="panel" aria-labelledby="g-title">
-    <h2 id="g-title">Le groupe</h2>
-    <p class="hint">Un pseudo suffit, pas besoin de vrais noms.</p>
+    <h2 id="g-title" data-i18n="group"></h2>
+    <p class="hint" data-i18n="groupHint"></p>
     <div id="friends"></div>
-    <button class="add" id="addFriend" type="button">Ajouter quelqu'un</button>
+    <button class="add" id="addFriend" type="button" data-i18n="add"></button>
   </section>
 
   <section class="panel" aria-labelledby="s-title">
     <h2 id="s-title"></h2>
-    <p class="hint">Où vous vous retrouvez et à quelle heure.</p>
+    <p class="hint" data-i18n="panelHint"></p>
     <div class="grid2">
       <div class="field">
-        <label for="area">Point de départ</label>
+        <label for="area" data-i18n="startLabel"></label>
         <select id="area"></select>
       </div>
       <div class="field">
-        <label for="start">Heure de rendez‑vous</label>
+        <label for="start" data-i18n="timeLabel"></label>
         <input type="time" id="start" value="20:00">
       </div>
     </div>
@@ -215,48 +228,143 @@ footer{color:var(--stone);font-size:12px;padding:24px 0 40px;border-top:1px soli
   </section>
 
   <button class="cta" id="go" type="button"></button>
-  <p class="note" id="status">Lieux proposés par l'IA : vérifiez horaires et prix avant d'y aller.</p>
+  <p class="note" id="status"></p>
 
   <section id="result" class="band" aria-live="polite"></section>
   </main>
 
-  <footer>Tournée, prototype réalisé pour le Défi 100K. Les plans sont générés par IA.</footer>
+  <footer data-i18n="footer"></footer>
 </div>
 
 <script>
 const GMAPS_KEY = "AIzaSyB-K5Z8agH0iJ5zSslPaSNzefRy4X-ryVs";
+const LANGS = {fr:"FR", en:"EN", es:"ES", ar:"عربي"};
+const T = {
+fr:{srTitle:"Tournée : choisissez votre sortie",pickNight:"Soirée",pickNightSub:"Bars, clubs, concerts. Du premier verre au dernier métro.",pickDay:"Journée",pickDaySub:"Musées, expos, parcs. Du premier musée au dernier café.",
+ nightTitle:"On sort où<br>ce soir&nbsp;?",nightText:"Choisissez la ville. Tournée trouve la soirée qui convient à tout le groupe, du premier verre au retour.",
+ dayTitle:"On visite<br>quoi&nbsp;?",dayText:"Choisissez la ville. Tournée trouve la journée culturelle qui plaît à tout le groupe, du premier musée au dernier café.",
+ citiesLabel:"Villes",clockAria:"{t} à {c}",evening:", c'est le soir",switchCity:"Changer de ville",switchMode:"Soirée ou journée",langLabel:"Langue",
+ heroH1:"Tout le groupe.<br>Un seul plan.",
+ heroNight:"Chacun donne son budget et son envie. En 30 secondes, l'IA trouve la soirée à {c} qui convient à tout le monde, du premier verre au retour.",
+ heroDay:"Chacun donne son budget et ce qu'il aime. En 30 secondes, l'IA trouve la journée à {c} qui plaît à tout le monde, du premier musée au dernier café.",
+ group:"Le groupe",groupHint:"Un pseudo suffit, pas besoin de vrais noms.",add:"Ajouter quelqu'un",panelNight:"La soirée",panelDay:"La journée",
+ panelHint:"Où vous vous retrouvez et à quelle heure.",startLabel:"Point de départ",timeLabel:"Heure de rendez‑vous",ctaNight:"Planifier la soirée",ctaDay:"Planifier la journée",
+ status:"Lieux proposés par l'IA : vérifiez horaires et prix avant d'y aller.",footer:"Tournée, prototype réalisé pour le Défi 100K. Les plans sont générés par IA.",
+ nick:"Pseudo",remove:"Retirer",budget:"Budget max",vibe:"Envie",flagNight:"Ne boit pas d'alcool",flagDay:"Moins de 26 ans (tarifs jeunes)",friend:"Ami",needTwo:"Ajoutez au moins deux personnes.",
+ rideMetro:"On rentre en métro (pas de taxi)",rideTube:"On rentre en Tube (pas de taxi)",rideTransit:"On rentre en transports (pas d'Uber)",rideTram:"On rentre en tram (pas de taxi)",rideDay:"On se déplace en transports (pas de taxi)",
+ perPerson:"par personne",tightest:"Budget le plus serré :",people:"personnes",ready:"Plan prêt",returnLabel:"Retour",endNight:"Tout le monde rentre",endDay:"Fin de la journée",
+ copy:"Copier pour le groupe",again:"Un autre plan",copied:"Copié, collez dans le groupe",copyFail:"Copie impossible ici",total:"Total",plannedWith:"Planifié avec Tournée",
+ thinking:"L'IA cherche le plan qui convient à tout le monde…",retry:"Relancer",errRate:"Trop de demandes d'un coup. Attendez quelques secondes puis réessayez.",
+ errKey:"La clé Anthropic n'est pas configurée sur le serveur.",errGeneric:"Le plan n'a pas pu être généré. Relancez la planification.",
+ mapCheck:"Vérifiez les adresses avant d'y aller",mapOpen:"Ouvrir l'itinéraire",mapAria:"Carte des étapes",svgCap:"Positions approximatives, carte simplifiée",svgAll:"Voir tout Paris",svgZoom:"Zoomer sur le plan"},
+en:{srTitle:"Tournée: pick your outing",pickNight:"Night out",pickNightSub:"Bars, clubs, live music. From first drink to last train.",pickDay:"Daytime",pickDaySub:"Museums, galleries, parks. From first museum to last coffee.",
+ nightTitle:"Where are we<br>going tonight?",nightText:"Pick a city. Tournée finds the night out that works for the whole group, from first drink to the ride home.",
+ dayTitle:"What are we<br>seeing today?",dayText:"Pick a city. Tournée finds the culture day the whole group will enjoy, from first museum to last coffee.",
+ citiesLabel:"Cities",clockAria:"{t} in {c}",evening:", it's evening",switchCity:"Change city",switchMode:"Night or day",langLabel:"Language",
+ heroH1:"The whole group.<br>One plan.",
+ heroNight:"Everyone sets a budget and a vibe. In 30 seconds, the AI finds the night out in {c} that works for everyone, from first drink to the ride home.",
+ heroDay:"Everyone sets a budget and what they love. In 30 seconds, the AI finds the day in {c} everyone will enjoy, from first museum to last coffee.",
+ group:"The group",groupHint:"A nickname is enough, no real names needed.",add:"Add someone",panelNight:"The night",panelDay:"The day",
+ panelHint:"Where you meet and at what time.",startLabel:"Meeting point",timeLabel:"Meeting time",ctaNight:"Plan the night",ctaDay:"Plan the day",
+ status:"Places suggested by AI: check opening hours and prices before you go.",footer:"Tournée, a prototype built for the Défi 100K. Plans are generated by AI.",
+ nick:"Nickname",remove:"Remove",budget:"Max budget",vibe:"Vibe",flagNight:"Doesn't drink alcohol",flagDay:"Under 26 (youth prices)",friend:"Friend",needTwo:"Add at least two people.",
+ rideMetro:"We go home by metro (no taxi)",rideTube:"We go home by Tube (no taxi)",rideTransit:"We go home by public transport (no Uber)",rideTram:"We go home by tram (no taxi)",rideDay:"We get around by public transport (no taxi)",
+ perPerson:"per person",tightest:"Tightest budget:",people:"people",ready:"Plan ready",returnLabel:"Getting home",endNight:"Everyone heads home",endDay:"End of the day",
+ copy:"Copy for the group",again:"Another plan",copied:"Copied, paste it in the group chat",copyFail:"Can't copy here",total:"Total",plannedWith:"Planned with Tournée",
+ thinking:"The AI is finding a plan that works for everyone…",retry:"Try again",errRate:"Too many requests at once. Wait a few seconds and try again.",
+ errKey:"The Anthropic key isn't set up on the server.",errGeneric:"The plan couldn't be generated. Try again.",
+ mapCheck:"Check addresses before you go",mapOpen:"Open route",mapAria:"Map of the stops",svgCap:"Approximate positions, simplified map",svgAll:"See all of Paris",svgZoom:"Zoom to the plan"},
+es:{srTitle:"Tournée: elige tu plan",pickNight:"Noche",pickNightSub:"Bares, discotecas, conciertos. De la primera copa al último metro.",pickDay:"Día",pickDaySub:"Museos, exposiciones, parques. Del primer museo al último café.",
+ nightTitle:"¿Dónde salimos<br>esta noche?",nightText:"Elige la ciudad. Tournée encuentra la noche que le va bien a todo el grupo, de la primera copa a la vuelta a casa.",
+ dayTitle:"¿Qué vemos<br>hoy?",dayText:"Elige la ciudad. Tournée encuentra el día cultural que gusta a todo el grupo, del primer museo al último café.",
+ citiesLabel:"Ciudades",clockAria:"{t} en {c}",evening:", es de noche",switchCity:"Cambiar de ciudad",switchMode:"Noche o día",langLabel:"Idioma",
+ heroH1:"Todo el grupo.<br>Un solo plan.",
+ heroNight:"Cada uno pone su presupuesto y sus ganas. En 30 segundos, la IA encuentra la noche en {c} que le va bien a todos, de la primera copa a la vuelta a casa.",
+ heroDay:"Cada uno pone su presupuesto y lo que le gusta. En 30 segundos, la IA encuentra el día en {c} que gusta a todos, del primer museo al último café.",
+ group:"El grupo",groupHint:"Basta un apodo, no hacen falta nombres reales.",add:"Añadir a alguien",panelNight:"La noche",panelDay:"El día",
+ panelHint:"Dónde quedáis y a qué hora.",startLabel:"Punto de encuentro",timeLabel:"Hora de encuentro",ctaNight:"Planear la noche",ctaDay:"Planear el día",
+ status:"Lugares sugeridos por IA: comprueba horarios y precios antes de ir.",footer:"Tournée, prototipo creado para el Défi 100K. Los planes los genera la IA.",
+ nick:"Apodo",remove:"Quitar",budget:"Presupuesto máx.",vibe:"Le apetece",flagNight:"No bebe alcohol",flagDay:"Menor de 26 (tarifa joven)",friend:"Amigo",needTwo:"Añade al menos dos personas.",
+ rideMetro:"Volvemos en metro (sin taxi)",rideTube:"Volvemos en metro (sin taxi)",rideTransit:"Volvemos en transporte público (sin Uber)",rideTram:"Volvemos en tranvía (sin taxi)",rideDay:"Nos movemos en transporte público (sin taxi)",
+ perPerson:"por persona",tightest:"Presupuesto más ajustado:",people:"personas",ready:"Plan listo",returnLabel:"Vuelta",endNight:"Todos a casa",endDay:"Fin del día",
+ copy:"Copiar para el grupo",again:"Otro plan",copied:"Copiado, pégalo en el grupo",copyFail:"No se puede copiar aquí",total:"Total",plannedWith:"Planeado con Tournée",
+ thinking:"La IA busca el plan que le va bien a todos…",retry:"Reintentar",errRate:"Demasiadas solicitudes. Espera unos segundos y vuelve a intentarlo.",
+ errKey:"La clave de Anthropic no está configurada en el servidor.",errGeneric:"No se pudo generar el plan. Vuelve a intentarlo.",
+ mapCheck:"Comprueba las direcciones antes de ir",mapOpen:"Abrir ruta",mapAria:"Mapa de las paradas",svgCap:"Posiciones aproximadas, mapa simplificado",svgAll:"Ver todo París",svgZoom:"Acercar al plan"},
+ar:{srTitle:"Tournée: اختر خرجتك",pickNight:"سهرة",pickNightSub:"مقاهٍ ونوادٍ وحفلات. من أول لقاء حتى آخر مترو.",pickDay:"نهار",pickDaySub:"متاحف ومعارض وحدائق. من أول متحف حتى آخر قهوة.",
+ nightTitle:"أين نسهر<br>الليلة؟",nightText:"اختر المدينة. تجد Tournée السهرة التي تناسب المجموعة كلها، من أول لقاء حتى العودة.",
+ dayTitle:"ماذا نزور<br>اليوم؟",dayText:"اختر المدينة. تجد Tournée يوماً ثقافياً يعجب المجموعة كلها، من أول متحف حتى آخر قهوة.",
+ citiesLabel:"المدن",clockAria:"{t} في {c}",evening:"، إنه المساء",switchCity:"تغيير المدينة",switchMode:"سهرة أو نهار",langLabel:"اللغة",
+ heroH1:"المجموعة كلها.<br>خطة واحدة.",
+ heroNight:"كل واحد يحدد ميزانيته ومزاجه. خلال 30 ثانية، يجد الذكاء الاصطناعي السهرة في {c} التي تناسب الجميع، من أول لقاء حتى العودة.",
+ heroDay:"كل واحد يحدد ميزانيته وما يحب. خلال 30 ثانية، يجد الذكاء الاصطناعي يوماً في {c} يعجب الجميع، من أول متحف حتى آخر قهوة.",
+ group:"المجموعة",groupHint:"يكفي لقب، لا حاجة للأسماء الحقيقية.",add:"أضف شخصاً",panelNight:"السهرة",panelDay:"اليوم",
+ panelHint:"أين تلتقون وفي أي ساعة.",startLabel:"نقطة الانطلاق",timeLabel:"وقت اللقاء",ctaNight:"خطط للسهرة",ctaDay:"خطط لليوم",
+ status:"أماكن يقترحها الذكاء الاصطناعي: تحقق من الأوقات والأسعار قبل الذهاب.",footer:"Tournée، نموذج أولي أُنجز لتحدي Défi 100K. الخطط من إنشاء الذكاء الاصطناعي.",
+ nick:"اللقب",remove:"إزالة",budget:"الميزانية القصوى",vibe:"يفضّل",flagNight:"لا يشرب الكحول",flagDay:"أقل من 26 سنة (أسعار الشباب)",friend:"صديق",needTwo:"أضف شخصين على الأقل.",
+ rideMetro:"نعود بالمترو (بدون تاكسي)",rideTube:"نعود بالمترو (بدون تاكسي)",rideTransit:"نعود بالمواصلات العامة (بدون أوبر)",rideTram:"نعود بالترامواي (بدون تاكسي)",rideDay:"نتنقل بالمواصلات العامة (بدون تاكسي)",
+ perPerson:"للشخص",tightest:"أضيق ميزانية:",people:"أشخاص",ready:"الخطة جاهزة",returnLabel:"العودة",endNight:"الجميع يعود",endDay:"نهاية اليوم",
+ copy:"انسخ للمجموعة",again:"خطة أخرى",copied:"تم النسخ، الصقه في المجموعة",copyFail:"لا يمكن النسخ هنا",total:"المجموع",plannedWith:"خُططت مع Tournée",
+ thinking:"الذكاء الاصطناعي يبحث عن خطة تناسب الجميع…",retry:"أعد المحاولة",errRate:"طلبات كثيرة في وقت واحد. انتظر بضع ثوانٍ ثم أعد المحاولة.",
+ errKey:"مفتاح Anthropic غير مُعدّ على الخادم.",errGeneric:"تعذّر إنشاء الخطة. أعد المحاولة.",
+ mapCheck:"تحقق من العناوين قبل الذهاب",mapOpen:"افتح المسار",mapAria:"خريطة المحطات",svgCap:"مواقع تقريبية، خريطة مبسطة",svgAll:"عرض باريس كلها",svgZoom:"تكبير على الخطة"}
+};
+const VIBE_T = {
+ chill:{fr:"Chill, on discute",en:"Chill, just talking",es:"Tranqui, charlar",ar:"هادئ، للدردشة"},
+ cocktails:{fr:"Bar à cocktails",en:"Cocktail bar",es:"Bar de cócteles",ar:"بار كوكتيلات"},
+ dance:{fr:"Danser",en:"Dancing",es:"Bailar",ar:"رقص"},
+ karaoke:{fr:"Karaoké",en:"Karaoke",es:"Karaoke",ar:"كاريوكي"},
+ food:{fr:"Bien manger",en:"Good food",es:"Comer bien",ar:"أكل جيد"},
+ cheap:{fr:"Bar pas cher",en:"Cheap bar",es:"Bar barato",ar:"مكان رخيص"},
+ music:{fr:"Concert ou DJ set",en:"Live music or DJ",es:"Concierto o DJ",ar:"حفلة أو دي جي"},
+ rooftop:{fr:"Rooftop",en:"Rooftop",es:"Azotea",ar:"سطح بإطلالة"},
+ museums:{fr:"Musées",en:"Museums",es:"Museos",ar:"متاحف"},
+ contemporary:{fr:"Art contemporain",en:"Contemporary art",es:"Arte contemporáneo",ar:"فن معاصر"},
+ galleries:{fr:"Expos et galeries",en:"Exhibitions and galleries",es:"Exposiciones y galerías",ar:"معارض وصالات فنية"},
+ streetart:{fr:"Street art",en:"Street art",es:"Arte urbano",ar:"فن الشارع"},
+ architecture:{fr:"Architecture",en:"Architecture",es:"Arquitectura",ar:"عمارة"},
+ parks:{fr:"Parcs et jardins",en:"Parks and gardens",es:"Parques y jardines",ar:"حدائق ومتنزهات"},
+ markets:{fr:"Marchés",en:"Markets",es:"Mercados",ar:"أسواق"},
+ views:{fr:"Balade et points de vue",en:"Walks and viewpoints",es:"Paseos y miradores",ar:"نزهات وإطلالات"}
+};
+const CITY_T = {
+ london:{fr:"Londres",en:"London",es:"Londres",ar:"لندن"},
+ dubai:{fr:"Dubaï",en:"Dubai",es:"Dubái",ar:"دبي"},
+ paris:{fr:"Paris",en:"Paris",es:"París",ar:"باريس"},
+ madrid:{fr:"Madrid",en:"Madrid",es:"Madrid",ar:"مدريد"},
+ "los-angeles":{fr:"Los Angeles",en:"Los Angeles",es:"Los Ángeles",ar:"لوس أنجلوس"},
+ casablanca:{fr:"Casablanca",en:"Casablanca",es:"Casablanca",ar:"الدار البيضاء"}
+};
+let lang = (()=>{ try{ const s=localStorage.getItem("tournee-lang"); if(T[s]) return s; }catch{} const n=(navigator.language||"fr").slice(0,2); return T[n]?n:"fr"; })();
+const t = (k, v={}) => (T[lang][k] ?? T.fr[k] ?? k).replace(/\{(\w)\}/g,(_,x)=>v[x]??"");
+const cityName = c => CITY_T[c.id][lang];
+
 const MODES = {
-  night:{theme:"dark", emoji:"🌙", panel:"La soirée", cta:"Planifier la soirée", end:"Tout le monde rentre",
-    flag:"Ne boit pas d'alcool", homeTitle:"On sort où<br>ce soir&nbsp;?",
-    homeText:"Choisissez la ville. Tournée trouve la soirée qui convient à tout le groupe, du premier verre au retour.",
-    vibes:["Chill, on discute","Bar à cocktails","Danser","Karaoké","Bien manger","Bar pas cher","Concert ou DJ set","Rooftop"],
-    picks:["Bar pas cher","Danser","Bien manger"], flags:[false,false,true]},
-  culture:{theme:"light", emoji:"🎨", panel:"La journée", cta:"Planifier la journée", end:"Fin de la journée",
-    flag:"Moins de 26 ans (tarifs jeunes)", homeTitle:"On visite<br>quoi&nbsp;?",
-    homeText:"Choisissez la ville. Tournée trouve la journée culturelle qui plaît à tout le groupe, du premier musée au dernier café.",
-    vibes:["Musées","Art contemporain","Expos et galeries","Street art","Architecture","Parcs et jardins","Marchés","Balade et points de vue"],
-    picks:["Musées","Street art","Parcs et jardins"], flags:[true,true,true]}
+  night:{theme:"dark", emoji:"🌙", panel:"panelNight", cta:"ctaNight", end:"endNight", flag:"flagNight", homeTitle:"nightTitle", homeText:"nightText", hero:"heroNight", label:"pickNight",
+    vibes:["chill","cocktails","dance","karaoke","food","cheap","music","rooftop"], picks:["cheap","dance","food"], flags:[false,false,true]},
+  culture:{theme:"light", emoji:"🎨", panel:"panelDay", cta:"ctaDay", end:"endDay", flag:"flagDay", homeTitle:"dayTitle", homeText:"dayText", hero:"heroDay", label:"pickDay",
+    vibes:["museums","contemporary","galleries","streetart","architecture","parks","markets","views"], picks:["museums","streetart","parks"], flags:[true,true,true]}
 };
 let mode = "night";
 const M = () => MODES[mode];
 const CITIES = [
-  {id:"london", name:"Londres", tz:"Europe/London", pre:"£", post:"", budget:[10,100,5,20,45,30], start:"20:00",
-   bbox:[51.38,51.62,-0.35,0.10], ride:"On rentre en Tube (pas de taxi)", last:"au dernier Tube",
+  {id:"london", tz:"Europe/London", pre:"£", post:"", budget:[10,100,5,20,45,30], start:"20:00",
+   bbox:[51.38,51.62,-0.35,0.10], ride:"rideTube",
    areas:["Shoreditch","Soho","Camden","Brixton","Hackney","Dalston","Peckham","Covent Garden","Notting Hill","King's Cross","Islington","Clapham"]},
-  {id:"dubai", name:"Dubaï", tz:"Asia/Dubai", pre:"", post:" AED", budget:[50,600,25,100,300,200], start:"20:00",
-   bbox:[24.90,25.35,55.00,55.50], ride:"On rentre en métro (pas de taxi)", last:"au dernier métro",
+  {id:"dubai", tz:"Asia/Dubai", pre:"", post:" AED", budget:[50,600,25,100,300,200], start:"20:00",
+   bbox:[24.90,25.35,55.00,55.50], ride:"rideMetro",
    areas:["Dubai Marina","JBR","Downtown","DIFC","Business Bay","Jumeirah","City Walk","Al Barsha","Bur Dubai","Deira","Palm Jumeirah"]},
-  {id:"paris", name:"Paris", tz:"Europe/Paris", pre:"", post:" €", budget:[10,100,5,20,45,30], start:"20:00",
-   bbox:[48.80,48.91,2.22,2.47], ride:"On rentre en métro (pas de taxi)", last:"au dernier métro",
+  {id:"paris", tz:"Europe/Paris", pre:"", post:" €", budget:[10,100,5,20,45,30], start:"20:00",
+   bbox:[48.80,48.91,2.22,2.47], ride:"rideMetro",
    areas:["Bastille","Oberkampf","Pigalle","Le Marais","Canal Saint‑Martin","Belleville","Quartier Latin","Montmartre","Châtelet","Butte‑aux‑Cailles","Saint‑Germain‑des‑Prés","Batignolles","Ménilmontant","Bercy","Strasbourg‑Saint‑Denis"]},
-  {id:"madrid", name:"Madrid", tz:"Europe/Madrid", pre:"", post:" €", budget:[10,100,5,20,45,30], start:"21:00",
-   bbox:[40.35,40.50,-3.80,-3.60], ride:"On rentre en métro (pas de taxi)", last:"au dernier métro",
+  {id:"madrid", tz:"Europe/Madrid", pre:"", post:" €", budget:[10,100,5,20,45,30], start:"21:00",
+   bbox:[40.35,40.50,-3.80,-3.60], ride:"rideMetro",
    areas:["Malasaña","Chueca","La Latina","Lavapiés","Sol","Huertas","Chamberí","Conde Duque","Salamanca","Moncloa"]},
-  {id:"los-angeles", name:"Los Angeles", tz:"America/Los_Angeles", pre:"$", post:"", budget:[10,150,5,25,60,40], start:"19:30",
-   bbox:[33.70,34.35,-118.70,-118.00], ride:"On rentre en transports (pas d'Uber)", last:"au retour",
+  {id:"los-angeles", tz:"America/Los_Angeles", pre:"$", post:"", budget:[10,150,5,25,60,40], start:"19:30",
+   bbox:[33.70,34.35,-118.70,-118.00], ride:"rideTransit",
    areas:["Downtown LA","Arts District","Hollywood","West Hollywood","Silver Lake","Echo Park","Los Feliz","Koreatown","Santa Monica","Venice"]},
-  {id:"casablanca", name:"Casablanca", tz:"Africa/Casablanca", pre:"", post:" MAD", budget:[100,1000,50,200,500,300], start:"20:00",
-   bbox:[33.45,33.65,-7.75,-7.45], ride:"On rentre en tram (pas de taxi)", last:"au dernier tram",
+  {id:"casablanca", tz:"Africa/Casablanca", pre:"", post:" MAD", budget:[100,1000,50,200,500,300], start:"20:00",
+   bbox:[33.45,33.65,-7.75,-7.45], ride:"rideTram",
    areas:["Maârif","Gauthier","Racine","Bourgogne","Centre ville","Habous","Anfa","Ain Diab","Corniche","Marina"]}
 ];
 let city = CITIES.find(c=>c.id==="paris");
@@ -277,20 +385,20 @@ function renderFriends(){
     <div class="friend">
       <div class="friend-top">
         <span class="dot" aria-hidden="true"></span>
-        <input type="text" aria-label="Pseudo" value="${esc(f.nick)}" data-i="${i}" data-k="nick" maxlength="20" placeholder="Pseudo">
-        ${friends.length>2?`<button class="remove" type="button" data-rm="${i}" aria-label="Retirer ${esc(f.nick)}">Retirer</button>`:""}
+        <input type="text" aria-label="${t("nick")}" value="${esc(f.nick)}" data-i="${i}" data-k="nick" maxlength="20" placeholder="${t("nick")}">
+        ${friends.length>2?`<button class="remove" type="button" data-rm="${i}" aria-label="${t("remove")} ${esc(f.nick)}">${t("remove")}</button>`:""}
       </div>
       <div class="friend-row">
         <div class="budget">
-          <label for="b${i}">Budget max <span class="budget-val" id="bv${i}">${fmt(f.budget)}</span></label>
+          <label for="b${i}">${t("budget")} <span class="budget-val" id="bv${i}">${fmt(f.budget)}</span></label>
           <input type="range" id="b${i}" min="${city.budget[0]}" max="${city.budget[1]}" step="${city.budget[2]}" value="${f.budget}" data-i="${i}" data-k="budget">
         </div>
         <div class="field">
-          <label for="v${i}">Envie</label>
-          <select id="v${i}" data-i="${i}" data-k="vibe">${M().vibes.map(v=>`<option${v===f.vibe?" selected":""}>${v}</option>`).join("")}</select>
+          <label for="v${i}">${t("vibe")}</label>
+          <select id="v${i}" data-i="${i}" data-k="vibe">${M().vibes.map(v=>`<option value="${v}"${v===f.vibe?" selected":""}>${VIBE_T[v][lang]}</option>`).join("")}</select>
         </div>
       </div>
-      <label class="check"><input type="checkbox" data-i="${i}" data-k="flag"${f.flag?" checked":""}> ${M().flag}</label>
+      <label class="check"><input type="checkbox" data-i="${i}" data-k="flag"${f.flag?" checked":""}> ${t(M().flag)}</label>
     </div>`).join("");
   $("#addFriend").style.display = friends.length>=8 ? "none" : "";
 }
@@ -306,10 +414,11 @@ $("#friends").addEventListener("click", e=>{
   const rm=e.target.dataset.rm; if(rm===undefined) return;
   friends.splice(+rm,1); renderFriends();
 });
-$("#addFriend").onclick=()=>{ friends.push({nick:"Ami "+(friends.length+1), budget:city.budget[5], vibe:M().vibes[0], flag:M().flags[0]}); renderFriends(); };
+$("#addFriend").onclick=()=>{ friends.push({nick:t("friend")+" "+(friends.length+1), budget:city.budget[5], vibe:M().vibes[0], flag:M().flags[0]}); renderFriends(); };
 
-function renderPlan(p, isExample){
-  lastPlan = p;
+let lastIsExample=false;
+function renderPlan(p, isExample, quiet){
+  lastPlan = p; lastIsExample=!!isExample;
   const steps = (p.etapes||[]).map(s=>`
     <li class="stop">
       <div class="time">${esc(s.heure)}</div>
@@ -319,17 +428,17 @@ function renderPlan(p, isExample){
         <h3>${esc(s.lieu)}</h3>
         <p class="area">${esc(s.quartier)}</p>
         <p class="why">${esc(s.pourquoi)}</p>
-        <p class="meta"><b>${esc(fmt(s.prix_pp))} par personne</b>${s.trajet?` · ${esc(s.trajet)}`:""}</p>
+        <p class="meta"><b>${esc(fmt(s.prix_pp))} ${t("perPerson")}</b>${s.trajet?` · ${esc(s.trajet)}`:""}</p>
       </div>
     </li>`).join("");
   const minB = Math.min(...friends.map(f=>f.budget));
   $("#result").innerHTML = `
-    ${isExample?`<span class="badge ex">Exemple, généré à l'avance</span>`:`<span class="badge">Plan prêt</span>`}
+    ${isExample?`<span class="badge ex">Exemple, généré à l'avance</span>`:`<span class="badge">${t("ready")}</span>`}
     <div class="res-head"><h2>${esc(p.titre)}</h2><p>${esc(p.resume)}</p></div>
     <div class="pill-row">
-      <span class="pill"><b>${esc(fmt(p.total_pp))}</b> par personne</span>
-      <span class="pill">Budget le plus serré : <b>${fmt(minB)}</b></span>
-      <span class="pill"><b>${friends.length}</b> personnes</span>
+      <span class="pill"><b>${esc(fmt(p.total_pp))}</b> ${t("perPerson")}</span>
+      <span class="pill">${t("tightest")} <b>${fmt(minB)}</b></span>
+      <span class="pill"><b>${friends.length}</b> ${t("people")}</span>
     </div>
     <p class="compromis">${esc(p.compromis)}</p>
     <div class="map" id="map"></div>
@@ -337,17 +446,17 @@ function renderPlan(p, isExample){
       <li class="stop home">
         <div class="time"></div>
         <div class="station" aria-hidden="true"></div>
-        <div><p class="stop-type">Retour</p><h3>${M().end}</h3><p class="why">${esc(p.retour)}</p></div>
+        <div><p class="stop-type">${t("returnLabel")}</p><h3>${t(M().end)}</h3><p class="why">${esc(p.retour)}</p></div>
       </li>
     </ol>
     <div class="actions">
-      <button class="btn primary" type="button" id="copy">Copier pour le groupe</button>
-      ${isExample?"":`<button class="btn" type="button" id="again">Un autre plan</button>`}
+      <button class="btn primary" type="button" id="copy">${t("copy")}</button>
+      ${isExample?"":`<button class="btn" type="button" id="again">${t("again")}</button>`}
     </div>`;
   drawMap(p);
   $("#copy").onclick = copyPlan;
   const again=$("#again"); if(again) again.onclick=()=>plan();
-  $("#result").scrollIntoView({behavior: matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth", block:"start"});
+  if(!quiet) $("#result").scrollIntoView({behavior: matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth", block:"start"});
 }
 
 
@@ -382,8 +491,8 @@ function drawSvgMap(p, zoom){
   const labels=HOODS.map(([n,lng,lat])=>`<text x="${X(lng).toFixed(1)}" y="${Y(lat).toFixed(1)}" text-anchor="middle" font-size="${(vw*0.021).toFixed(1)}" fill="var(--muted)" opacity=".85">${n}</text>`).join("");
   const r=vw*0.026;
   const stops=pts.map(a=>`<g><title>${esc(a.n+". "+a.s.lieu)}</title><circle cx="${a.x}" cy="${a.y}" r="${r}" fill="var(--bg)" stroke="var(--metro)" stroke-width="${r*0.38}"/><text x="${a.x}" y="${a.y}" dy=".35em" text-anchor="middle" font-size="${r*1.05}" font-weight="700" fill="var(--ink)" font-family="Inter,sans-serif">${a.n}</text></g>`).join("");
-  const homeMk=home?`<g><title>${esc("Retour : "+(p.retour_station||"métro"))}</title><rect x="${home.x-r*0.8}" y="${home.y-r*0.8}" width="${r*1.6}" height="${r*1.6}" rx="${r*0.35}" fill="var(--lamp)"/><text x="${home.x}" y="${home.y}" dy=".35em" text-anchor="middle" font-size="${r*1.05}" font-weight="700" fill="#000" font-family="Inter,sans-serif">M</text></g>`:"";
-  box.innerHTML=`<svg viewBox="${vx.toFixed(1)} ${vy.toFixed(1)} ${vw.toFixed(1)} ${vh.toFixed(1)}" role="img" aria-label="Carte de Paris avec les étapes de la soirée">
+  const homeMk=home?`<g><title>${esc(t("returnLabel")+" : "+(p.retour_station||""))}</title><rect x="${home.x-r*0.8}" y="${home.y-r*0.8}" width="${r*1.6}" height="${r*1.6}" rx="${r*0.35}" fill="var(--lamp)"/><text x="${home.x}" y="${home.y}" dy=".35em" text-anchor="middle" font-size="${r*1.05}" font-weight="700" fill="#000" font-family="Inter,sans-serif">M</text></g>`:"";
+  box.innerHTML=`<svg viewBox="${vx.toFixed(1)} ${vy.toFixed(1)} ${vw.toFixed(1)} ${vh.toFixed(1)}" role="img" aria-label="${t("mapAria")}">
     <rect x="0" y="0" width="${W}" height="${H}" fill="var(--ash)"/>
     <path d="${path(PERIPH)} Z" fill="var(--bg)" stroke="var(--line)" stroke-width="${3*k}"/>
     <path d="${path(SEINE)}" fill="none" stroke="var(--stone)" stroke-opacity=".45" stroke-width="${16*k}" stroke-linecap="round" stroke-linejoin="round"/>
@@ -392,7 +501,7 @@ function drawSvgMap(p, zoom){
     <path d="${route}" fill="none" stroke="var(--metro)" stroke-width="${(vw*0.011).toFixed(1)}" stroke-linecap="round" stroke-linejoin="round" ${home?"":""}/>
     ${homeMk}${stops}
   </svg>
-  <div class="cap"><span>Positions approximatives, carte simplifiée</span><button type="button" id="mapToggle">${zoom?"Voir tout Paris":"Zoomer sur la soirée"}</button></div>`;
+  <div class="cap"><span>${t("svgCap")}</span><button type="button" id="mapToggle">${zoom?t("svgAll"):t("svgZoom")}</button></div>`;
   $("#mapToggle").onclick=()=>drawSvgMap(p,!zoom);
 }
 
@@ -404,7 +513,7 @@ function loadGoogleMaps(){
   return gmPromise ||= new Promise((res,rej)=>{
     window.__gmReady=res;
     const s=document.createElement("script");
-    s.src=`https://maps.googleapis.com/maps/api/js?key=${GMAPS_KEY}&v=weekly&loading=async&language=fr&callback=__gmReady`;
+    s.src=`https://maps.googleapis.com/maps/api/js?key=${GMAPS_KEY}&v=weekly&loading=async&language=${lang}&callback=__gmReady`;
     s.async=true; s.onerror=rej; document.head.appendChild(s);
     setTimeout(()=>rej(new Error("timeout")),10000);
   });
@@ -438,8 +547,8 @@ async function drawMap(p){
   const pts=(p.etapes||[]).filter(s=>inCity(+s.lat,+s.lng));
   if(!pts.length){ box.style.display="none"; return; }
   if(!GMAPS_KEY || gmFailed){ fallbackMap(p); return; }
-  box.innerHTML=`<div class="gmap" id="gmap" role="region" aria-label="Carte Google des étapes de la soirée"></div>
-    <div class="cap"><span>Vérifiez les adresses avant d'y aller</span><a href="${directionsUrl(p,pts)}" target="_blank" rel="noopener">Ouvrir l'itinéraire</a></div>`;
+  box.innerHTML=`<div class="gmap" id="gmap" role="region" aria-label="${t("mapAria")}"></div>
+    <div class="cap"><span>${t("mapCheck")}</span><a href="${directionsUrl(p,pts)}" target="_blank" rel="noopener">${t("mapOpen")}</a></div>`;
   try{
     await loadGoogleMaps();
     const {Map,Polyline,InfoWindow}=await google.maps.importLibrary("maps");
@@ -460,7 +569,7 @@ async function drawMap(p){
     });
     if(inCity(+p.retour_lat,+p.retour_lng)){
       const pos={lat:+p.retour_lat,lng:+p.retour_lng}; route.push(pos); bounds.extend(pos);
-      new Marker({map,position:pos,title:"Retour : "+(p.retour_station||"métro"),zIndex:5,
+      new Marker({map,position:pos,title:t("returnLabel")+" : "+(p.retour_station||""),zIndex:5,
         label:{text:"M",color:"#000",fontWeight:"700",fontFamily:"Inter, sans-serif",fontSize:"13px"},
         icon:{path:"M -1 -1 L 1 -1 L 1 1 L -1 1 Z",scale:12,fillColor:getComputedStyle(document.documentElement).getPropertyValue("--lamp").trim()||"#7FFEB1",fillOpacity:1,strokeWeight:0}});
     }
@@ -472,15 +581,15 @@ async function drawMap(p){
 
 async function copyPlan(){
   const p=lastPlan; if(!p) return;
-  const txt = `${M().emoji} ${p.titre} (${city.name})\n${p.resume}\n\n` + p.etapes.map(s=>`${s.heure} · ${s.type} : ${s.lieu} (${s.quartier}), ${fmt(s.prix_pp)}`).join("\n") + `\n\nTotal : ${fmt(p.total_pp)} par personne\nRetour : ${p.retour}\n\nPlanifié avec Tournée`;
+  const txt = `${M().emoji} ${p.titre} (${cityName(city)})\n${p.resume}\n\n` + p.etapes.map(s=>`${s.heure} · ${s.type} : ${s.lieu} (${s.quartier}), ${fmt(s.prix_pp)}`).join("\n") + `\n\n${t("total")} : ${fmt(p.total_pp)} ${t("perPerson")}\n${t("returnLabel")} : ${p.retour}\n\n${t("plannedWith")}`;
   const b=$("#copy");
-  try{ await navigator.clipboard.writeText(txt); b.textContent="Copié, collez dans le groupe"; }
+  try{ await navigator.clipboard.writeText(txt); b.textContent=t("copied"); }
   catch{
     const ta=document.createElement("textarea"); ta.value=txt; document.body.appendChild(ta); ta.select();
     let ok=false; try{ok=document.execCommand("copy")}catch{} ta.remove();
-    b.textContent = ok ? "Copié, collez dans le groupe" : "Copie impossible ici";
+    b.textContent = ok ? t("copied") : t("copyFail");
   }
-  setTimeout(()=>b.textContent="Copier pour le groupe",2500);
+  setTimeout(()=>b.textContent=t("copy"),2500);
 }
 
 const EXAMPLE = {titre:"Bastille, du canal au dancefloor",resume:"Une soirée qui tient dans 20 € et où chacun trouve son moment.",
@@ -492,19 +601,15 @@ const EXAMPLE = {titre:"Bastille, du canal au dancefloor",resume:"Une soirée qu
 
 function showExample(){ renderPlan(EXAMPLE,true); }
 
-const ERR = {
-  rate_limited:"Trop de demandes d'un coup. Attendez quelques secondes puis réessayez.",
-  no_key:"La clé Anthropic n'est pas configurée sur le serveur.",
-  group:"Ajoutez au moins deux personnes."
-};
+const ERR = {rate_limited:"errRate", no_key:"errKey", group:"needTwo"};
 
 async function plan(){
   const go=$("#go"); go.disabled=true;
-  $("#result").innerHTML = `<div class="thinking"><span class="train" aria-hidden="true"></span><span>L'IA cherche le plan qui convient à tout le monde…</span></div>`;
+  $("#result").innerHTML = `<div class="thinking"><span class="train" aria-hidden="true"></span><span>${t("thinking")}</span></div>`;
   ctl?.abort(); ctl = new AbortController();
   try{
     const r = await fetch("/api/plan",{method:"POST",headers:{"Content-Type":"application/json"},signal:ctl.signal,
-      body:JSON.stringify({mode, city:city.id, friends, area:$("#area").value, start:$("#start").value, metro:$("#metro").checked})});
+      body:JSON.stringify({lang, mode, city:city.id, friends, area:$("#area").value, start:$("#start").value, metro:$("#metro").checked})});
     const data = await r.json().catch(()=>({}));
     if(!r.ok) throw {code:data.error||"server"};
     const p = data.plan;
@@ -512,14 +617,14 @@ async function plan(){
     renderPlan(p,false);
   }catch(e){
     if(e?.name==="AbortError") return;
-    $("#result").innerHTML = `<div class="error"><p style="margin:0 0 12px">${esc(ERR[e?.code] || "Le plan n'a pas pu être généré. Relancez la planification.")}</p>
-      <div class="actions" style="margin-top:0"><button class="btn primary" type="button" id="retry">Relancer</button>${city.id==="paris"&&mode==="night"?`<button class="btn" type="button" id="ex">Voir un exemple</button>`:""}</div></div>`;
+    $("#result").innerHTML = `<div class="error"><p style="margin:0 0 12px">${esc(t(ERR[e?.code] || "errGeneric"))}</p>
+      <div class="actions" style="margin-top:0"><button class="btn primary" type="button" id="retry">${t("retry")}</button>${city.id==="paris"&&mode==="night"&&lang==="fr"?`<button class="btn" type="button" id="ex">Voir un exemple</button>`:""}</div></div>`;
     $("#retry").onclick=()=>plan(); const ex=$("#ex"); if(ex) ex.onclick=showExample;
   }finally{ go.disabled=false; }
 }
 
 $("#go").onclick=()=>{
-  if(friends.length<2){ $("#status").textContent="Ajoutez au moins deux personnes."; return; }
+  if(friends.length<2){ $("#status").textContent=t("needTwo"); return; }
   plan(false);
 };
 /* Home screen and city routing */
@@ -529,10 +634,11 @@ function cityClock(c){
   return {txt:`${String(h).padStart(2,"0")}:${m}`, night:h>=18||h<5};
 }
 function renderCities(){
-  $("#cities").innerHTML=CITIES.map(c=>{const t=cityClock(c);
+  $("#cities").setAttribute("aria-label",t("citiesLabel"));
+  $("#cities").innerHTML=CITIES.map(c=>{const k=cityClock(c);
     return `<li><button class="city" type="button" data-city="${c.id}">
-      <span class="city-name">${c.name}</span>
-      <span class="city-time" aria-label="${t.txt} à ${c.name}${t.night?", c'est le soir":""}"><span class="${t.night?"night":"day"}" aria-hidden="true"></span>${t.txt}</span>
+      <span class="city-name">${cityName(c)}</span>
+      <span class="city-time" aria-label="${t("clockAria",{t:k.txt,c:cityName(c)})}${k.night?t("evening"):""}"><span class="${k.night?"night":"day"}" aria-hidden="true"></span><bdi>${k.txt}</bdi></span>
     </button></li>`;}).join("");
 }
 $("#cities").addEventListener("click",e=>{const b=e.target.closest("[data-city]"); if(b) location.hash=mode+"/"+b.dataset.city;});
@@ -542,8 +648,15 @@ $("#switchCity").onclick=()=>{ location.hash = $("#planner").hidden ? "" : mode;
 function applyMode(){
   const m=M(), root=document.documentElement;
   root.dataset.theme=m.theme; root.dataset.mode=mode;
-  $("#homeTitle").innerHTML=m.homeTitle; $("#homeText").textContent=m.homeText;
-  $("#s-title").textContent=m.panel; $("#go").textContent=m.cta;
+  $("#homeTitle").innerHTML=t(m.homeTitle); $("#homeText").textContent=t(m.homeText);
+  $("#s-title").textContent=t(m.panel); $("#go").textContent=t(m.cta);
+}
+function cityTexts(){
+  const c=city;
+  $("#metroLabel").textContent=t(mode==="culture"?"rideDay":c.ride);
+  $("#heroText").textContent=t(M().hero,{c:cityName(c)});
+  $("#cityTag").textContent=cityName(c);
+  $("#status").textContent=t("status");
 }
 function openCity(c){
   ctl?.abort(); lastPlan=null;
@@ -551,34 +664,44 @@ function openCity(c){
   const m=M();
   $("#area").innerHTML=c.areas.map(a=>`<option>${esc(a)}</option>`).join("");
   $("#start").value=mode==="culture"?"14:00":c.start;
-  $("#metroLabel").textContent=mode==="culture"?"On se déplace en transports (pas de taxi)":c.ride;
-  $("#metro").checked=true;
-  $("#heroText").textContent=mode==="culture"
-    ?`Chacun donne son budget et ce qu'il aime. En 30 secondes, l'IA trouve la journée à ${c.name} qui plaît à tout le monde, du premier musée au dernier café.`
-    :`Chacun donne son budget et son envie. En 30 secondes, l'IA trouve la soirée à ${c.name} qui convient à tout le monde, du premier verre ${c.last}.`;
-  $("#cityTag").textContent=c.name;
-  $("#result").innerHTML=""; $("#status").textContent="Lieux proposés par l'IA : vérifiez horaires et prix avant d'y aller.";
+  cityTexts();
+  $("#result").innerHTML="";
   renderFriends();
 }
 let opened="";
-function route(){
+function route(keepScroll){
   const [m0,c0]=location.hash.slice(1).split("/");
   const c=MODES[m0]?CITIES.find(x=>x.id===c0):null;
   const view=!MODES[m0]?"start":c?"planner":"home";
   if(MODES[m0]){ mode=m0; applyMode(); }
   else { document.documentElement.dataset.theme="light"; delete document.documentElement.dataset.mode; }
-  $("#start").hidden=view!=="start"; $("#home").hidden=view!=="home"; $("#planner").hidden=view!=="planner";
+  $("#landing").hidden=view!=="start"; $("#home").hidden=view!=="home"; $("#planner").hidden=view!=="planner";
   $("#cityTag").hidden=view!=="planner"; $("#switchCity").hidden=view==="start";
-  $("#switchCity").textContent=view==="planner"?"Changer de ville":"Soirée ou journée";
+  $("#switchCity").textContent=t(view==="planner"?"switchCity":"switchMode");
   $("#go").hidden=view!=="planner"; $("#status").hidden=view!=="planner";
   document.querySelector("footer").hidden=view==="start";
-  if(view==="planner"){ const key=mode+"/"+c.id; if(key!==opened){ openCity(c); opened=key; } document.title="Tournée, "+c.name; }
-  else if(view==="home"){ renderCities(); document.title="Tournée, "+(mode==="culture"?"journée":"soirée"); }
+  if(view==="planner"){ const key=mode+"/"+c.id; if(key!==opened){ openCity(c); opened=key; } document.title="Tournée, "+cityName(c); }
+  else if(view==="home"){ renderCities(); document.title="Tournée, "+t(M().label).toLowerCase(); }
   else document.title="Tournée";
-  window.scrollTo(0,0);
+  if(keepScroll!==true) window.scrollTo(0,0);
 }
 window.addEventListener("hashchange",route);
 setInterval(()=>{ if(!$("#home").hidden) renderCities(); },30000);
+/* Language */
+function applyLang(){
+  const root=document.documentElement;
+  root.lang=lang; root.dir=lang==="ar"?"rtl":"ltr";
+  document.querySelectorAll("[data-i18n]").forEach(el=>el.textContent=t(el.dataset.i18n));
+  document.querySelectorAll("[data-i18n-html]").forEach(el=>el.innerHTML=t(el.dataset.i18nHtml));
+  const sel=$("#lang"); sel.setAttribute("aria-label",t("langLabel"));
+  sel.innerHTML=Object.entries(LANGS).map(([k,v])=>`<option value="${k}"${k===lang?" selected":""}>${v}</option>`).join("");
+}
+$("#lang").addEventListener("change",e=>{
+  lang=e.target.value; try{localStorage.setItem("tournee-lang",lang)}catch{}
+  applyLang(); route(true);
+  if(!$("#planner").hidden){ cityTexts(); renderFriends(); if(lastPlan) renderPlan(lastPlan,lastIsExample,true); }
+});
+applyLang();
 route();
 </script>
 </body>

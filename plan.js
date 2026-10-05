@@ -2,9 +2,11 @@
 // The Anthropic key lives in Vercel's environment variables (ANTHROPIC_API_KEY), never in the page.
 
 const VIBES = {
-  night: ["Chill, on discute", "Bar à cocktails", "Danser", "Karaoké", "Bien manger", "Bar pas cher", "Concert ou DJ set", "Rooftop"],
-  culture: ["Musées", "Art contemporain", "Expos et galeries", "Street art", "Architecture", "Parcs et jardins", "Marchés", "Balade et points de vue"],
+  night: { chill: "Chill, on discute", cocktails: "Bar à cocktails", dance: "Danser", karaoke: "Karaoké", food: "Bien manger", cheap: "Bar pas cher", music: "Concert ou DJ set", rooftop: "Rooftop" },
+  culture: { museums: "Musées", contemporary: "Art contemporain", galleries: "Expos et galeries", streetart: "Street art", architecture: "Architecture", parks: "Parcs et jardins", markets: "Marchés", views: "Balade et points de vue" },
 };
+const LANGS = { fr: "français", en: "anglais", es: "espagnol", ar: "arabe standard moderne" };
+const style = (lang) => `- Écris toutes les valeurs texte du JSON en ${LANGS[lang]}, ton direct et complice, phrases courtes. Garde les noms propres des lieux tels quels. Les clés JSON restent identiques.`;
 const CITIES = {
   "paris": { tz: "Europe/Paris", cultureNotes: "Beaucoup de musées nationaux sont gratuits pour les moins de 26 ans résidents de l'UE.", name: "Paris", cur: "€", curName: "euros", min: 10, max: 100,
     transit: "en métro, le plan doit finir avant le dernier métro (vers 0h40 en semaine, 1h40 le vendredi et samedi) ou proposer le Noctilien",
@@ -35,7 +37,7 @@ function today(c) {
 const JSON_SHAPE = (first) => `Réponds UNIQUEMENT avec un objet JSON valide, sans texte autour, de cette forme :
 {"titre":"nom accrocheur (5 mots max)","resume":"une phrase","compromis":"une ou deux phrases qui expliquent comment le plan respecte chaque personne, en citant les pseudos","etapes":[{"heure":"${first}","type":"type d'étape","lieu":"nom du lieu","quartier":"quartier ou rue","pourquoi":"une phrase","prix_pp":10,"trajet":"comment venir de l'étape précédente","lat":48.8534,"lng":2.3711}],"total_pp":28,"retour":"comment rentrer et à quelle heure partir","retour_station":"nom de l'arrêt","retour_lat":48.8532,"retour_lng":2.3692}`;
 
-function buildCulturePrompt({ c, friends, area, start, metro }) {
+function buildCulturePrompt({ c, lang, friends, area, start, metro }) {
   const group = friends.map(f => `- ${f.nick} : budget max ${f.budget} ${c.cur}, aime "${f.vibe}"${f.flag ? ", a moins de 26 ans" : ""}`).join("\n");
   const minB = Math.min(...friends.map(f => f.budget));
   return `Tu es Tournée, une IA qui organise des sorties culturelles à ${c.name} pour des groupes d'étudiants de 18 à 25 ans.
@@ -58,12 +60,12 @@ Règles :
 - Propose des lieux réels et connus à ${c.name}. Prix réalistes en ${c.curName} : prix_pp et total_pp sont des nombres dans cette monnaie.
 - Contexte local : ${c.cultureNotes}
 - Donne pour chaque lieu ses coordonnées GPS précises (lat, lng, 4 décimales), et celles de l'arrêt de transport du retour (retour_station).
-- Écris en français, ton direct et complice, phrases courtes.
+${style(lang)}
 
 ${JSON_SHAPE(start)}`;
 }
 
-function buildPrompt({ c, friends, area, start, metro }) {
+function buildPrompt({ c, lang, friends, area, start, metro }) {
   const group = friends.map(f => `- ${f.nick} : budget max ${f.budget} ${c.cur}, envie "${f.vibe}"${f.flag ? ", ne boit pas d'alcool" : ""}`).join("\n");
   const minB = Math.min(...friends.map(f => f.budget));
   return `Tu es Tournée, une IA qui organise des soirées à ${c.name} pour des groupes d'étudiants de 18 à 25 ans.
@@ -85,7 +87,7 @@ Règles :
 - Propose des lieux réels et connus à ${c.name}, adaptés aux étudiants. Prix réalistes en ${c.curName} : prix_pp et total_pp sont des nombres dans cette monnaie.
 - Contexte local : ${c.notes}
 - Donne pour chaque lieu ses coordonnées GPS précises (lat, lng, 4 décimales), et celles de l'arrêt de transport du retour (retour_station).
-- Écris en français, ton direct et complice, phrases courtes.
+${style(lang)}
 
 ${JSON_SHAPE("20:00")}`;
 }
@@ -100,16 +102,18 @@ module.exports = async (req, res) => {
 
   const c = CITIES[body.city] || CITIES.paris;
   const mode = body.mode === "culture" ? "culture" : "night";
+  const lang = LANGS[body.lang] ? body.lang : "fr";
   const friends = (Array.isArray(body.friends) ? body.friends : []).slice(0, 8).map(f => ({
     nick: clean(f?.nick, 20) || "Quelqu'un",
     budget: Math.min(c.max, Math.max(c.min, Number(f?.budget) || c.min)),
-    vibe: VIBES[mode].includes(f?.vibe) ? f.vibe : VIBES[mode][0],
+    vibe: VIBES[mode][f?.vibe] || Object.values(VIBES[mode]).find(v => v === f?.vibe) || Object.values(VIBES[mode])[0],
     flag: !!(f?.flag ?? f?.sober),
   }));
   if (friends.length < 2) return res.status(400).json({ error: "group" });
 
   const input = {
     c,
+    lang,
     friends,
     area: clean(body.area, 40) || "Bastille",
     start: /^\d{2}:\d{2}$/.test(body.start) ? body.start : "20:00",
