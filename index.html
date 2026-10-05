@@ -783,18 +783,26 @@ function showExample(){ renderPlan(EXAMPLE,true); }
 
 const ERR = {rate_limited:"errRate", no_key:"errKey", group:"needTwo", full:"full", not_found:"notFound", no_store:"noStore", name:"needName"};
 
+/* places already suggested, per city and mode, so new plans don't repeat them */
+const seenKey=()=>`tournee-seen-${mode}-${city.id}`;
+const getSeen=()=>{ try{ return JSON.parse(localStorage.getItem(seenKey()))||[]; }catch{ return []; } };
+function addSeen(p){
+  const names=(p.etapes||[]).map(s=>String(s.lieu||"").trim()).filter(Boolean);
+  const list=[...names,...getSeen().filter(n=>!names.includes(n))].slice(0,40);
+  try{ localStorage.setItem(seenKey(),JSON.stringify(list)); }catch{}
+}
 async function plan(){
   const go=$("#go"); go.disabled=true;
   $("#result").innerHTML = `<div class="thinking"><span class="train" aria-hidden="true"></span><span>${t("thinking")}</span></div>`;
   ctl?.abort(); ctl = new AbortController();
   try{
     const r = await fetch("/api/plan",{method:"POST",headers:{"Content-Type":"application/json"},signal:ctl.signal,
-      body:JSON.stringify({lang, mode:mode==="day"?"culture":mode, city:city.id, friends:friends.map((f,i)=>({...f,nick:(f.nick||"").trim()||t("friend")+" "+(i+1)})), area:$("#area").value, start:$("#start").value, metro:$("#metro").checked, stops})});
+      body:JSON.stringify({lang, mode:mode==="day"?"culture":mode, city:city.id, friends:friends.map((f,i)=>({...f,nick:(f.nick||"").trim()||t("friend")+" "+(i+1)})), area:$("#area").value, start:$("#start").value, metro:$("#metro").checked, stops, avoid:getSeen()})});
     const data = await r.json().catch(()=>({}));
     if(!r.ok) throw {code:data.error||"server"};
     const p = data.plan;
     if(!p || !Array.isArray(p.etapes) || !p.etapes.length) throw {code:"bad_shape"};
-    renderPlan(p,false);
+    renderPlan(p,false); addSeen(p);
     if(outing && isAdmin()){ const r2=await api({action:"plan",id:outing.id,adminToken:me.admin,plan:p}); if(r2.outing){ planShown=JSON.stringify(p).length+":"+(p.titre||""); outing=r2.outing; } }
   }catch(e){
     if(e?.name==="AbortError") return;
