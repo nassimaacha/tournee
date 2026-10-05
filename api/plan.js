@@ -44,7 +44,7 @@ const JSON_SHAPE = (first) => `Réponds UNIQUEMENT avec un objet JSON valide, sa
 {"titre":"nom accrocheur (5 mots max)","resume":"une phrase","compromis":"une ou deux phrases qui expliquent comment le plan respecte chaque personne, en citant les pseudos","etapes":[{"heure":"${first}","type":"type d'étape","lieu":"nom du lieu","quartier":"quartier ou rue","pourquoi":"une phrase","prix_pp":10,"trajet":"comment venir de l'étape précédente","lat":48.8534,"lng":2.3711}],"total_pp":28,"retour":"comment rentrer et à quelle heure partir","retour_station":"nom de l'arrêt","retour_lat":48.8532,"retour_lng":2.3692}`;
 
 function buildCulturePrompt({ c, lang, avoid, stops, friends, area, start, metro }) {
-  const group = friends.map(f => `- ${f.nick} : budget max ${f.budget} ${c.cur}, aime "${f.vibe}"${f.flag ? ", a moins de 26 ans" : ""}`).join("\n");
+  const group = friends.map(f => `- ${f.nick} : budget max ${f.budget} ${c.cur}, aime "${f.vibe}"${f.flag ? ", est étudiant (tarif étudiant)" : ""}`).join("\n");
   const minB = Math.min(...friends.map(f => f.budget));
   return `Tu es Tournée, une IA qui organise des sorties culturelles à ${c.name} pour des groupes d'étudiants de 18 à 25 ans.
 Construis UN plan de journée (musées, expos, galeries, street art, architecture, parcs, jardins, marchés, points de vue) qui convient à tout le groupe ci dessous.
@@ -60,7 +60,7 @@ Déplacements : ${metro ? "en transports en commun et à pied, pas de taxi" : "t
 Règles :
 - Le coût total par personne ne doit pas dépasser ${minB} ${c.cur} (le plus petit budget du groupe). Personne ne doit se sentir exclu.
 - Chaque centre d'intérêt du groupe doit être servi au moins une fois.
-- Utilise les gratuités et les tarifs jeunes quand quelqu'un a moins de 26 ans.
+- Utilise les gratuités et les tarifs étudiants pour les personnes qui sont étudiantes.
 - Tiens compte du jour : évite les lieux habituellement fermés ce jour là.
 - Exactement ${stops} étape(s)${stops > 1 ? ", proches les unes des autres" : ""}. Au moins ${Math.min(2, stops)} étape(s) doivent être de vrais lieux culturels ou de plein air : musée, expo, galerie, monument, parc, jardin, marché, point de vue, street art.
 - Une seule pause café ou snack maximum, jamais de bar ni d'alcool. Fin de journée vers 19h.
