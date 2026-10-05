@@ -177,7 +177,7 @@ footer{color:var(--stone);font-size:12px;padding:24px 0 40px;border-top:1px soli
 <body>
 <div class="wrap">
   <header>
-    <a href="#" class="home-link" id="homeLink">
+    <a href="/" class="home-link" id="homeLink">
     <svg class="mark" viewBox="0 0 34 34" aria-hidden="true">
         <path d="M5 26 C 12 26, 12 8, 19 8 S 26 20, 29 20" fill="none" stroke="var(--ink)" stroke-width="5" stroke-linecap="round"/>
         <circle cx="5" cy="26" r="4" fill="var(--bg)" stroke="var(--ink)" stroke-width="3"/>
@@ -645,9 +645,10 @@ function renderCities(){
       <span class="city-time" aria-label="${t("clockAria",{t:k.txt,c:cityName(c)})}${k.night?t("evening"):""}"><span class="${k.night?"night":"day"}" aria-hidden="true"></span><bdi>${k.txt}</bdi></span>
     </button></li>`;}).join("");
 }
-$("#cities").addEventListener("click",e=>{const b=e.target.closest("[data-city]"); if(b) location.hash=mode+"/"+b.dataset.city;});
-document.querySelector(".split").addEventListener("click",e=>{const b=e.target.closest("[data-pick]"); if(b) location.hash=b.dataset.pick;});
-$("#switchCity").onclick=()=>{ location.hash = $("#planner").hidden ? "" : mode; };
+$("#cities").addEventListener("click",e=>{const b=e.target.closest("[data-city]"); if(b) go(mode+"/"+b.dataset.city);});
+document.querySelector(".split").addEventListener("click",e=>{const b=e.target.closest("[data-pick]"); if(b) go(b.dataset.pick);});
+$("#switchCity").onclick=()=>{ go($("#planner").hidden ? "" : mode); };
+function go(path){ const url="/"+path; if(location.pathname!==url) history.pushState(null,"",url); route(); }
 
 function applyMode(){
   const m=M(), root=document.documentElement;
@@ -674,8 +675,9 @@ function openCity(c){
 }
 let opened="";
 function route(keepScroll){
-  if(/^#culture\b/.test(location.hash)){ history.replaceState(null,"",location.hash.replace("#culture","#day")); }
-  const [m0,c0]=location.hash.slice(1).split("/");
+  const [m0,c0,extra]=location.pathname.split("/").filter(Boolean);
+  const valid=!m0 || (MODES[m0] && (!c0 || CITIES.some(x=>x.id===c0)) && !extra);
+  if(!valid){ history.replaceState(null,"","/"); return route(keepScroll); }
   const c=MODES[m0]?CITIES.find(x=>x.id===c0):null;
   const view=!MODES[m0]?"start":c?"planner":"home";
   if(MODES[m0]){ mode=m0; applyMode(); }
@@ -690,7 +692,7 @@ function route(keepScroll){
   else document.title="Tournée";
   if(keepScroll!==true) window.scrollTo(0,0);
 }
-window.addEventListener("hashchange",route);
+window.addEventListener("popstate",route);
 setInterval(()=>{ if(!$("#home").hidden) renderCities(); },30000);
 /* Language */
 function applyLang(){
@@ -702,7 +704,7 @@ function applyLang(){
   const sel=$("#lang"); sel.setAttribute("aria-label",t("langLabel"));
   sel.innerHTML=Object.entries(LANGS).map(([k,v])=>`<option value="${k}"${k===lang?" selected":""}>${v}</option>`).join("");
 }
-$("#homeLink").addEventListener("click",e=>{ e.preventDefault(); location.hash=""; if(!location.hash) route(); });
+$("#homeLink").addEventListener("click",e=>{ e.preventDefault(); go(""); });
 $("#lang").addEventListener("change",e=>{
   lang=e.target.value; try{localStorage.setItem("tournee-lang",lang)}catch{}
   const keep=$("#start").value; applyLang(); fillTimes(keep); route(true);
