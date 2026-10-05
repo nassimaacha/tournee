@@ -96,7 +96,12 @@ module.exports = async (req, res) => {
       if (body.action === "delete") {
         if (!admin || !same(String(body.key || ""), admin)) return res.status(403).json({ error: "forbidden" });
         const ids = (Array.isArray(body.ids) ? body.ids : []).slice(0, 50).map(x => String(x).slice(0, 140));
-        if (ids.length) await kv([["ZREM", "sg:count", ...ids], ["HDEL", "sg:label", ...ids]]);
+        if (ids.length) {
+          // also clear today's "already voted" locks for these cities, so anyone can add them again right away
+          const voters = await kv(ids.map(id => ["SMEMBERS", `sg:vs:${id}`]));
+          const locks = voters.flat().filter(Boolean).map(v => `sg:v:${v}`);
+          await kv([["ZREM", "sg:count", ...ids], ["HDEL", "sg:label", ...ids], ["DEL", ...ids.map(id => `sg:vs:${id}`), ...locks]]);
+        }
         return res.status(200).json({ ok: true });
       }
 
@@ -127,7 +132,7 @@ module.exports = async (req, res) => {
       const ip = String(req.headers["x-forwarded-for"] || "").split(",")[0].trim() || "?";
       const voter = crypto.createHash("sha256").update(ip + "|" + id).digest("hex").slice(0, 24);
       const [fresh] = await kv([["SET", `sg:v:${voter}`, "1", "NX", "EX", 86400]]);
-      if (fresh) await kv([["ZINCRBY", "sg:count", 1, id], ["HSET", "sg:label", id, label]]);
+      if (fresh) await kv([["ZINCRBY", "sg:count", 1, id], ["HSET", "sg:label", id, label], ["SADD", `sg:vs:${id}`, voter], ["EXPIRE", `sg:vs:${id}`, 86400]]);
       return res.status(200).json({ ok: true });
     }
 
