@@ -56,7 +56,9 @@ Règles :
 - Chaque centre d'intérêt du groupe doit être servi au moins une fois.
 - Utilise les gratuités et les tarifs jeunes quand quelqu'un a moins de 26 ans.
 - Tiens compte du jour : évite les lieux habituellement fermés ce jour là.
-- 3 ou 4 étapes proches les unes des autres, avec au moins une pause (café, parc ou marché). Fin de journée vers 19h.
+- 3 ou 4 étapes proches les unes des autres. Au moins 2 étapes doivent être de vrais lieux culturels ou de plein air : musée, expo, galerie, monument, parc, jardin, marché, point de vue, street art.
+- Une seule pause café ou snack maximum, jamais de bar ni d'alcool. Fin de journée vers 19h.
+- Le champ "type" décrit l'activité (ex : Musée, Parc, Galerie, Marché, Balade, Pause café).
 - Propose des lieux réels et connus à ${c.name}. Prix réalistes en ${c.curName} : prix_pp et total_pp sont des nombres dans cette monnaie.
 - Contexte local : ${c.cultureNotes}
 - Donne pour chaque lieu ses coordonnées GPS précises (lat, lng, 4 décimales), et celles de l'arrêt de transport du retour (retour_station).
