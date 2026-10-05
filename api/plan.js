@@ -115,13 +115,14 @@ const style = lang => `- Écris toutes les valeurs texte du JSON en ${LANGS[lang
 - ${lang === "en" ? "Dans les textes, écris les heures au format 12 h avec AM/PM (ex : 11:30 PM)." : "Dans les textes, écris les heures au format 24 h (ex : 23:30)."}`;
 const accuracy = `- N'utilise QUE des lieux qui existent vraiment et qui sont ouverts aujourd'hui : jamais de lieu fermé définitivement ou temporairement, ni de lieu dont tu n'es pas sûr qu'il existe encore. Préfère les lieux établis depuis longtemps.
 - Le champ "lieu" doit être le nom exact du lieu tel qu'il apparaît sur Google Maps.
+- "billet" vaut true seulement pour les lieux avec un billet réservable en ligne (musée, monument, visite guidée, croisière, spectacle, attraction), false pour les bars, restaurants, clubs, parcs gratuits et rues.
 - Chaque étape est UN lieu précis avec une adresse (un musée, un parc, un bar, une rue précise de street art), jamais une zone vague comme "quartier X et rues adjacentes".
 - Choisis des étapes proches les unes des autres : le trajet entre deux étapes doit rester court et réaliste.`;
 const timing = (start, end) => isTime(end)
   ? `Horaires : rendez vous à ${start}, fin au plus tard à ${end}. Tout le plan, trajets compris, doit tenir dans ce créneau. Donne l'heure de début de chaque étape dans le champ "heure" (format HH:MM).`
   : `Horaires : rendez vous à ${start}, pas d'heure de fin. Ne donne PAS d'horaires : mets "" dans le champ "heure" de chaque étape, les étapes s'enchaînent simplement dans l'ordre.`;
 const JSON_SHAPE = `Réponds UNIQUEMENT avec un objet JSON valide, sans texte autour, de cette forme :
-{"titre":"nom accrocheur (5 mots max)","resume":"une phrase","compromis":"une ou deux phrases qui expliquent comment le plan respecte chaque personne, en citant les pseudos","etapes":[{"heure":"","type":"type d'étape","lieu":"nom exact du lieu","quartier":"quartier ou rue","pourquoi":"une phrase","prix_pp":10,"trajet":"comment venir de l'étape précédente","lat":48.8534,"lng":2.3711}],"total_pp":28,"retour":"comment rentrer","retour_station":"nom de l'arrêt ou de la station","retour_lat":48.8532,"retour_lng":2.3692}`;
+{"titre":"nom accrocheur (5 mots max)","resume":"une phrase","compromis":"une ou deux phrases qui expliquent comment le plan respecte chaque personne, en citant les pseudos","etapes":[{"heure":"","type":"type d'étape","lieu":"nom exact du lieu","quartier":"quartier ou rue","pourquoi":"une phrase","prix_pp":10,"billet":false,"trajet":"comment venir de l'étape précédente","lat":48.8534,"lng":2.3711}],"total_pp":28,"retour":"comment rentrer","retour_station":"nom de l'arrêt ou de la station","retour_lat":48.8532,"retour_lng":2.3692}`;
 
 function groupText(friends, c, mode) {
   return friends.map(f => {
@@ -335,7 +336,7 @@ module.exports = async (req, res) => {
       await addTravelTimes(plan, c, lang, input.area, input.metro);
     }
 
-    (plan.etapes || []).forEach(s => { delete s._why; delete s._ok; if (!input.end) s.heure = ""; });
+    (plan.etapes || []).forEach(s => { delete s._why; delete s._ok; s.billet = s.billet === true; if (!input.end) s.heure = ""; });
     plan.excluded = excluded;
     return res.status(200).json({ plan });
   } catch (e) {
