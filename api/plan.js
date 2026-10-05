@@ -6,7 +6,7 @@ const VIBES = {
   culture: { museums: "Musées", contemporary: "Art contemporain", galleries: "Expos et galeries", streetart: "Street art", architecture: "Architecture", parks: "Parcs et jardins", markets: "Marchés", views: "Balade et points de vue" },
 };
 const LANGS = { fr: "français", en: "anglais", es: "espagnol", ar: "arabe standard moderne" };
-const style = (lang) => `- Écris toutes les valeurs texte du JSON en ${LANGS[lang]}, ton direct et complice, phrases courtes. Garde les noms propres des lieux tels quels. Les clés JSON restent identiques.`;
+const style = (lang) => `- Écris toutes les valeurs texte du JSON en ${LANGS[lang]}, ton direct et complice, phrases courtes. Garde les noms propres des lieux tels quels. Les clés JSON restent identiques.\n- Le champ "heure" est toujours au format 24 h HH:MM. ${lang === "en" ? "Dans les textes (retour, trajet, pourquoi...), écris les heures au format 12 h avec AM/PM (ex : 11:30 PM)." : "Dans les textes, écris les heures au format 24 h (ex : 23:30)."}`;
 const CITIES = {
   "paris": { tz: "Europe/Paris", cultureNotes: "Beaucoup de musées nationaux sont gratuits pour les moins de 26 ans résidents de l'UE.", name: "Paris", cur: "€", curName: "euros", min: 10, max: 100,
     transit: "en métro, le plan doit finir avant le dernier métro (vers 0h40 en semaine, 1h40 le vendredi et samedi) ou proposer le Noctilien",
