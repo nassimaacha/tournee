@@ -56,7 +56,7 @@ Règles :
 - Chaque centre d'intérêt du groupe doit être servi au moins une fois.
 - Utilise les gratuités et les tarifs jeunes quand quelqu'un a moins de 26 ans.
 - Tiens compte du jour : évite les lieux habituellement fermés ce jour là.
-- Exactement ${stops} étapes, proches les unes des autres. Au moins ${Math.min(2, stops)} étapes doivent être de vrais lieux culturels ou de plein air : musée, expo, galerie, monument, parc, jardin, marché, point de vue, street art.
+- Exactement ${stops} étape(s)${stops > 1 ? ", proches les unes des autres" : ""}. Au moins ${Math.min(2, stops)} étape(s) doivent être de vrais lieux culturels ou de plein air : musée, expo, galerie, monument, parc, jardin, marché, point de vue, street art.
 - Une seule pause café ou snack maximum, jamais de bar ni d'alcool. Fin de journée vers 19h.
 - Le champ "type" décrit l'activité (ex : Musée, Parc, Galerie, Marché, Balade, Pause café).
 - Propose des lieux réels et connus à ${c.name}. Prix réalistes en ${c.curName} : prix_pp et total_pp sont des nombres dans cette monnaie.
@@ -85,7 +85,7 @@ Règles :
 - Le coût total par personne ne doit pas dépasser ${minB} ${c.cur} (le plus petit budget du groupe). Personne ne doit se sentir exclu.
 - Chaque envie du groupe doit être servie au moins une fois dans la soirée.
 - Si quelqu'un ne boit pas d'alcool, chaque bar doit avoir de vraies options sans alcool.
-- Exactement ${stops} étapes, proches les unes des autres (à pied ou 1 ou 2 stations de métro).
+- Exactement ${stops} étape(s)${stops > 1 ? ", proches les unes des autres (à pied ou 1 ou 2 stations de métro)" : ""}.
 - Propose des lieux réels et connus à ${c.name}, adaptés aux étudiants. Prix réalistes en ${c.curName} : prix_pp et total_pp sont des nombres dans cette monnaie.
 - Contexte local : ${c.notes}
 - Donne pour chaque lieu ses coordonnées GPS précises (lat, lng, 4 décimales), et celles de l'arrêt de transport du retour (retour_station).
@@ -116,7 +116,7 @@ module.exports = async (req, res) => {
   const input = {
     c,
     lang,
-    stops: Math.min(6, Math.max(2, parseInt(body.stops, 10) || 3)),
+    stops: Math.min(5, Math.max(1, parseInt(body.stops, 10) || 3)),
     friends,
     area: clean(body.area, 40) || "Bastille",
     start: /^\d{2}:\d{2}$/.test(body.start) ? body.start : "20:00",
