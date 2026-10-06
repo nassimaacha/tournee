@@ -74,11 +74,13 @@ async function groupsOf(uid) {
   if (!ids || !ids.length) return [];
   const metas = await kv(ids.map(id => ["GET", `o:${id}`]));
   const lens = await kv(ids.map(id => ["HLEN", `o:${id}:m`]));
+  const mems = await kv(ids.map(id => ["HVALS", `o:${id}:m`]));
   const out = [], dead = [];
   ids.forEach((id, i) => {
     if (!metas[i]) { dead.push(id); return; }
     const m = JSON.parse(metas[i]);
-    out.push({ id, city: m.city, mode: m.mode, created: m.created || 0, count: lens[i] || 0 });
+    const uids = (mems[i] || []).map(x => { try { return JSON.parse(x).uid || null; } catch { return null; } }).filter(Boolean);
+    out.push({ id, city: m.city, mode: m.mode, created: m.created || 0, count: lens[i] || 0, uids });
   });
   if (dead.length) await kv([["SREM", `g:${uid}`, ...dead]]);
   return out.sort((a, b) => b.created - a.created);
@@ -89,7 +91,22 @@ const scrypt = (pw, salt) => new Promise((ok, ko) => crypto.scrypt(pw, salt, 64,
 async function openSession(u) {
   const token = crypto.randomBytes(24).toString("hex");
   await kv([["SET", `s:${token}`, u.uid, "EX", SESSION_TTL], ["SADD", `us:${u.uid}`, token]]);
-  return { token, me: { ...publicView(u), code: u.code }, friends: await friendsOf(u.uid), history: await historyOf(u.uid), groups: await groupsOf(u.uid) };
+  return { token, me: { ...publicView(u), code: u.code }, friends: await friendsOf(u.uid), history: await historyOf(u.uid), groups: await groupsOf(u.uid), ...(await notifsOf(u.uid)) };
+}
+
+const INVITE_TTL = 60 * 60 * 24 * 30;
+async function notifsOf(uid) {
+  const [rows, seen] = await kv([["LRANGE", `n:${uid}`, 0, 49], ["GET", `nseen:${uid}`]]);
+  const list = (rows || []).map(r => { try { return JSON.parse(r); } catch { return null; } }).filter(Boolean);
+  return { notifs: list, unread: list.filter(n => n.at > (Number(seen) || 0)).length };
+}
+async function dropNotif(uid, nid) {
+  const { notifs } = await notifsOf(uid);
+  const keep = notifs.filter(n => n.nid !== nid);
+  const cmds = [["DEL", `n:${uid}`]];
+  if (keep.length) cmds.push(["RPUSH", `n:${uid}`, ...keep.map(n => JSON.stringify(n))]);
+  await kv(cmds);
+  return { found: notifs.find(n => n.nid === nid) || null, notifs: keep };
 }
 
 async function auth(req) {
@@ -177,7 +194,7 @@ module.exports = async (req, res) => {
       }
       const token = crypto.randomBytes(24).toString("hex");
       await kv([["SET", `s:${token}`, uid, "EX", SESSION_TTL], ["SADD", `us:${uid}`, token]]);
-      return res.status(200).json({ token, me: { ...publicView(u), code: u.code }, friends: await friendsOf(uid), history: await historyOf(uid), groups: await groupsOf(uid) });
+      return res.status(200).json({ token, me: { ...publicView(u), code: u.code }, friends: await friendsOf(uid), history: await historyOf(uid), groups: await groupsOf(uid), ...(await notifsOf(uid)) });
     }
 
     if (action === "peek") {
@@ -191,7 +208,7 @@ module.exports = async (req, res) => {
     if (!a) return res.status(401).json({ error: "signed_out" });
     const { u, token } = a;
 
-    if (action === "me") return res.status(200).json({ me: { ...publicView(u), code: u.code }, friends: await friendsOf(u.uid), history: await historyOf(u.uid), groups: await groupsOf(u.uid) });
+    if (action === "me") return res.status(200).json({ me: { ...publicView(u), code: u.code }, friends: await friendsOf(u.uid), history: await historyOf(u.uid), groups: await groupsOf(u.uid), ...(await notifsOf(u.uid)) });
 
     if (action === "saveOuting") {
       const e = cleanEntry(body);
@@ -203,6 +220,59 @@ module.exports = async (req, res) => {
       owners.forEach(id => { cmds.push(["LPUSH", `h:${id}`, JSON.stringify(e)], ["LTRIM", `h:${id}`, 0, 49]); });
       await kv(cmds);
       return res.status(200).json({ entry: e });
+    }
+
+    if (action === "notifs") return res.status(200).json(await notifsOf(u.uid));
+
+    if (action === "seenNotifs") {
+      await kv([["SET", `nseen:${u.uid}`, String(Date.now())]]);
+      return res.status(200).json({ ok: true });
+    }
+
+    // host invites friends to a group: each friend gets a notification
+    if (action === "invite") {
+      const oid = clean(body.outing, 12);
+      const [metaRaw] = await kv([["GET", `o:${oid}`]]);
+      if (!metaRaw) return res.status(404).json({ error: "not_found" });
+      const meta = JSON.parse(metaRaw);
+      const tok = String(body.adminToken || "");
+      if (!meta.admin || tok.length !== meta.admin.length || !crypto.timingSafeEqual(Buffer.from(tok), Buffer.from(meta.admin))) return res.status(403).json({ error: "forbidden" });
+      const wanted = (Array.isArray(body.uids) ? body.uids : []).slice(0, 8).map(x => clean(x, 20));
+      const flags = wanted.length ? await kv(wanted.map(id => ["SISMEMBER", `fr:${u.uid}`, id])) : [];
+      const cmds = []; let sent = 0;
+      wanted.forEach((fid, i) => {
+        if (!flags[i]) return;
+        const n = { nid: rid(10), type: "invite", from: u.profile.nick, outing: oid, city: meta.city, mode: meta.mode, at: Date.now() };
+        cmds.push(["LPUSH", `n:${fid}`, JSON.stringify(n)], ["LTRIM", `n:${fid}`, 0, 49], ["SET", `inv:${oid}:${fid}`, "1", "EX", INVITE_TTL]);
+        sent++;
+      });
+      if (cmds.length) await kv(cmds);
+      return res.status(200).json({ sent });
+    }
+
+    if (action === "declineInvite") {
+      const { found, notifs } = await dropNotif(u.uid, clean(body.nid, 12));
+      if (found && found.outing) await kv([["DEL", `inv:${found.outing}:${u.uid}`]]);
+      return res.status(200).json({ notifs });
+    }
+
+    // joining from an invite: the person is added to the group with their own profile
+    if (action === "acceptInvite") {
+      const { found, notifs } = await dropNotif(u.uid, clean(body.nid, 12));
+      if (!found || !found.outing) return res.status(404).json({ error: "gone", notifs });
+      const oid = found.outing;
+      const [ok, metaRaw, members] = await kv([["GET", `inv:${oid}:${u.uid}`], ["GET", `o:${oid}`], ["HVALS", `o:${oid}:m`]]);
+      if (!ok || !metaRaw) return res.status(410).json({ error: "gone", notifs });
+      const meta = JSON.parse(metaRaw);
+      const list = (members || []).map(x => { try { return JSON.parse(x); } catch { return {}; } });
+      if (!list.some(m => m.uid === u.uid)) {
+        if (list.length >= 8) return res.status(409).json({ error: "full", notifs });
+        const p = u.profile;
+        const m = { nick: p.nick, level: p.level ?? null, vibe: (meta.mode === "day" ? p.vibeDay : p.vibeNight) || "", flag: !!(meta.mode === "day" ? p.student : p.sober), adult: !!p.adult, budget: null, uid: u.uid, token: crypto.randomBytes(24).toString("hex"), t: Date.now(), host: false };
+        await kv([["HSET", `o:${oid}:m`, rid(8), JSON.stringify(m)], ["SADD", `g:${u.uid}`, oid], ["EXPIRE", `g:${u.uid}`, INVITE_TTL]]);
+      }
+      await kv([["DEL", `inv:${oid}:${u.uid}`]]);
+      return res.status(200).json({ outing: oid, notifs, groups: await groupsOf(u.uid) });
     }
 
     if (action === "deleteOuting") {
@@ -248,7 +318,7 @@ module.exports = async (req, res) => {
       const [friendIds, tokens] = await kv([["SMEMBERS", `fr:${u.uid}`], ["SMEMBERS", `us:${u.uid}`]]);
       const cmds = (friendIds || []).map(f => ["SREM", `fr:${f}`, u.uid]);
       (tokens || []).forEach(t => cmds.push(["DEL", `s:${t}`]));
-      cmds.push(["DEL", `u:${u.uid}`, `fr:${u.uid}`, `us:${u.uid}`, `fc:${u.code}`, `h:${u.uid}`, `g:${u.uid}`]);
+      cmds.push(["DEL", `u:${u.uid}`, `fr:${u.uid}`, `us:${u.uid}`, `fc:${u.code}`, `h:${u.uid}`, `g:${u.uid}`, `n:${u.uid}`, `nseen:${u.uid}`]);
       if (u.sk) cmds.push(["DEL", u.sk]);
       await kv(cmds);
       return res.status(200).json({ ok: true });
