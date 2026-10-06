@@ -61,6 +61,11 @@ header{display:flex;align-items:center;gap:12px;padding:16px 20px;margin:0 -20px
 .mark{width:28px;height:28px}
 .city-tag{border:1px solid var(--accent);color:var(--accent);border-radius:30px;padding:3px 12px;font-size:11px}
 #homeText:empty{display:none}
+#status.err{display:flex;align-items:center;gap:10px;width:fit-content;max-width:100%;margin-inline:auto;padding:10px 16px;border:1.5px solid #BC994E;border-radius:30px;
+  background:color-mix(in srgb,#BC994E 16%,transparent);color:var(--ink);font-size:14px;font-weight:600;text-align:left}
+#status.err::before{content:"!";flex:none;width:20px;height:20px;border-radius:50%;background:#BC994E;color:#271A47;font-size:13px;font-weight:700;display:inline-flex;align-items:center;justify-content:center}
+@media (prefers-reduced-motion: no-preference){#status.err{animation:st-blink .42s ease-in-out 2}}
+@keyframes st-blink{0%,100%{opacity:1}50%{opacity:.12}}
 header.noline{border-bottom-color:transparent}
 #groupHint,#joinHint,#acctP{display:none!important}
 .panel h2{margin-bottom:18px!important}
@@ -894,6 +899,7 @@ function renderFriends(){
   if(typeof renderChips==="function") renderChips();
 }
 
+$("#friends").addEventListener("input", ()=>{ if($("#status").classList.contains("err")) plainStatus(t("status")); });
 $("#friends").addEventListener("input", e=>{
   const t=e.target, i=+t.dataset.i, k=t.dataset.k; if(!k) return;
   t.removeAttribute("aria-invalid");
@@ -944,7 +950,7 @@ function syncSettings(){
     pending=Math.max(0,pending-1);
   },500);
 }
-["#area","#start","#end","#metro"].forEach(sel=>$(sel).addEventListener("change",()=>{ $("#status").textContent=""; if(outing) syncSettings(); }));
+["#area","#start","#end","#metro"].forEach(sel=>$(sel).addEventListener("change",()=>{ if($("#status").classList.contains("err")) plainStatus(outing&&!isAdmin()?t("waitHost"):t("status")); if(outing) syncSettings(); }));
 $("#friends").addEventListener("change",e=>{ if(e.target.dataset.k==="vibe") e.target.removeAttribute("aria-invalid"); });
 function renderJoin(){
   $("#jName").placeholder=t("yourName");
@@ -1000,7 +1006,7 @@ function applyOuting(o, force){
   if(me.mid && !joined){ me={admin:me.admin}; saveCreds(o.id,me); }
   $("#joinPanel").hidden=joined;
   if(!joined){ renderJoin(); const isFull=o.members.length>=8; $("#joinBtn").disabled=isFull; $("#joinStatus").textContent=isFull?t("full"):""; }
-  $("#go").hidden=!admin; $("#status").textContent=admin?t("status"):t("waitHost");
+  $("#go").hidden=!admin; plainStatus(admin?t("status"):t("waitHost"));
   const key=o.plan?JSON.stringify(o.plan).length+":"+(o.plan.titre||""):"";
   if(o.plan && (key!==planShown || force==="lang")){ planShown=key; renderPlan(o.plan,false,true); }
   document.title="Tournée, "+cityName(city);
@@ -1030,7 +1036,7 @@ async function createOuting(c){
     stops:fromPlanner?stops:0, metro:fromPlanner?$("#metro").checked:false};
   const r=await api(body);
   $("#hostBtn").disabled=false; hostingPick=false;
-  if(r.error){ const msg=t(ERR[r.error]||"errGeneric"); if(fromPlanner) $("#status").textContent=msg; else $("#homeText").textContent=msg; return; }
+  if(r.error){ const msg=t(ERR[r.error]||"errGeneric"); if(fromPlanner) warnStatus(msg); else $("#homeText").textContent=msg; return; }
   saveCreds(r.outing.id,{admin:r.adminToken});
   go("o/"+r.outing.id);
 }
@@ -1046,6 +1052,8 @@ function travelText(min,mode,from){
   const k=mode==="transit"?"transitMin":mode==="drive"?"driveMin":"walkMin";
   return t(k,{n:min})+(from?" "+t("fromStart",{a:from}):"");
 }
+function warnStatus(msg){ const el=$("#status"); el.textContent=msg; el.classList.remove("err"); void el.offsetWidth; el.classList.add("err"); }
+function plainStatus(msg){ const el=$("#status"); el.textContent=msg; el.classList.remove("err"); }
 const calm=()=>matchMedia("(prefers-reduced-motion: reduce)").matches;
 const GYG_PARTNER="8YCTQSA";
 const studentGroup=()=>mode==="day" && friends.some(f=>f.flag);
@@ -1293,8 +1301,9 @@ function missingKey(){
   return null;
 }
 $("#go").onclick=()=>{
-  if(friends.length<1){ $("#status").textContent=t("needTwo"); return; }
-  const miss=missingKey(); if(miss){ $("#status").textContent=t(miss); return; }
+  if(friends.length<1){ warnStatus(t("needTwo")); return; }
+  const miss=missingKey(); if(miss){ warnStatus(t(miss)); return; }
+  if($("#status").classList.contains("err")) plainStatus(t("status"));
   plan(false);
 };
 /* Home screen and city routing */
@@ -1364,7 +1373,7 @@ function cityTexts(){
   $("#metroLabel").textContent=t(mode==="day"?"rideDay":c.ride);
   $("#heroText").textContent="";
   $("#cityTag").textContent=cityName(c);
-  $("#status").textContent=t("status");
+  plainStatus(t("status"));
 }
 function setStops(n){ stops=n; if(n) $("#stops").removeAttribute("aria-invalid"); document.querySelectorAll("#stops button").forEach(b=>b.setAttribute("aria-pressed",String(+b.dataset.n===n))); }
 $("#stops").addEventListener("click",e=>{const b=e.target.closest("[data-n]"); if(b&&!b.disabled){ setStops(+b.dataset.n); if(outing) syncSettings(); }});
@@ -1669,7 +1678,7 @@ async function shareGroup(){
   const btn=$("#shareGrpBtn"); btn.disabled=true;
   const rows=friends.slice(0,8);
   const r=await api({action:"create",mode,city:city.id,area:$("#area").value,start:$("#start").value,end:$("#end").value,stops,metro:$("#metro").checked});
-  if(r.error){ btn.disabled=false; $("#status").textContent=t(ERR[r.error]||"errGeneric"); return; }
+  if(r.error){ btn.disabled=false; warnStatus(t(ERR[r.error]||"errGeneric")); return; }
   const id=r.outing.id, adminToken=r.adminToken; let mine={admin:adminToken};
   for(const f of rows){
     const self=!!(acct && f.uid===acct.me.uid);
