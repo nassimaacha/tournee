@@ -1057,9 +1057,12 @@ function plainStatus(msg){ const el=$("#status"); el.textContent=msg; el.classLi
 const calm=()=>matchMedia("(prefers-reduced-motion: reduce)").matches;
 const GYG_PARTNER="8YCTQSA";
 const studentGroup=()=>mode==="day" && friends.some(f=>f.flag);
+// GetYourGuide in the site's current language: French and Spanish sites, English otherwise
+const GYG_SITE={fr:"https://www.getyourguide.fr",es:"https://www.getyourguide.es",en:"https://www.getyourguide.com"};
+const GYG_STUDENT={fr:" billet étudiant",es:" entrada estudiante",en:" student ticket"};
 function bookUrl(s){
-  const q=`${s.lieu} ${CITY_T[city.id]?.en||""}${studentGroup()?" student ticket":""}`.trim();
-  return `https://www.getyourguide.com/s/?q=${encodeURIComponent(q)}&partner_id=${GYG_PARTNER}&cmp=tournee`;
+  const q=`${s.lieu} ${CITY_T[city.id]?.[lang]||CITY_T[city.id]?.en||""}${studentGroup()?GYG_STUDENT[lang]||GYG_STUDENT.en:""}`.trim();
+  return `${GYG_SITE[lang]||GYG_SITE.en}/s/?q=${encodeURIComponent(q)}&partner_id=${GYG_PARTNER}&cmp=tournee&locale_autoredirect_optout=true`;
 }
 function renderPlan(p, isExample, quiet){
   lastPlan = p; lastIsExample=!!isExample;
