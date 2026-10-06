@@ -118,7 +118,9 @@ const accuracy = `- N'utilise QUE des lieux qui existent vraiment et qui sont ou
 - "billet" vaut true seulement pour les lieux avec un billet réservable en ligne (musée, monument, visite guidée, croisière, spectacle, attraction), false pour les bars, restaurants, clubs, parcs gratuits et rues.
 - Chaque étape est UN lieu précis avec une adresse (un musée, un parc, un bar, une rue précise de street art), jamais une zone vague comme "quartier X et rues adjacentes".
 - Choisis des étapes proches les unes des autres : le trajet entre deux étapes doit rester court et réaliste.`;
-const timing = (start, end) => isTime(end)
+const timing = (start, end) => !isTime(start)
+  ? `Horaires : pas d'heure imposée, choisis un enchaînement adapté au moment habituel de la sortie. Ne donne PAS d'horaires : mets "" dans le champ "heure" de chaque étape.`
+  : isTime(end)
   ? `Horaires : rendez vous à ${start}, fin au plus tard à ${end}. Tout le plan, trajets compris, doit tenir dans ce créneau. Donne l'heure de début de chaque étape dans le champ "heure" (format HH:MM).`
   : `Horaires : rendez vous à ${start}, pas d'heure de fin. Ne donne PAS d'horaires : mets "" dans le champ "heure" de chaque étape, les étapes s'enchaînent simplement dans l'ordre.`;
 const JSON_SHAPE = `Réponds UNIQUEMENT avec un objet JSON valide, sans texte autour, de cette forme :
@@ -319,7 +321,7 @@ module.exports = async (req, res) => {
     stops: Math.min(5, Math.max(1, parseInt(body.stops, 10) || 3)),
     friends,
     area: clean(body.area, 40) || c.name,
-    start: isTime(body.start) ? body.start : "20:00",
+    start: isTime(body.start) ? body.start : "",
     end: isTime(body.end) ? body.end : "",
     metro: body.metro === true,
   };
