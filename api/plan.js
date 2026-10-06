@@ -124,11 +124,27 @@ const timing = (start, end) => isTime(end)
 const JSON_SHAPE = `Réponds UNIQUEMENT avec un objet JSON valide, sans texte autour, de cette forme :
 {"titre":"nom accrocheur (5 mots max)","resume":"une phrase","compromis":"une ou deux phrases qui expliquent comment le plan respecte chaque personne, en citant les pseudos","etapes":[{"heure":"","type":"type d'étape","lieu":"nom exact du lieu","quartier":"quartier ou rue","pourquoi":"une phrase","prix_pp":10,"billet":false,"trajet":"comment venir de l'étape précédente","lat":48.8534,"lng":2.3711}],"total_pp":28,"retour":"comment rentrer","retour_station":"nom de l'arrêt ou de la station","retour_lat":48.8532,"retour_lng":2.3692}`;
 
+// how many stops must have a bookable ticket: none for 1 stop, 1 for 2 to 4, 2 for 5.
+// skipped when someone picked the smallest budget (a paid ticket would break it).
+function ticketsNeeded(stops, friends) {
+  if (friends.some(f => f.level === 0)) return 0;
+  return stops <= 1 ? 0 : stops <= 4 ? 1 : 2;
+}
+const input0 = (stops, friends) => ticketsNeeded(stops, friends);
+function ticketRule(n, mode) {
+  if (!n) return "";
+  const kinds = mode === "culture"
+    ? "musée, monument, visite guidée, croisière, attraction, spectacle"
+    : "concert, spectacle comique, croisière ou soirée en bateau, visite nocturne, bar crawl organisé, rooftop ou club avec entrée payante";
+  return `- OBLIGATOIRE : au moins ${n} étape(s) doivent être des lieux avec un billet réservable en ligne ("billet": true), par exemple : ${kinds}. Choisis des lieux connus qu'on trouve sur GetYourGuide.`;
+}
+
 function groupText(friends, c, mode) {
   return friends.map(f => {
     const want = f.vibe ? `${mode === "culture" ? "aime" : "envie"} "${f.vibe}"` : "pas de préférence particulière";
     const extra = f.flag ? (mode === "culture" ? ", est étudiant (tarif étudiant)" : ", ne boit pas d'alcool") : "";
-    return `- ${f.nick} : budget max ${f.budget} ${c.cur}, ${want}${extra}`;
+    const budget = f.plus ? `budget de ${f.budget} ${c.cur} ou plus` : `budget max ${f.budget} ${c.cur}`;
+    return `- ${f.nick} : ${budget}, ${want}${extra}`;
   }).join("\n");
 }
 
@@ -163,7 +179,8 @@ ${timing(start, end)}
 ${moves}
 
 Règles :
-- Le coût total par personne ne doit pas dépasser ${minB} ${c.cur} (le plus petit budget du groupe).${minB === 0 ? " Ce budget est de 0 : uniquement des activités et lieux gratuits." : ""} Personne ne doit se sentir exclu.
+- Le coût total par personne ne doit pas dépasser ${friends.every(f => f.plus) ? `environ ${minB} ${c.cur} (tout le monde a un gros budget, tu peux aller un peu au delà)` : `${minB} ${c.cur} (le plus petit budget du groupe)`}. Personne ne doit se sentir exclu.
+${ticketRule(input0(stops, friends), mode)}
 - Chaque envie exprimée dans le groupe doit être servie au moins une fois. Les personnes sans préférence suivent le groupe.
 ${rules}
 - Prix réalistes en ${c.curName} : prix_pp et total_pp sont des nombres dans cette monnaie.
@@ -288,6 +305,8 @@ module.exports = async (req, res) => {
     return {
       nick: clean(f?.nick, 20) || "Quelqu'un",
       budget: Number.isFinite(b) ? Math.min(c.max, Math.max(0, Math.round(b))) : 0,
+      plus: f?.plus === true,
+      level: Number.isInteger(f?.level) ? f.level : null,
       vibe: VIBES[mode][f?.vibe] || null,
       flag: !!(f?.flag ?? f?.sober),
     };
@@ -310,20 +329,26 @@ module.exports = async (req, res) => {
     let { text, plan } = await claude(key, [{ role: "user", content: prompt }]);
     const excluded = [];
 
-    if (GKEY && Array.isArray(plan.etapes)) {
-      let bad = await verifyStops(plan, c, lang);
-      if (bad.length) {
+    const need = ticketsNeeded(input.stops, friends);
+    const tickets = p => (p.etapes || []).filter(s => s.billet === true).length;
+    if (Array.isArray(plan.etapes)) {
+      let bad = GKEY ? await verifyStops(plan, c, lang) : [];
+      const missingTickets = Math.max(0, need - tickets(plan));
+      if (bad.length || missingTickets) {
         bad.forEach(i => excluded.push(plan.etapes[i].lieu));
         const list = bad.map(i => `étape ${i + 1} "${plan.etapes[i].lieu}" (${plan.etapes[i]._why})`).join(", ");
+        const asks = [];
+        if (bad.length) asks.push(`Vérification Google Maps : ${list}. Remplace UNIQUEMENT ces étapes par d'autres lieux réels, ouverts aujourd'hui, du même type et proches des autres étapes. N'utilise aucun de ces lieux : ${excluded.join(", ")}.`);
+        if (missingTickets) asks.push(`Il manque ${missingTickets} étape(s) avec un billet réservable en ligne ("billet": true). Remplace une ou plusieurs étapes sans billet par des lieux connus avec billet (${mode === "culture" ? "musée, monument, visite, croisière" : "concert, spectacle, croisière de nuit, entrée payante"}), en respectant le budget.`);
         try {
           const fix = await claude(key, [
             { role: "user", content: prompt },
             { role: "assistant", content: text },
-            { role: "user", content: `Vérification Google Maps : ${list}. Remplace UNIQUEMENT ces étapes par d'autres lieux réels, ouverts aujourd'hui, du même type et proches des autres étapes. N'utilise aucun de ces lieux : ${excluded.join(", ")}. Garde toutes les autres étapes identiques et respecte les mêmes règles. Réponds avec le JSON complet, sans texte autour.` },
+            { role: "user", content: `${asks.join(" ")} Garde toutes les autres étapes identiques et respecte les mêmes règles. Réponds avec le JSON complet, sans texte autour.` },
           ]);
           if (Array.isArray(fix.plan.etapes) && fix.plan.etapes.length) {
             plan = fix.plan;
-            bad = await verifyStops(plan, c, lang);
+            bad = GKEY ? await verifyStops(plan, c, lang) : [];
             // still closed after the retry: drop those stops rather than send people to a closed place
             const closed = bad.filter(i => /fermé/.test(plan.etapes[i]._why || ""));
             if (closed.length && closed.length < plan.etapes.length) {
@@ -333,7 +358,7 @@ module.exports = async (req, res) => {
           }
         } catch (e) { console.error("retry failed", e); }
       }
-      await addTravelTimes(plan, c, lang, input.area, input.metro);
+      if (GKEY) await addTravelTimes(plan, c, lang, input.area, input.metro);
     }
 
     (plan.etapes || []).forEach(s => { delete s._why; delete s._ok; s.billet = s.billet === true; if (!input.end) s.heure = ""; });

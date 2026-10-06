@@ -49,6 +49,7 @@ function member(raw, meta, prev = {}) {
     budget: raw?.budget != null && Number.isFinite(b) ? Math.min(hi, Math.max(lo, Math.round(b))) : (prev.budget ?? null),
     vibe: list.includes(raw?.vibe) ? raw.vibe : (prev.vibe || ""),
     flag: raw?.flag === undefined ? !!prev.flag : !!raw.flag,
+    level: Number.isInteger(raw?.level) && raw.level >= 0 && raw.level <= 4 ? raw.level : (prev.level ?? null),
   };
 }
 
@@ -64,7 +65,7 @@ async function load(id) {
 function publicView(id, o) {
   const { admin, ...meta } = o.meta;
   const members = Object.entries(o.members)
-    .map(([mid, m]) => ({ mid, nick: m.nick, budget: m.budget, vibe: m.vibe, flag: m.flag, host: !!m.host, t: m.t }))
+    .map(([mid, m]) => ({ mid, nick: m.nick, level: m.level ?? null, vibe: m.vibe, flag: m.flag, host: !!m.host, t: m.t }))
     .sort((a, b) => a.t - b.t);
   return { id, ...meta, members, plan: o.plan };
 }
