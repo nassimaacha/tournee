@@ -67,6 +67,30 @@ function cleanEntry(b) {
   };
 }
 
+// outings in progress this user is part of (hosted outings expire after 30 days)
+async function groupsOf(uid) {
+  const [ids] = await kv([["SMEMBERS", `g:${uid}`]]);
+  if (!ids || !ids.length) return [];
+  const metas = await kv(ids.map(id => ["GET", `o:${id}`]));
+  const lens = await kv(ids.map(id => ["HLEN", `o:${id}:m`]));
+  const out = [], dead = [];
+  ids.forEach((id, i) => {
+    if (!metas[i]) { dead.push(id); return; }
+    const m = JSON.parse(metas[i]);
+    out.push({ id, city: m.city, mode: m.mode, created: m.created || 0, count: lens[i] || 0 });
+  });
+  if (dead.length) await kv([["SREM", `g:${uid}`, ...dead]]);
+  return out.sort((a, b) => b.created - a.created);
+}
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+const scrypt = (pw, salt) => new Promise((ok, ko) => crypto.scrypt(pw, salt, 64, { N: 16384, r: 8, p: 1 }, (e, k) => e ? ko(e) : ok(k)));
+async function openSession(u) {
+  const token = crypto.randomBytes(24).toString("hex");
+  await kv([["SET", `s:${token}`, u.uid, "EX", SESSION_TTL], ["SADD", `us:${u.uid}`, token]]);
+  return { token, me: { ...publicView(u), code: u.code }, friends: await friendsOf(u.uid), history: await historyOf(u.uid), groups: await groupsOf(u.uid) };
+}
+
 async function auth(req) {
   const h = String(req.headers.authorization || "");
   const token = h.startsWith("Bearer ") ? h.slice(7).trim() : "";
@@ -86,16 +110,59 @@ async function verifyGoogle(credential) {
 }
 
 module.exports = async (req, res) => {
-  if (req.method === "GET") return res.status(200).json({ clientId: CLIENT_ID || null, ready: !!(CLIENT_ID && KV_URL && KV_TOKEN), contact: clean(process.env.CONTACT_EMAIL || "", 120) || null });
+  if (req.method === "GET") return res.status(200).json({ clientId: CLIENT_ID || null, ready: !!(KV_URL && KV_TOKEN), contact: clean(process.env.CONTACT_EMAIL || "", 120) || null });
   if (req.method !== "POST") return res.status(405).json({ error: "method" });
-  if (!KV_URL || !KV_TOKEN || !CLIENT_ID) return res.status(500).json({ error: "no_accounts" });
+  if (!KV_URL || !KV_TOKEN) return res.status(500).json({ error: "no_accounts" });
 
   let body = req.body || {};
   if (typeof body === "string") { try { body = JSON.parse(body); } catch { body = {}; } }
   const action = body.action;
 
   try {
+    /* ---- email + password accounts ---- */
+    if (action === "register" || action === "loginPw") {
+      const email = String(body.email || "").trim().toLowerCase().slice(0, 120);
+      const password = String(body.password || "");
+      if (!EMAIL_RE.test(email)) return res.status(400).json({ error: "email" });
+      const emKey = "em:" + crypto.createHash("sha256").update(email).digest("hex");
+      const ip = String(req.headers["x-forwarded-for"] || "").split(",")[0].trim() || "?";
+      const rlKey = "rl:" + crypto.createHash("sha256").update(ip + "|" + email).digest("hex").slice(0, 32);
+      const [tries] = await kv([["GET", rlKey]]);
+      if (Number(tries) >= 10) return res.status(429).json({ error: "too_many" });
+
+      if (action === "register") {
+        const first = clean(body.first, 30), last = clean(body.last, 40);
+        if (!first || !last) return res.status(400).json({ error: "missing" });
+        if (password.length < 8 || password.length > 200) return res.status(400).json({ error: "weak" });
+        const [exists] = await kv([["GET", emKey]]);
+        if (exists) return res.status(409).json({ error: "exists" });
+        const uid = rid(12), code = rid(8), salt = crypto.randomBytes(16).toString("hex");
+        const hash = (await scrypt(password, salt)).toString("hex");
+        const u = { uid, code, sk: emKey, email, last, pw: { salt, hash }, created: Date.now(), profile: cleanProfile({ nick: first.split(" ")[0] }, {}) };
+        const [ok] = await kv([["SET", emKey, uid, "NX"]]);
+        if (!ok) return res.status(409).json({ error: "exists" });
+        await kv([["SET", `u:${uid}`, JSON.stringify(u)], ["SET", `fc:${code}`, uid]]);
+        return res.status(200).json(await openSession(u));
+      }
+
+      const [uid] = await kv([["GET", emKey]]);
+      const u = uid ? await getUser(uid) : null;
+      let good = false;
+      if (u && u.pw) {
+        const h = await scrypt(password, u.pw.salt);
+        const want = Buffer.from(u.pw.hash, "hex");
+        good = h.length === want.length && crypto.timingSafeEqual(h, want);
+      }
+      if (!good) {
+        await kv([["INCR", rlKey], ["EXPIRE", rlKey, 900]]);
+        return res.status(401).json({ error: "creds" });
+      }
+      await kv([["DEL", rlKey]]);
+      return res.status(200).json(await openSession(u));
+    }
+
     if (action === "login") {
+      if (!CLIENT_ID) return res.status(500).json({ error: "no_google" });
       const g = await verifyGoogle(String(body.credential || ""));
       if (!g) return res.status(401).json({ error: "bad_login" });
       const subKey = "gsub:" + crypto.createHash("sha256").update(g.sub).digest("hex");
@@ -109,7 +176,7 @@ module.exports = async (req, res) => {
       }
       const token = crypto.randomBytes(24).toString("hex");
       await kv([["SET", `s:${token}`, uid, "EX", SESSION_TTL], ["SADD", `us:${uid}`, token]]);
-      return res.status(200).json({ token, me: { ...publicView(u), code: u.code }, friends: await friendsOf(uid), history: await historyOf(uid) });
+      return res.status(200).json({ token, me: { ...publicView(u), code: u.code }, friends: await friendsOf(uid), history: await historyOf(uid), groups: await groupsOf(uid) });
     }
 
     if (action === "peek") {
@@ -123,7 +190,7 @@ module.exports = async (req, res) => {
     if (!a) return res.status(401).json({ error: "signed_out" });
     const { u, token } = a;
 
-    if (action === "me") return res.status(200).json({ me: { ...publicView(u), code: u.code }, friends: await friendsOf(u.uid), history: await historyOf(u.uid) });
+    if (action === "me") return res.status(200).json({ me: { ...publicView(u), code: u.code }, friends: await friendsOf(u.uid), history: await historyOf(u.uid), groups: await groupsOf(u.uid) });
 
     if (action === "saveOuting") {
       const e = cleanEntry(body);
@@ -180,7 +247,7 @@ module.exports = async (req, res) => {
       const [friendIds, tokens] = await kv([["SMEMBERS", `fr:${u.uid}`], ["SMEMBERS", `us:${u.uid}`]]);
       const cmds = (friendIds || []).map(f => ["SREM", `fr:${f}`, u.uid]);
       (tokens || []).forEach(t => cmds.push(["DEL", `s:${t}`]));
-      cmds.push(["DEL", `u:${u.uid}`, `fr:${u.uid}`, `us:${u.uid}`, `fc:${u.code}`, `h:${u.uid}`]);
+      cmds.push(["DEL", `u:${u.uid}`, `fr:${u.uid}`, `us:${u.uid}`, `fc:${u.code}`, `h:${u.uid}`, `g:${u.uid}`]);
       if (u.sk) cmds.push(["DEL", u.sk]);
       await kv(cmds);
       return res.status(200).json({ ok: true });
