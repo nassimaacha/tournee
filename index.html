@@ -162,7 +162,6 @@ input[type=range]{width:100%;accent-color:var(--accent);margin-top:10px}
 .pick b .last::after{content:"";display:inline-block;vertical-align:middle;margin-inline-start:.22em;width:.14em;height:.14em;border-radius:50%;background:var(--dot);transition:transform .25s}
 .pick > span{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.111em;max-width:40ch;line-height:1.7}
 .pick.night > span{color:#BC994E}
-.pick:hover b .last::after,.pick:focus-visible b .last::after{transform:scale(1.6)}
 .pick:focus-visible{outline:1px solid currentColor;outline-offset:-10px}
 @media (min-width:760px){.split{grid-template-columns:1fr 1fr}.pick{min-height:calc(100svh - 62px);padding:48px}.pick b{font-size:clamp(3.4rem,8.5vw,7.5rem)}}
 
@@ -228,14 +227,68 @@ footer{display:flex;justify-content:space-between;align-items:center;gap:12px 24
 footer{color:var(--muted);font-size:12px;padding:28px 0 44px;border-top:1px solid var(--line)}
 #result + footer{border-top:0}
 @media (max-width:420px){.grid2{grid-template-columns:1fr}.friend-row{grid-template-columns:1fr}}
+
+/* ===== motion (all of it switches off with prefers-reduced-motion) ===== */
+@media (prefers-reduced-motion: no-preference){
+/* 1. logo draws itself */
+.mark.draw path{stroke-dasharray:60;stroke-dashoffset:60;animation:mk-draw 1s ease-out .15s forwards}
+.mark.draw circle:nth-of-type(1){transform-box:fill-box;transform-origin:center;transform:scale(0);animation:mk-pop .3s ease-out .1s forwards}
+.mark.draw circle:nth-of-type(2){transform-box:fill-box;transform-origin:center;transform:scale(0);animation:mk-pop .45s cubic-bezier(.3,1.6,.6,1) 1.05s forwards}
+/* 3. budget circle pop */
+.lvl.pop{animation:mk-bump .35s cubic-bezier(.3,1.6,.6,1)}
+/* 4. plan unfolds */
+.line.reveal::before{transform-origin:top;transform:scaleY(0);animation:mk-grow calc(var(--n,3) * .35s + .3s) ease-out forwards}
+.line.reveal .stop{opacity:0;transform:translateY(12px);animation:mk-up .45s ease-out forwards;animation-delay:calc(var(--i,0) * .35s + .15s)}
+.res-head.reveal > *{opacity:0;transform:translateY(10px);animation:mk-up .5s ease-out forwards}
+.res-head.reveal > *:nth-child(2){animation-delay:.08s}.res-head.reveal > *:nth-child(3){animation-delay:.16s}
+/* 6. homepage halves breathe (desktop) */
+@media (min-width:760px){
+.split{display:flex}
+.pick{flex:1 1 0;transition:flex-grow .6s cubic-bezier(.2,.8,.2,1)}
+.split:hover .pick{flex-grow:.85}
+.split .pick:hover,.split .pick:focus-visible{flex-grow:1.3}
+}
+.pick:hover b .last::after,.pick:focus-visible b .last::after{animation:mk-pulse 1.4s ease-in-out infinite}
+/* 7. cities slide in */
+.cities.in li{opacity:0;transform:translateY(14px);animation:mk-up .45s ease-out forwards;animation-delay:calc(var(--i,0) * .05s)}
+/* 9. night sky */
+#sky span{animation:mk-twinkle var(--d,4s) ease-in-out var(--w,0s) infinite}
+}
+#sky{position:fixed;inset:0;pointer-events:none;z-index:-1;display:none}
+:root[data-theme="dark"] #sky.on{display:block}
+#sky span{position:absolute;width:2px;height:2px;border-radius:50%;background:#DBC9FF;opacity:.25}
+/* 2. loading route */
+.thinking{display:flex;align-items:center;gap:16px;color:var(--muted);font-size:14px}
+.thinking .route{flex:none}
+.thinking .route .rt{stroke:var(--line)}
+.thinking .route .a{fill:var(--bg);stroke:var(--accent)}
+.thinking .route .c{fill:var(--logodot,#FF9AD5)}
+.thinking .route .mover{fill:var(--accent)}
+/* 5. night/day color wipe */
+.wipe{position:fixed;inset:0;z-index:50;pointer-events:none;clip-path:circle(0 at var(--x) var(--y));transition:clip-path .55s cubic-bezier(.6,0,.2,1),opacity .3s ease}
+.wipe.open{clip-path:circle(150% at var(--x) var(--y))}
+.wipe.done{opacity:0}
+/* 8. map pins (drawn map) */
+@media (prefers-reduced-motion: no-preference){
+.map svg .pin{transform-box:fill-box;transform-origin:center;transform:scale(0);animation:mk-pop .4s cubic-bezier(.3,1.6,.6,1) forwards;animation-delay:calc(var(--i,0) * .25s + .2s)}
+.map svg .rline{stroke-dasharray:2000;stroke-dashoffset:2000;animation:mk-draw 1.4s ease-out .2s forwards}
+}
+@keyframes mk-draw{to{stroke-dashoffset:0}}
+@keyframes mk-pop{to{transform:scale(1)}}
+@keyframes mk-bump{0%{transform:scale(.82)}100%{transform:scale(1)}}
+@keyframes mk-grow{to{transform:scaleY(1)}}
+@keyframes mk-up{to{opacity:1;transform:none}}
+@keyframes mk-pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.7)}}
+@keyframes mk-twinkle{0%,100%{opacity:.12}50%{opacity:.7}}
 @media (prefers-reduced-motion: reduce){body,.city,.add,.cta,.btn,.stops button,.pick b .last::after{transition:none}.train::after{animation:none;transform:translateX(20px)}}
 </style>
 </head>
 <body>
+<div id="sky" aria-hidden="true"></div>
 <div class="wrap">
   <header>
     <a href="/" class="home-link" id="homeLink">
-    <svg class="mark" viewBox="0 0 34 34" aria-hidden="true">
+    <svg class="mark draw" viewBox="0 0 34 34" aria-hidden="true">
         <path d="M5 26 C 12 26, 12 8, 19 8 S 26 20, 29 20" fill="none" stroke="var(--accent)" stroke-width="5" stroke-linecap="round"/>
         <circle cx="5" cy="26" r="4" fill="var(--bg)" stroke="var(--accent)" stroke-width="3"/>
         <circle cx="29" cy="20" r="4.5" fill="var(--logodot)"/>
@@ -670,7 +723,8 @@ $("#friends").addEventListener("change", e=>{ if(e.target.dataset.k==="flag"){ c
 $("#friends").addEventListener("click", e=>{
   const b=e.target.closest(".lvl"); if(!b) return;
   const i=+b.dataset.i, j=+b.dataset.lvl; friends[i].level=j;
-  b.parentElement.querySelectorAll(".lvl").forEach(x=>x.setAttribute("aria-pressed",String(x===b)));
+  b.parentElement.querySelectorAll(".lvl").forEach(x=>{ x.setAttribute("aria-pressed",String(x===b)); x.classList.remove("pop"); });
+  void b.offsetWidth; b.classList.add("pop");
   if(outing) syncMember(friends[i]);
 });
 $("#friends").addEventListener("click", async e=>{
@@ -717,7 +771,7 @@ function renderJoin(){
   $("#jRow").innerHTML=`<div class="budget"><span class="blabel" id="jbl">${t("budget")} (${SYM[dispCode()]})</span>
       <div class="lvls" id="jLvls" role="group" aria-labelledby="jbl">${LEVELS.map((_,j)=>`<button type="button" class="lvl" data-lvl="${j}" aria-pressed="${cur===j}" aria-label="${esc(levelMoney(j))}">${levelLabel(j)}</button>`).join("")}</div></div>
     <div class="field"><label for="jVibe">${t("vibe")}</label><select id="jVibe"><option value="" disabled hidden${curV?"":" selected"}>${t("choose")}</option>${v.map(x=>`<option value="${x}"${x===curV?" selected":""}>${VIBE_T[x][lang]}</option>`).join("")}</select></div>`;
-  $("#jLvls").onclick=e=>{ const b=e.target.closest(".lvl"); if(!b) return; $("#jLvls").querySelectorAll(".lvl").forEach(x=>x.setAttribute("aria-pressed",String(x===b))); };
+  $("#jLvls").onclick=e=>{ const b=e.target.closest(".lvl"); if(!b) return; $("#jLvls").querySelectorAll(".lvl").forEach(x=>{ x.setAttribute("aria-pressed",String(x===b)); x.classList.remove("pop"); }); void b.offsetWidth; b.classList.add("pop"); };
   $("#jVibe").onchange=e=>e.target.removeAttribute("aria-invalid");
   $("#jName").placeholder=t("namePh");
   $("#jFlagLabel").textContent=t(M().flag);
@@ -805,6 +859,7 @@ function travelText(min,mode,from){
   const k=mode==="transit"?"transitMin":mode==="drive"?"driveMin":"walkMin";
   return t(k,{n:min})+(from?" "+t("fromStart",{a:from}):"");
 }
+const calm=()=>matchMedia("(prefers-reduced-motion: reduce)").matches;
 const GYG_PARTNER="8YCTQSA";
 function bookUrl(s){
   const q=`${s.lieu} ${CITY_T[city.id]?.en||""}`.trim();
@@ -814,7 +869,7 @@ function renderPlan(p, isExample, quiet){
   lastPlan = p; lastIsExample=!!isExample;
   const timed=(p.etapes||[]).some(s=>s.heure);
   const steps = (p.etapes||[]).map((s,idx)=>`
-    <li class="stop">
+    <li class="stop" style="--i:${idx}">
       <div class="time">${esc(fmtTime(s.heure))}</div>
       <div class="station" aria-hidden="true"></div>
       <div>
@@ -828,7 +883,7 @@ function renderPlan(p, isExample, quiet){
   const ls=friends.map(f=>f.level).filter(l=>typeof l==="number"), minL = ls.length?Math.min(...ls):null;
   $("#result").innerHTML = `
     ${isExample?`<span class="badge ex">Exemple</span>`:`<span class="badge">${t("ready")}</span>`}
-    <div class="res-head"><h2>${esc(p.titre)}</h2><p>${esc(p.resume)}</p></div>
+    <div class="res-head${quiet?"":" reveal"}"><h2>${esc(p.titre)}</h2><p>${esc(p.resume)}</p></div>
     <div class="pill-row">
       <span class="pill"><b>${esc(money(p.total_pp))}</b> ${t("perPerson")}</span>
       ${minL!=null?`<span class="pill">${t("tightest")} <b>${esc(levelMoney(minL))}</b></span>`:""}
@@ -836,8 +891,8 @@ function renderPlan(p, isExample, quiet){
     </div>
     <p class="compromis">${esc(p.compromis)}</p>
     <div class="map" id="map"></div>
-    <ol class="line${timed?"":" notimes"}">${steps}
-      <li class="stop home">
+    <ol class="line${timed?"":" notimes"}${quiet?"":" reveal"}" style="--n:${(p.etapes||[]).length+1}">${steps}
+      <li class="stop home" style="--i:${(p.etapes||[]).length}">
         <div class="time"></div>
         <div class="station" aria-hidden="true"></div>
         <div><p class="stop-type">${t("returnLabel")}</p><h3>${t(M().end)}</h3><p class="why">${esc(p.retour)}</p>${p.retour_min?`<p class="meta">${esc(travelText(p.retour_min,p.retour_mode,""))}${p.retour_station?" · "+esc(p.retour_station):""}</p>`:""}</div>
@@ -884,7 +939,7 @@ function drawSvgMap(p, zoom){
   const route=pts.map((a,i)=>(i?"L":"M")+a.x.toFixed(1)+" "+a.y.toFixed(1)).join(" ")+(home?" L"+home.x.toFixed(1)+" "+home.y.toFixed(1):"");
   const labels=HOODS.map(([n,lng,lat])=>`<text x="${X(lng).toFixed(1)}" y="${Y(lat).toFixed(1)}" text-anchor="middle" font-size="${(vw*0.021).toFixed(1)}" fill="var(--muted)" opacity=".85">${n}</text>`).join("");
   const r=vw*0.026;
-  const stops=pts.map(a=>`<g><title>${esc(a.n+". "+a.s.lieu)}</title><circle cx="${a.x}" cy="${a.y}" r="${r}" fill="var(--bg)" stroke="var(--metro)" stroke-width="${r*0.38}"/><text x="${a.x}" y="${a.y}" dy=".35em" text-anchor="middle" font-size="${r*1.05}" font-weight="700" fill="var(--ink)" font-family="Inter,sans-serif">${a.n}</text></g>`).join("");
+  const stops=pts.map(a=>`<g class="pin" style="--i:${a.n-1}"><title>${esc(a.n+". "+a.s.lieu)}</title><circle cx="${a.x}" cy="${a.y}" r="${r}" fill="var(--bg)" stroke="var(--metro)" stroke-width="${r*0.38}"/><text x="${a.x}" y="${a.y}" dy=".35em" text-anchor="middle" font-size="${r*1.05}" font-weight="700" fill="var(--ink)" font-family="Inter,sans-serif">${a.n}</text></g>`).join("");
   const homeMk=home?`<g><title>${esc(t("returnLabel")+" : "+(p.retour_station||""))}</title><rect x="${home.x-r*0.8}" y="${home.y-r*0.8}" width="${r*1.6}" height="${r*1.6}" rx="${r*0.35}" fill="var(--lamp)"/><text x="${home.x}" y="${home.y}" dy=".35em" text-anchor="middle" font-size="${r*1.05}" font-weight="700" fill="#000" font-family="Inter,sans-serif">M</text></g>`:"";
   box.innerHTML=`<svg viewBox="${vx.toFixed(1)} ${vy.toFixed(1)} ${vw.toFixed(1)} ${vh.toFixed(1)}" role="img" aria-label="${t("mapAria")}">
     <rect x="0" y="0" width="${W}" height="${H}" fill="var(--ash)"/>
@@ -892,7 +947,7 @@ function drawSvgMap(p, zoom){
     <path d="${path(SEINE)}" fill="none" stroke="var(--stone)" stroke-opacity=".45" stroke-width="${16*k}" stroke-linecap="round" stroke-linejoin="round"/>
     <path d="${path(CANAL)}" fill="none" stroke="var(--stone)" stroke-opacity=".35" stroke-width="${5*k}" stroke-linecap="round" stroke-linejoin="round"/>
     ${labels}
-    <path d="${route}" fill="none" stroke="var(--metro)" stroke-width="${(vw*0.011).toFixed(1)}" stroke-linecap="round" stroke-linejoin="round" ${home?"":""}/>
+    <path class="rline" d="${route}" fill="none" stroke="var(--metro)" stroke-width="${(vw*0.011).toFixed(1)}" stroke-linecap="round" stroke-linejoin="round" ${home?"":""}/>
     ${homeMk}${stops}
   </svg>
   <div class="cap"><span>${t("svgCap")}</span><button type="button" id="mapToggle">${zoom?t("svgAll"):t("svgZoom")}</button></div>`;
@@ -956,9 +1011,10 @@ async function drawMap(p){
     const route=[];
     pts.forEach((s,i)=>{
       const pos={lat:+s.lat,lng:+s.lng}; route.push(pos); bounds.extend(pos);
-      const m=new Marker({map,position:pos,title:`${i+1}. ${s.lieu}`,zIndex:10+i,
+      const m=new Marker({map:calm()?map:null,position:pos,title:`${i+1}. ${s.lieu}`,zIndex:10+i,
         label:{text:String(i+1),color:ink,fontWeight:"700",fontFamily:"Inter, sans-serif",fontSize:"13px"},
         icon:{path:google.maps.SymbolPath.CIRCLE,scale:13,fillColor:bg,fillOpacity:1,strokeColor:ink,strokeWeight:4}});
+      if(!calm()) setTimeout(()=>{ m.setAnimation(google.maps.Animation.DROP); m.setMap(map); },300+i*280);
       m.addListener("click",()=>{ info.setContent(`<div style="font:14px Inter,sans-serif;color:#000"><b>${esc(fmtTime(s.heure))} ${esc(s.lieu)}</b><br>${esc(s.quartier)}</div>`); info.open({map,anchor:m}); });
     });
     if(inCity(+p.retour_lat,+p.retour_lng)){
@@ -967,7 +1023,15 @@ async function drawMap(p){
         label:{text:"M",color:"#000",fontWeight:"700",fontFamily:"Inter, sans-serif",fontSize:"13px"},
         icon:{path:"M -1 -1 L 1 -1 L 1 1 L -1 1 Z",scale:12,fillColor:getComputedStyle(document.documentElement).getPropertyValue("--lamp").trim()||"#7FFEB1",fillOpacity:1,strokeWeight:0}});
     }
-    new Polyline({map,path:route,strokeColor:ink,strokeOpacity:1,strokeWeight:4,zIndex:1});
+    const line=new Polyline({map,path:calm()?route:[],strokeColor:ink,strokeOpacity:1,strokeWeight:4,zIndex:1});
+    if(!calm() && route.length>1){
+      const seg=520, total=(route.length-1)*seg; let t0=null;
+      const step=ts=>{ if(t0===null) t0=ts; const el=Math.min(total,ts-t0), k=Math.floor(el/seg), f=(el%seg)/seg;
+        const pts=route.slice(0,k+1);
+        if(k<route.length-1){ const a=route[k], b=route[k+1]; pts.push({lat:a.lat+(b.lat-a.lat)*f,lng:a.lng+(b.lng-a.lng)*f}); }
+        line.setPath(pts); if(el<total) requestAnimationFrame(step); };
+      setTimeout(()=>requestAnimationFrame(step),300);
+    }
     if(route.length>1) map.fitBounds(bounds,48); else { map.setCenter(route[0]); map.setZoom(16); }
     google.maps.event.addListenerOnce(map,"idle",()=>{ if(map.getZoom()>17) map.setZoom(17); });
   }catch(e){ gmFailed=true; fallbackMap(p); }
@@ -1007,7 +1071,7 @@ function addSeen(p){
 }
 async function plan(){
   const go=$("#go"); go.disabled=true;
-  $("#result").innerHTML = `<div class="thinking"><span class="train" aria-hidden="true"></span><span>${t("thinking")}</span></div>`;
+  $("#result").innerHTML = `<div class="thinking"><svg class="route" width="96" height="44" viewBox="0 0 96 44" aria-hidden="true"><path id="ldr" class="rt" d="M8 36 C 30 36, 28 8, 48 8 S 70 30, 88 25" fill="none" stroke-width="4" stroke-linecap="round"></path><circle class="a" cx="8" cy="36" r="5" stroke-width="2.5"></circle><circle class="c" cx="88" cy="25" r="5.5"></circle><circle class="mover" r="3.5"><animateMotion dur="1.6s" repeatCount="indefinite" calcMode="spline" keyPoints="0;1" keyTimes="0;1" keySplines=".5 0 .5 1"><mpath href="#ldr"></mpath></animateMotion></circle></svg><span>${t("thinking")}</span></div>`;
   ctl?.abort(); ctl = new AbortController();
   try{
     const r = await fetch("/api/plan",{method:"POST",headers:{"Content-Type":"application/json"},signal:ctl.signal,
@@ -1057,10 +1121,10 @@ let cont=(()=>{ const z=(Intl.DateTimeFormat().resolvedOptions().timeZone||"");
   if(z.startsWith("Africa/")) return "africa";
   if(z.startsWith("Australia/")||z.startsWith("Pacific/")) return "oceania";
   return "europe"; })();
-$("#conts").addEventListener("click",e=>{const b=e.target.closest("[data-cont]"); if(!b) return; cont=b.dataset.cont; renderCities(); $(`[data-cont="${cont}"]`)?.focus({preventScroll:true});});
+$("#conts").addEventListener("click",e=>{const b=e.target.closest("[data-cont]"); if(!b) return; cont=b.dataset.cont; renderCities(true); $(`[data-cont="${cont}"]`)?.focus({preventScroll:true});});
 $("#conts").addEventListener("keydown",e=>{ if(e.key!=="ArrowRight"&&e.key!=="ArrowLeft") return;
   const i=CONTS.findIndex(c=>c[0]===cont), n=(i+(e.key==="ArrowRight"?1:-1)+CONTS.length)%CONTS.length;
-  cont=CONTS[n][0]; renderCities(); $(`[data-cont="${cont}"]`).focus({preventScroll:true}); e.preventDefault(); });
+  cont=CONTS[n][0]; renderCities(true); $(`[data-cont="${cont}"]`).focus({preventScroll:true}); e.preventDefault(); });
 $("#suggestOpen").onclick=()=>{ const f=$("#suggestForm"), open=f.hidden; f.hidden=!open; $("#suggestOpen").setAttribute("aria-expanded",String(open)); if(open){ $("#sgCity").placeholder=t("sgPh"); $("#sgCity").focus({preventScroll:true}); } };
 async function sendSuggest(){
   const city=$("#sgCity").value.trim(); if(city.length<2) return;
@@ -1071,22 +1135,32 @@ async function sendSuggest(){
 }
 $("#sgSend").onclick=sendSuggest;
 $("#sgCity").addEventListener("keydown",e=>{ if(e.key==="Enter") sendSuggest(); });
-function renderCities(){
+function renderCities(anim){
   $("#conts").innerHTML=CONTS.map(([id,k])=>`<button class="cont" type="button" role="tab" data-cont="${id}" aria-selected="${id===cont}" tabindex="${id===cont?0:-1}">${t(k)}</button>`).join("");
   const tab=$(`[data-cont="${cont}"]`), row=$("#conts");
   if(tab){ const l=tab.offsetLeft-row.offsetLeft, r=l+tab.offsetWidth; if(l<row.scrollLeft) row.scrollLeft=l-20; else if(r>row.scrollLeft+row.clientWidth) row.scrollLeft=r-row.clientWidth+20; }
   $("#cities").setAttribute("aria-label",t("citiesLabel"));
   const now=new Date(), utc=new Date(now.toLocaleString("en-US",{timeZone:"UTC"}));
   const off=c=>new Date(now.toLocaleString("en-US",{timeZone:c.tz}))-utc;
-  $("#cities").innerHTML=CITIES.filter(c=>c.cont===cont).sort((a,b)=>off(a)-off(b)).map(c=>{const k=cityClock(c);
-    return `<li><button class="city" type="button" data-city="${c.id}">
+  const list=$("#cities"); list.classList.remove("in"); if(anim){ void list.offsetWidth; list.classList.add("in"); }
+  list.innerHTML=CITIES.filter(c=>c.cont===cont).sort((a,b)=>off(a)-off(b)).map((c,ci)=>{const k=cityClock(c);
+    return `<li style="--i:${ci}"><button class="city" type="button" data-city="${c.id}">
       <span class="city-name">${cityName(c)}</span>
       <span class="city-time" aria-label="${t("clockAria",{t:k.txt,c:cityName(c)})}${k.night?t("evening"):""}"><span class="${k.night?"night":"day"}" aria-hidden="true"></span><bdi>${k.txt}</bdi></span>
     </button></li>`;}).join("");
 }
 $("#timeToggle").onclick=()=>{ const open=$("#timeBox").hidden; setTimeBox(open); if(outing) syncSettings(); };
 $("#cities").addEventListener("click",e=>{const b=e.target.closest("[data-city]"); if(!b) return; if(hostingPick){ createOuting(CITIES.find(c=>c.id===b.dataset.city)); return; } go(mode+"/"+b.dataset.city);});
-document.querySelector(".split").addEventListener("click",e=>{const b=e.target.closest("[data-pick]"); if(b) go(b.dataset.pick);});
+document.querySelector(".split").addEventListener("click",e=>{
+  const b=e.target.closest("[data-pick]"); if(!b) return;
+  if(calm()){ go(b.dataset.pick); return; }
+  const w=document.createElement("div"); w.className="wipe";
+  w.style.background=b.dataset.pick==="night"?"#271A47":"#DBC9FF";
+  const x=e.clientX||innerWidth/2, y=e.clientY||innerHeight/2;
+  w.style.setProperty("--x",x+"px"); w.style.setProperty("--y",y+"px");
+  document.body.appendChild(w); void w.offsetWidth; w.classList.add("open");
+  setTimeout(()=>{ go(b.dataset.pick); requestAnimationFrame(()=>{ w.classList.add("done"); setTimeout(()=>w.remove(),350); }); },560);
+});
 function go(path){ const url="/"+path; if(location.pathname!==url) history.pushState(null,"",url); route(); }
 
 function applyMode(){
@@ -1136,12 +1210,17 @@ function route(keepScroll){
   $("#hostBtn").hidden=!(view==="home"||(view==="planner"&&!isOuting));
   $("#go").hidden=view!=="planner"; $("#status").hidden=view!=="planner";
   document.querySelector("footer").hidden=view==="start";
+  document.getElementById("sky").classList.toggle("on",view!=="start");
   if(isOuting){ const key="o/"+c0; if(key!==opened){ opened=key; loadOuting(c0); } }
   else if(view==="planner"){ const key=mode+"/"+c.id; if(key!==opened){ openCity(c); opened=key; } document.title="Tournée, "+cityName(c); }
-  else if(view==="home"){ opened=""; outing=null; renderCities(); document.title="Tournée, "+t(M().label).toLowerCase(); }
+  else if(view==="home"){ opened=""; outing=null; renderCities(keepScroll!==true); document.title="Tournée, "+t(M().label).toLowerCase(); }
   else { opened=""; outing=null; document.title="Tournée"; }
   if(keepScroll!==true) window.scrollTo(0,0);
 }
+(function(){ const sky=document.getElementById("sky"); let html="";
+  for(let i=0;i<46;i++){ const x=Math.random()*100, y=Math.random()*100, d=(3+Math.random()*4).toFixed(1), w=(Math.random()*5).toFixed(1), z=Math.random()<.2?3:2;
+    html+=`<span style="left:${x}%;top:${y}%;width:${z}px;height:${z}px;--d:${d}s;--w:${w}s"></span>`; }
+  sky.innerHTML=html; })();
 window.addEventListener("popstate",route);
 setInterval(()=>{ if(!$("#home").hidden) renderCities(); },30000);
 /* Language */
