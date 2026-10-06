@@ -62,10 +62,19 @@ async function load(id) {
   return { meta: JSON.parse(meta), members: m, plan: plan ? JSON.parse(plan) : null };
 }
 
+// signed in Tournée user behind this request, if any (same session store as /api/account)
+async function sessionUid(req) {
+  const h = String(req.headers?.authorization || "");
+  const token = h.startsWith("Bearer ") ? h.slice(7).trim() : "";
+  if (!/^[a-f0-9]{48}$/.test(token)) return null;
+  const [uid] = await kv([["GET", `s:${token}`]]);
+  return uid || null;
+}
+
 function publicView(id, o) {
   const { admin, ...meta } = o.meta;
   const members = Object.entries(o.members)
-    .map(([mid, m]) => ({ mid, nick: m.nick, level: m.level ?? null, vibe: m.vibe, flag: m.flag, host: !!m.host, t: m.t }))
+    .map(([mid, m]) => ({ mid, uid: m.uid || null, nick: m.nick, level: m.level ?? null, vibe: m.vibe, flag: m.flag, host: !!m.host, t: m.t }))
     .sort((a, b) => a.t - b.t);
   return { id, ...meta, members, plan: o.plan };
 }
@@ -109,13 +118,23 @@ module.exports = async (req, res) => {
     if (!o) return res.status(404).json({ error: "not_found" });
     const k = keys(id);
     const isAdmin = same(body.adminToken, o.meta.admin);
+    const me = await sessionUid(req);
 
     if (action === "join") {
       if (Object.keys(o.members).length >= MAX_MEMBERS) return res.status(409).json({ error: "full" });
       const mid = newId(), token = newToken();
       const m = { ...member(body.member, o.meta), token, t: Date.now(), host: isAdmin && body.self === true };
+      // link the row to a Tournée account: yourself, or (as host) one of your friends
+      const wanted = clean(body.member?.uid, 20);
+      if (me && (body.self === true || !isAdmin) && (!wanted || wanted === me)) m.uid = me;
+      else if (me && isAdmin && wanted) {
+        const [isFriend] = await kv([["SISMEMBER", `fr:${me}`, wanted]]);
+        if (isFriend) m.uid = wanted;
+      }
+      if (m.uid && Object.values(o.members).some(x => x.uid === m.uid)) return res.status(409).json({ error: "already" });
       if (!isAdmin && !clean(body.member?.nick, 20)) return res.status(400).json({ error: "name" });
-      await kv([["HSET", k.members, mid, JSON.stringify(m)], ...touch(id)]);
+      const extra = m.uid ? [["SADD", `g:${m.uid}`, id], ["EXPIRE", `g:${m.uid}`, TTL]] : [];
+      await kv([["HSET", k.members, mid, JSON.stringify(m)], ...touch(id), ...extra]);
       o.members[mid] = m;
       return res.status(200).json({ mid, token, outing: publicView(id, o) });
     }
@@ -123,7 +142,7 @@ module.exports = async (req, res) => {
     if (action === "update") {
       const prev = o.members[body.mid];
       if (!prev) return res.status(404).json({ error: "not_found" });
-      if (!isAdmin && !same(body.token, prev.token)) return res.status(403).json({ error: "forbidden" });
+      if (!isAdmin && !same(body.token, prev.token) && !(me && prev.uid === me)) return res.status(403).json({ error: "forbidden" });
       const m = member(body.member, o.meta, prev);
       await kv([["HSET", k.members, body.mid, JSON.stringify(m)], ...touch(id)]);
       o.members[body.mid] = m;
@@ -132,7 +151,8 @@ module.exports = async (req, res) => {
 
     if (action === "remove") {
       if (!isAdmin) return res.status(403).json({ error: "forbidden" });
-      await kv([["HDEL", k.members, String(body.mid)], ...touch(id)]);
+      const gone = o.members[body.mid];
+      await kv([["HDEL", k.members, String(body.mid)], ...touch(id), ...(gone && gone.uid ? [["SREM", `g:${gone.uid}`, id]] : [])]);
       delete o.members[body.mid];
       return res.status(200).json({ outing: publicView(id, o) });
     }
