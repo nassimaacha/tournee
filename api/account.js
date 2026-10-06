@@ -47,6 +47,26 @@ async function friendsOf(uid) {
   const raws = await kv(ids.map(id => ["GET", `u:${id}`]));
   return raws.filter(Boolean).map(r => publicView(JSON.parse(r))).sort((a, b) => a.nick.localeCompare(b.nick));
 }
+async function historyOf(uid) {
+  const [rows] = await kv([["LRANGE", `h:${uid}`, 0, 49]]);
+  return (rows || []).map(r => { try { return JSON.parse(r); } catch { return null; } }).filter(Boolean);
+}
+const MODES_OK = ["night", "day"];
+function cleanEntry(b) {
+  const plan = b.plan || {};
+  const stops = (Array.isArray(plan.etapes) ? plan.etapes : []).slice(0, 6).map(s => ({
+    lieu: clean(s.lieu, 80), type: clean(s.type, 40), area: clean(s.adresse || s.quartier, 80), billet: s.billet === true,
+  })).filter(s => s.lieu);
+  if (!stops.length) return null;
+  return {
+    id: rid(10), at: Date.now(),
+    city: clean(b.city, 30), mode: MODES_OK.includes(b.mode) ? b.mode : "night",
+    title: clean(plan.titre, 80), stops,
+    people: (Array.isArray(b.people) ? b.people : []).slice(0, 8).map(p => ({ nick: clean(p?.nick, 20) || "?", uid: clean(p?.uid, 20) || null })),
+    settings: { area: clean(b.settings?.area, 40), start: /^\d{2}:\d{2}$/.test(b.settings?.start) ? b.settings.start : "", end: /^\d{2}:\d{2}$/.test(b.settings?.end) ? b.settings.end : "", stops: Math.min(5, Math.max(0, parseInt(b.settings?.stops, 10) || 0)) },
+  };
+}
+
 async function auth(req) {
   const h = String(req.headers.authorization || "");
   const token = h.startsWith("Bearer ") ? h.slice(7).trim() : "";
@@ -89,7 +109,7 @@ module.exports = async (req, res) => {
       }
       const token = crypto.randomBytes(24).toString("hex");
       await kv([["SET", `s:${token}`, uid, "EX", SESSION_TTL], ["SADD", `us:${uid}`, token]]);
-      return res.status(200).json({ token, me: { ...publicView(u), code: u.code }, friends: await friendsOf(uid) });
+      return res.status(200).json({ token, me: { ...publicView(u), code: u.code }, friends: await friendsOf(uid), history: await historyOf(uid) });
     }
 
     if (action === "peek") {
@@ -103,7 +123,29 @@ module.exports = async (req, res) => {
     if (!a) return res.status(401).json({ error: "signed_out" });
     const { u, token } = a;
 
-    if (action === "me") return res.status(200).json({ me: { ...publicView(u), code: u.code }, friends: await friendsOf(u.uid) });
+    if (action === "me") return res.status(200).json({ me: { ...publicView(u), code: u.code }, friends: await friendsOf(u.uid), history: await historyOf(u.uid) });
+
+    if (action === "saveOuting") {
+      const e = cleanEntry(body);
+      if (!e) return res.status(400).json({ error: "bad_plan" });
+      // the plan also lands in the history of friends who were part of the group
+      const [mine] = await kv([["SMEMBERS", `fr:${u.uid}`]]);
+      const owners = new Set([u.uid, ...e.people.map(p => p.uid).filter(id => id && (mine || []).includes(id))]);
+      const cmds = [];
+      owners.forEach(id => { cmds.push(["LPUSH", `h:${id}`, JSON.stringify(e)], ["LTRIM", `h:${id}`, 0, 49]); });
+      await kv(cmds);
+      return res.status(200).json({ entry: e });
+    }
+
+    if (action === "deleteOuting") {
+      const id = clean(body.id, 12);
+      const list = await historyOf(u.uid);
+      const keep = list.filter(x => x.id !== id);
+      const cmds = [["DEL", `h:${u.uid}`]];
+      if (keep.length) cmds.push(["RPUSH", `h:${u.uid}`, ...keep.map(x => JSON.stringify(x))]);
+      await kv(cmds);
+      return res.status(200).json({ history: keep });
+    }
 
     if (action === "profile") {
       u.profile = cleanProfile(body.profile || {}, u.profile);
@@ -138,7 +180,7 @@ module.exports = async (req, res) => {
       const [friendIds, tokens] = await kv([["SMEMBERS", `fr:${u.uid}`], ["SMEMBERS", `us:${u.uid}`]]);
       const cmds = (friendIds || []).map(f => ["SREM", `fr:${f}`, u.uid]);
       (tokens || []).forEach(t => cmds.push(["DEL", `s:${t}`]));
-      cmds.push(["DEL", `u:${u.uid}`, `fr:${u.uid}`, `us:${u.uid}`, `fc:${u.code}`]);
+      cmds.push(["DEL", `u:${u.uid}`, `fr:${u.uid}`, `us:${u.uid}`, `fc:${u.code}`, `h:${u.uid}`]);
       if (u.sk) cmds.push(["DEL", u.sk]);
       await kv(cmds);
       return res.status(200).json({ ok: true });
