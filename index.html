@@ -189,7 +189,17 @@ input[type=range]{width:100%;accent-color:var(--accent);margin-top:10px}
 .city-time .day{width:7px;height:7px;border-radius:50%;border:1px solid currentColor}
 
 [hidden]{display:none!important}
-input[type=range].unset{opacity:.45}
+.friend-row{grid-template-columns:1fr!important}
+.blabel{display:block;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.111em;color:var(--accent);margin-bottom:8px}
+.lvls{display:flex;gap:8px;flex-wrap:wrap}
+.lvl{width:54px;height:54px;border-radius:50%;border:1px solid var(--line);background:transparent;color:var(--ink);font:inherit;font-size:12px;font-weight:600;letter-spacing:0;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;transition:background .15s,border-color .15s,color .15s}
+.lvl:hover{border-color:var(--accent)}
+.lvl[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--bg)}
+.lvl:focus-visible{outline:1px solid var(--accent);outline-offset:3px}
+.curs{display:flex;align-items:center;gap:6px;margin:-10px 0 22px}
+.curs .clabel{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.111em;color:var(--muted);margin-inline-end:4px}
+.cur{background:none;border:1px solid var(--line);border-radius:30px;padding:3px 12px;color:var(--muted);font:inherit;font-size:11px;font-weight:600;letter-spacing:.111em;cursor:pointer}
+.cur[aria-pressed="true"]{border-color:var(--accent);color:var(--accent)}
 .share-row{display:flex;gap:10px;flex-wrap:wrap}
 .share-row input{flex:1 1 220px}
 .share-row .btn{flex:0 0 auto}
@@ -287,6 +297,7 @@ footer{color:var(--muted);font-size:12px;padding:28px 0 44px;border-top:1px soli
   <section class="panel" aria-labelledby="g-title">
     <h2 id="g-title" data-i18n="group"></h2>
     <p class="hint" id="groupHint" data-i18n="groupHint"></p>
+    <div class="curs" id="curs" role="group"></div>
     <div id="friends"></div>
     <button class="add" id="addFriend" type="button" data-i18n="add"></button>
   </section>
@@ -330,7 +341,7 @@ footer{color:var(--muted);font-size:12px;padding:28px 0 44px;border-top:1px soli
 const GMAPS_KEY = "AIzaSyB-K5Z8agH0iJ5zSslPaSNzefRy4X-ryVs";
 const LANGS = {fr:"FR", en:"EN", es:"ES"};
 const T = {
-fr:{book:"Réserver des billets",partnerNote:"Certains liens sont des liens partenaires.",endLabel:"Heure de fin",endPh:"Facultatif",needNames:"Ajoutez un prénom pour chaque personne.",needBudgets:"Indiquez un budget pour chaque personne.",needVibe:"Choisissez au moins une envie pour lancer le plan.",needArea:"Choisissez un point de départ pour continuer.",needStart:"Choisissez une heure de rendez-vous pour continuer.",needStopsMsg:"Choisissez le nombre d'étapes pour continuer.",needEndAfter:"L'heure de fin doit être après l'heure de rendez-vous.",walkMin:"{n} min à pied",transitMin:"{n} min en transports",driveMin:"{n} min en taxi",fromStart:"depuis {a}",sgLink:"Ma ville n'est pas là",sgPh:"Votre ville",sgSend:"Envoyer",sgThanks:"Merci, c'est noté.",contEurope:"Europe",contNA:"Amérique du Nord",contSA:"Amérique du Sud",contAsia:"Asie",contAfrica:"Afrique",contOceania:"Océanie",rideTrain:"On rentre en train ou métro (pas de taxi)",rideWalk:"On rentre à pied (pas de taxi)",namePh:"Prénom",choose:"Choisir…",needFields:"Complétez les champs manquants.",needJoin:"Ajoutez votre prénom et votre budget.",host:"Organiser",hostPick:"Choisissez la ville de votre sortie.",shareTitle:"Invitez le groupe",shareHint:"Envoyez ce lien. Chacun ajoute son prénom et son budget.",copyLink:"Copier le lien",linkCopied:"Lien copié",joinTitle:"Rejoindre la sortie",joinHint:"Ajoutez votre prénom et votre budget. Seul l'organisateur peut modifier les autres.",joinHostHint:"Ajoutez-vous aussi au groupe.",joinBtn:"Rejoindre",yourName:"Votre prénom",youHost:"Organisateur",you:"Vous",waitHost:"L'organisateur lancera le plan quand tout le monde sera là.",full:"Cette sortie est complète (8 personnes max).",notFound:"Cette sortie n'existe pas ou a expiré.",needName:"Ajoutez votre prénom.",noStore:"Le partage n'est pas encore activé sur le serveur.",creating:"Création de la sortie…",groupEmpty:"Personne n'a encore rejoint.",flagShortNight:"sans alcool",flagShortDay:"étudiant",srTitle:"Tournée : choisissez votre sortie",pickNight:"Soirée",pickNightSub:"Bars, clubs, concerts. Du premier verre au dernier métro.",pickDay:"Journée",pickDaySub:"Musées, expos, parcs. Du premier musée au dernier café.",
+fr:{curLabel:"Devise",book:"Réserver des billets",partnerNote:"Certains liens sont des liens partenaires.",endLabel:"Heure de fin",endPh:"Facultatif",needNames:"Ajoutez un prénom pour chaque personne.",needBudgets:"Indiquez un budget pour chaque personne.",needVibe:"Choisissez au moins une envie pour lancer le plan.",needArea:"Choisissez un point de départ pour continuer.",needStart:"Choisissez une heure de rendez-vous pour continuer.",needStopsMsg:"Choisissez le nombre d'étapes pour continuer.",needEndAfter:"L'heure de fin doit être après l'heure de rendez-vous.",walkMin:"{n} min à pied",transitMin:"{n} min en transports",driveMin:"{n} min en taxi",fromStart:"depuis {a}",sgLink:"Ma ville n'est pas là",sgPh:"Votre ville",sgSend:"Envoyer",sgThanks:"Merci, c'est noté.",contEurope:"Europe",contNA:"Amérique du Nord",contSA:"Amérique du Sud",contAsia:"Asie",contAfrica:"Afrique",contOceania:"Océanie",rideTrain:"On rentre en train ou métro (pas de taxi)",rideWalk:"On rentre à pied (pas de taxi)",namePh:"Prénom",choose:"Choisir…",needFields:"Complétez les champs manquants.",needJoin:"Ajoutez votre prénom et votre budget.",host:"Organiser",hostPick:"Choisissez la ville de votre sortie.",shareTitle:"Invitez le groupe",shareHint:"Envoyez ce lien. Chacun ajoute son prénom et son budget.",copyLink:"Copier le lien",linkCopied:"Lien copié",joinTitle:"Rejoindre la sortie",joinHint:"Ajoutez votre prénom et votre budget. Seul l'organisateur peut modifier les autres.",joinHostHint:"Ajoutez-vous aussi au groupe.",joinBtn:"Rejoindre",yourName:"Votre prénom",youHost:"Organisateur",you:"Vous",waitHost:"L'organisateur lancera le plan quand tout le monde sera là.",full:"Cette sortie est complète (8 personnes max).",notFound:"Cette sortie n'existe pas ou a expiré.",needName:"Ajoutez votre prénom.",noStore:"Le partage n'est pas encore activé sur le serveur.",creating:"Création de la sortie…",groupEmpty:"Personne n'a encore rejoint.",flagShortNight:"sans alcool",flagShortDay:"étudiant",srTitle:"Tournée : choisissez votre sortie",pickNight:"Soirée",pickNightSub:"Bars, clubs, concerts. Du premier verre au dernier métro.",pickDay:"Journée",pickDaySub:"Musées, expos, parcs. Du premier musée au dernier café.",
  nightTitle:"On sort où<br>ce soir&nbsp;?",nightText:"Choisissez une ville. Tournée trouve la soirée qui convient à tout le groupe, du premier verre au retour.",
  dayTitle:"On visite<br>quoi&nbsp;?",dayText:"Choisissez une ville. Tournée organise une journée qui plaira à tout le groupe, du premier musée au dernier café.",
  citiesLabel:"Villes",clockAria:"{t} à {c}",evening:", c'est le soir",langLabel:"Langue",
@@ -347,7 +358,7 @@ fr:{book:"Réserver des billets",partnerNote:"Certains liens sont des liens part
  thinking:"On cherche le plan qui convient à tout le monde…",retry:"Relancer",errRate:"Trop de demandes d'un coup. Attendez quelques secondes puis réessayez.",
  errKey:"Le service est momentanément indisponible. Réessayez plus tard.",errGeneric:"Impossible de créer le plan. Réessayez.",
  mapCheck:"Vérifiez les adresses avant d'y aller",mapOpen:"Ouvrir l'itinéraire",mapAria:"Carte des étapes",svgCap:"Positions approximatives, carte simplifiée",svgAll:"Voir tout Paris",svgZoom:"Zoomer sur le plan"},
-en:{book:"Book tickets",partnerNote:"Some links are partner links.",endLabel:"End time",endPh:"Optional",needNames:"Add a name for everyone to continue.",needBudgets:"Set a budget for everyone to continue.",needVibe:"Pick at least one vibe to plan the outing.",needArea:"Add a meeting point to continue.",needStart:"Add a meeting time to continue.",needStopsMsg:"Choose the number of stops to continue.",needEndAfter:"The end time has to be after the meeting time.",walkMin:"{n} min walk",transitMin:"{n} min by public transport",driveMin:"{n} min by taxi",fromStart:"from {a}",sgLink:"My city isn't here",sgPh:"Your city",sgSend:"Send",sgThanks:"Thanks, noted.",contEurope:"Europe",contNA:"North America",contSA:"South America",contAsia:"Asia",contAfrica:"Africa",contOceania:"Oceania",rideTrain:"Getting home by train or metro (no taxi)",rideWalk:"Getting home on foot (no taxi)",namePh:"Name",choose:"Choose…",needFields:"Fill in the missing fields.",needJoin:"Add your name and budget.",host:"Host",hostPick:"Choose the city for your outing.",shareTitle:"Invite the group",shareHint:"Send this link. Everyone adds their name and budget.",copyLink:"Copy link",linkCopied:"Link copied",joinTitle:"Join the outing",joinHint:"Add your name and budget. Only the host can change other people's details.",joinHostHint:"Add yourself to the group too.",joinBtn:"Join",yourName:"Your name",youHost:"Host",you:"You",waitHost:"The host will plan the outing once everyone's in.",full:"This outing is full (8 people max).",notFound:"This outing doesn't exist or has expired.",needName:"Add your name.",noStore:"Sharing isn't set up on the server yet.",creating:"Creating the outing…",groupEmpty:"Nobody has joined yet.",flagShortNight:"no alcohol",flagShortDay:"student",srTitle:"Tournée: pick your outing",pickNight:"Nightlife",pickNightSub:"Bars, clubs, live music. From first drink to last train.",pickDay:"Daylife",pickDaySub:"Museums, galleries, parks. From first museum to last coffee.",
+en:{curLabel:"Currency",book:"Book tickets",partnerNote:"Some links are partner links.",endLabel:"End time",endPh:"Optional",needNames:"Add a name for everyone to continue.",needBudgets:"Set a budget for everyone to continue.",needVibe:"Pick at least one vibe to plan the outing.",needArea:"Add a meeting point to continue.",needStart:"Add a meeting time to continue.",needStopsMsg:"Choose the number of stops to continue.",needEndAfter:"The end time has to be after the meeting time.",walkMin:"{n} min walk",transitMin:"{n} min by public transport",driveMin:"{n} min by taxi",fromStart:"from {a}",sgLink:"My city isn't here",sgPh:"Your city",sgSend:"Send",sgThanks:"Thanks, noted.",contEurope:"Europe",contNA:"North America",contSA:"South America",contAsia:"Asia",contAfrica:"Africa",contOceania:"Oceania",rideTrain:"Getting home by train or metro (no taxi)",rideWalk:"Getting home on foot (no taxi)",namePh:"Name",choose:"Choose…",needFields:"Fill in the missing fields.",needJoin:"Add your name and budget.",host:"Host",hostPick:"Choose the city for your outing.",shareTitle:"Invite the group",shareHint:"Send this link. Everyone adds their name and budget.",copyLink:"Copy link",linkCopied:"Link copied",joinTitle:"Join the outing",joinHint:"Add your name and budget. Only the host can change other people's details.",joinHostHint:"Add yourself to the group too.",joinBtn:"Join",yourName:"Your name",youHost:"Host",you:"You",waitHost:"The host will plan the outing once everyone's in.",full:"This outing is full (8 people max).",notFound:"This outing doesn't exist or has expired.",needName:"Add your name.",noStore:"Sharing isn't set up on the server yet.",creating:"Creating the outing…",groupEmpty:"Nobody has joined yet.",flagShortNight:"no alcohol",flagShortDay:"student",srTitle:"Tournée: pick your outing",pickNight:"Nightlife",pickNightSub:"Bars, clubs, live music. From first drink to last train.",pickDay:"Daylife",pickDaySub:"Museums, galleries, parks. From first museum to last coffee.",
  nightTitle:"Where are we<br>going tonight?",nightText:"Pick a city. Tournée finds the night out that works for the whole group, from first drink to the ride home.",
  dayTitle:"What are we<br>seeing today?",dayText:"Pick a city. Tournée plans a day the whole group will love, from the first museum to the last coffee.",
  citiesLabel:"Cities",clockAria:"{t} in {c}",evening:", it's evening",langLabel:"Language",
@@ -364,7 +375,7 @@ en:{book:"Book tickets",partnerNote:"Some links are partner links.",endLabel:"En
  thinking:"Finding a plan that works for everyone…",retry:"Try again",errRate:"Too many requests at once. Wait a few seconds and try again.",
  errKey:"The service is temporarily unavailable. Try again later.",errGeneric:"Couldn't create the plan. Try again.",
  mapCheck:"Check addresses before you go",mapOpen:"Open directions",mapAria:"Map of the stops",svgCap:"Approximate positions, simplified map",svgAll:"See all of Paris",svgZoom:"Zoom in on the plan"},
-es:{book:"Reservar entradas",partnerNote:"Algunos enlaces son de afiliados.",endLabel:"Hora de fin",endPh:"Opcional",needNames:"Añade un nombre para cada persona.",needBudgets:"Indica un presupuesto para cada persona.",needVibe:"Elige al menos un plan que te apetezca para continuar.",needArea:"Elige un punto de encuentro para continuar.",needStart:"Elige una hora de encuentro para continuar.",needStopsMsg:"Elige el número de paradas para continuar.",needEndAfter:"La hora de fin tiene que ser después de la hora de encuentro.",walkMin:"{n} min a pie",transitMin:"{n} min en transporte público",driveMin:"{n} min en taxi",fromStart:"desde {a}",sgLink:"Mi ciudad no está",sgPh:"Tu ciudad",sgSend:"Enviar",sgThanks:"Gracias, apuntado.",contEurope:"Europa",contNA:"Norteamérica",contSA:"Sudamérica",contAsia:"Asia",contAfrica:"África",contOceania:"Oceanía",rideTrain:"Volvemos en tren o metro (sin taxi)",rideWalk:"Volvemos a pie (sin taxi)",namePh:"Nombre",choose:"Elegir…",needFields:"Completa los campos que faltan.",needJoin:"Añade tu nombre y tu presupuesto.",host:"Organizar",hostPick:"Elige la ciudad de tu quedada.",shareTitle:"Invita al grupo",shareHint:"Envía este enlace. Cada uno añade su nombre y su presupuesto.",copyLink:"Copiar enlace",linkCopied:"Enlace copiado",joinTitle:"Únete a la quedada",joinHint:"Añade tu nombre y tu presupuesto. Solo el organizador puede cambiar los datos de los demás.",joinHostHint:"Añádete tú también al grupo.",joinBtn:"Unirme",yourName:"Tu nombre",youHost:"Organizador",you:"Tú",waitHost:"El organizador creará el plan cuando estén todos.",full:"Esta quedada está completa (máx. 8 personas).",notFound:"Esta quedada no existe o ha caducado.",needName:"Añade tu nombre.",noStore:"Compartir aún no está activado en el servidor.",creating:"Creando la quedada…",groupEmpty:"Aún no se ha unido nadie.",flagShortNight:"sin alcohol",flagShortDay:"estudiante",srTitle:"Tournée: elige tu plan",pickNight:"De noche",pickNightSub:"Bares, discotecas, conciertos. De la primera copa al último metro.",pickDay:"De día",pickDaySub:"Museos, exposiciones, parques. Del primer museo al último café.",
+es:{curLabel:"Moneda",book:"Reservar entradas",partnerNote:"Algunos enlaces son de afiliados.",endLabel:"Hora de fin",endPh:"Opcional",needNames:"Añade un nombre para cada persona.",needBudgets:"Indica un presupuesto para cada persona.",needVibe:"Elige al menos un plan que te apetezca para continuar.",needArea:"Elige un punto de encuentro para continuar.",needStart:"Elige una hora de encuentro para continuar.",needStopsMsg:"Elige el número de paradas para continuar.",needEndAfter:"La hora de fin tiene que ser después de la hora de encuentro.",walkMin:"{n} min a pie",transitMin:"{n} min en transporte público",driveMin:"{n} min en taxi",fromStart:"desde {a}",sgLink:"Mi ciudad no está",sgPh:"Tu ciudad",sgSend:"Enviar",sgThanks:"Gracias, apuntado.",contEurope:"Europa",contNA:"Norteamérica",contSA:"Sudamérica",contAsia:"Asia",contAfrica:"África",contOceania:"Oceanía",rideTrain:"Volvemos en tren o metro (sin taxi)",rideWalk:"Volvemos a pie (sin taxi)",namePh:"Nombre",choose:"Elegir…",needFields:"Completa los campos que faltan.",needJoin:"Añade tu nombre y tu presupuesto.",host:"Organizar",hostPick:"Elige la ciudad de tu quedada.",shareTitle:"Invita al grupo",shareHint:"Envía este enlace. Cada uno añade su nombre y su presupuesto.",copyLink:"Copiar enlace",linkCopied:"Enlace copiado",joinTitle:"Únete a la quedada",joinHint:"Añade tu nombre y tu presupuesto. Solo el organizador puede cambiar los datos de los demás.",joinHostHint:"Añádete tú también al grupo.",joinBtn:"Unirme",yourName:"Tu nombre",youHost:"Organizador",you:"Tú",waitHost:"El organizador creará el plan cuando estén todos.",full:"Esta quedada está completa (máx. 8 personas).",notFound:"Esta quedada no existe o ha caducado.",needName:"Añade tu nombre.",noStore:"Compartir aún no está activado en el servidor.",creating:"Creando la quedada…",groupEmpty:"Aún no se ha unido nadie.",flagShortNight:"sin alcohol",flagShortDay:"estudiante",srTitle:"Tournée: elige tu plan",pickNight:"De noche",pickNightSub:"Bares, discotecas, conciertos. De la primera copa al último metro.",pickDay:"De día",pickDaySub:"Museos, exposiciones, parques. Del primer museo al último café.",
  nightTitle:"¿Dónde salimos<br>esta noche?",nightText:"Elige una ciudad. Tournée encuentra el plan de noche que le va bien a todo el grupo, de la primera copa a la vuelta a casa.",
  dayTitle:"¿Qué vemos<br>hoy?",dayText:"Elige una ciudad. Tournée organiza un día que le encantará a todo el grupo, del primer museo al último café.",
  citiesLabel:"Ciudades",clockAria:"{t} en {c}",evening:", es de noche",langLabel:"Idioma",
@@ -441,18 +452,16 @@ function fmtTime(v){
   if(lang==="en") return `${h%12||12}:${mm} ${h<12?"AM":"PM"}`;
   return `${String(h).padStart(2,"0")}:${mm}`;
 }
-function fillEnd(val){
-  const sel=document.getElementById("end"), opts=[];
-  const add=m=>{ const v=`${String(Math.floor(m/60)%24).padStart(2,"0")}:${String(m%60).padStart(2,"0")}`; opts.push(`<option value="${v}">${fmtTime(v)}</option>`); };
-  for(let m=8*60+15;m<24*60;m+=15) add(m);
-  for(let m=0;m<=5*60;m+=15) add(m);
-  sel.innerHTML=`<option value="">${t("endPh")}</option>`+opts.join(""); sel.value=val||"";
+const WIN={night:{start:[18*60,23*60+30],end:[21*60,29*60]},day:{start:[8*60,16*60],end:[10*60,21*60]}};
+const hhmm=m=>`${String(Math.floor(m/60)%24).padStart(2,"0")}:${String(m%60).padStart(2,"0")}`;
+function fillSel(id,range,ph,val,selectablePh){
+  const opts=[]; for(let m=range[0];m<=range[1];m+=30) opts.push(`<option value="${hhmm(m)}">${fmtTime(hhmm(m))}</option>`);
+  const sel=document.getElementById(id);
+  sel.innerHTML=`<option value=""${selectablePh?"":" disabled hidden"}>${ph}</option>`+opts.join("");
+  sel.value=opts.some(o=>o.includes(`"${val}"`))?val:"";
 }
-function fillTimes(val){
-  const sel=document.getElementById("start"), opts=[];
-  for(let m=8*60;m<24*60;m+=15){ const v=`${String(Math.floor(m/60)).padStart(2,"0")}:${String(m%60).padStart(2,"0")}`; opts.push(`<option value="${v}">${fmtTime(v)}</option>`); }
-  sel.innerHTML=`<option value="" disabled hidden>${t("choose")}</option>`+opts.join(""); sel.value=val||"";
-}
+function fillTimes(val){ fillSel("start",WIN[mode].start,t("choose"),val||"",false); }
+function fillEnd(val){ fillSel("end",WIN[mode].end,t("endPh"),val||"",true); }
 
 const MODES = {
   night:{theme:"dark", emoji:"🌙", panel:"panelNight", cta:"ctaNight", end:"endNight", flag:"flagNight", homeTitle:"nightTitle", homeText:"nightText", hero:"heroNight", label:"pickNight",
@@ -557,8 +566,35 @@ const CITIES = [
 let city = CITIES.find(c=>c.id==="paris");
 const fmt = n => city.pre + n + city.post;
 let friends = [];
-const blankFriend=()=>({nick:"", budget:null, vibe:"", flag:false});
-const midBudget=()=>Math.round((city.budget[0]+city.budget[1])/2/city.budget[2])*city.budget[2];
+const blankFriend=()=>({nick:"", level:null, vibe:"", flag:false});
+const RATES={EUR:1,USD:1.14,GBP:0.86,CAD:1.58,MXN:21.1,JPY:170,KRW:1600,THB:37.7,SGD:1.48,AED:4.2,MAD:10.7,EGP:56,BRL:6.3,ZAR:20.6,AUD:1.74};
+const CODE_OF={"| €":"EUR","£|":"GBP","$|":"USD","US$|":"USD","CA$|":"CAD","| MXN":"MXN","¥|":"JPY","₩|":"KRW","฿|":"THB","S$|":"SGD","| AED":"AED","| MAD":"MAD","| EGP":"EGP","R$|":"BRL","R|":"ZAR","A$|":"AUD"};
+const SYM={EUR:"€",USD:"$",GBP:"£",CAD:"CA$",MXN:"MXN",JPY:"¥",KRW:"₩",THB:"฿",SGD:"S$",AED:"AED",MAD:"MAD",EGP:"EGP",BRL:"R$",ZAR:"R",AUD:"A$"};
+const LEVELS=[5,20,50,100,150];
+let dispPref=(()=>{ try{ return localStorage.getItem("tournee-cur")||"local"; }catch{ return "local"; } })();
+const localCode=()=>CODE_OF[city.pre+"|"+city.post]||"EUR";
+const dispCode=()=>dispPref==="local"?localCode():dispPref;
+const nice=x=>x<20?Math.round(x):x<200?Math.round(x/5)*5:x<2000?Math.round(x/10)*10:x<20000?Math.round(x/100)*100:Math.round(x/1000)*1000;
+const levelLocal=j=>j==null?null:(localCode()==="EUR"?LEVELS[j]:nice(LEVELS[j]*RATES[localCode()]));
+const levelIn=(j,code)=>code===localCode()?levelLocal(j):(code==="EUR"?LEVELS[j]:nice(LEVELS[j]*RATES[code]));
+const compact=n=>n>=10000?Math.round(n/1000)+"k":String(n);
+const levelLabel=j=>compact(levelIn(j,dispCode()))+(j===LEVELS.length-1?"+":"");
+function fmtCode(n,code){ if(code===localCode()) return fmt(n); if(code==="EUR") return n+" €"; if(code==="USD") return "$"+n; return n+" "+SYM[code]; }
+function money(localAmount){
+  const n=Number(localAmount); if(!Number.isFinite(n)) return String(localAmount??"");
+  const code=dispCode(); if(code===localCode()) return fmt(n);
+  const v=n/RATES[localCode()]*RATES[code];
+  return "≈ "+fmtCode(v<10?Math.round(v*10)/10:v<100?Math.round(v):nice(v),code);
+}
+function levelMoney(j){ if(j==null) return "—"; return fmtCode(levelIn(j,dispCode()),dispCode())+(j===LEVELS.length-1?"+":""); }
+function renderCurs(){
+  const codes=[...new Set([localCode(),"EUR","USD"])];
+  $("#curs").onclick=onCurClick; $("#curs").setAttribute("aria-label",t("curLabel"));
+  $("#curs").innerHTML=`<span class="clabel">${t("curLabel")}</span>`+codes.map(c=>`<button type="button" class="cur" data-cur="${c===localCode()?"local":c}" aria-pressed="${c===dispCode()}">${c}</button>`).join("");
+}
+function onCurClick(e){ const b=e.target.closest("[data-cur]"); if(!b) return;
+  dispPref=b.dataset.cur; try{ localStorage.setItem("tournee-cur",dispPref); }catch{}
+  renderCurs(); renderFriends(); if(!$("#joinPanel").hidden) renderJoin(); if(lastPlan) renderPlan(lastPlan,lastIsExample,true); }
 let lastPlan = null, ctl = null, stops = 0;
 const $ = s => document.querySelector(s);
 
@@ -583,8 +619,8 @@ function renderFriends(){
       </div>
       <div class="friend-row">
         <div class="budget">
-          <label for="b${i}">${t("budget")} <span class="budget-val" id="bv${i}">${f.budget==null?"—":fmt(f.budget)}</span></label>
-          <input type="range" id="b${i}"${f.budget==null?' class="unset"':""} min="${city.budget[0]}" max="${city.budget[1]}" step="${city.budget[2]}" value="${f.budget??midBudget()}" data-i="${i}" data-k="budget">
+          <span class="blabel" id="bl${i}">${t("budget")} (${SYM[dispCode()]})</span>
+          <div class="lvls" role="group" aria-labelledby="bl${i}">${LEVELS.map((_,j)=>`<button type="button" class="lvl" data-i="${i}" data-lvl="${j}" aria-pressed="${f.level===j}" aria-label="${esc(levelMoney(j))}">${levelLabel(j)}</button>`).join("")}</div>
         </div>
         <div class="field">
           <label for="v${i}">${t("vibe")}</label>
@@ -595,7 +631,7 @@ function renderFriends(){
     </div>` : `
     <div class="friend ro">
       <div class="friend-top"><span class="dot" aria-hidden="true"></span><span class="ro-name">${esc(f.nick||t("friend")+" "+(i+1))}</span>${tagsFor(f)}</div>
-      <p class="ro-meta">${f.budget==null?"—":esc(fmt(f.budget))} · ${esc(VIBE_T[f.vibe]?.[lang]||"—")}${f.flag?" · "+t(mode==="day"?"flagShortDay":"flagShortNight"):""}</p>
+      <p class="ro-meta">${esc(levelMoney(f.level))} · ${esc(VIBE_T[f.vibe]?.[lang]||"—")}${f.flag?" · "+t(mode==="day"?"flagShortDay":"flagShortNight"):""}</p>
     </div>`).join("");
   $("#addFriend").style.display = (friends.length>=8 || (outing && !isAdmin())) ? "none" : "";
 }
@@ -603,12 +639,17 @@ function renderFriends(){
 $("#friends").addEventListener("input", e=>{
   const t=e.target, i=+t.dataset.i, k=t.dataset.k; if(!k) return;
   t.removeAttribute("aria-invalid");
-  if(k==="budget"){friends[i].budget=+t.value; $("#bv"+i).textContent=fmt(t.value); t.classList.remove("unset");}
-  else if(k==="flag"){friends[i].flag=t.checked;}
+  if(k==="flag"){friends[i].flag=t.checked;}
   else friends[i][k]=t.value;
   if(outing) syncMember(friends[i]);
 });
 $("#friends").addEventListener("change", e=>{ if(e.target.dataset.k==="flag"){ const f=friends[+e.target.dataset.i]; f.flag=e.target.checked; if(outing) syncMember(f); } });
+$("#friends").addEventListener("click", e=>{
+  const b=e.target.closest(".lvl"); if(!b) return;
+  const i=+b.dataset.i, j=+b.dataset.lvl; friends[i].level=j;
+  b.parentElement.querySelectorAll(".lvl").forEach(x=>x.setAttribute("aria-pressed",String(x===b)));
+  if(outing) syncMember(friends[i]);
+});
 $("#friends").addEventListener("click", async e=>{
   const rm=e.target.dataset.rm; if(rm===undefined) return;
   if(outing){ const f=friends[+rm]; const r=await api({action:"remove",id:outing.id,mid:f.mid,adminToken:me.admin}); if(r.outing) applyOuting(r.outing,true); return; }
@@ -630,7 +671,7 @@ async function api(body){
 function syncMember(f){
   clearTimeout(syncTimers[f.mid]); pending++;
   syncTimers[f.mid]=setTimeout(async()=>{
-    await api({action:"update",id:outing.id,mid:f.mid,token:f.mid===me.mid?me.token:undefined,adminToken:me.admin,member:{nick:f.nick,budget:f.budget,vibe:f.vibe,flag:f.flag}});
+    await api({action:"update",id:outing.id,mid:f.mid,token:f.mid===me.mid?me.token:undefined,adminToken:me.admin,member:{nick:f.nick,level:f.level,vibe:f.vibe,flag:f.flag}});
     pending=Math.max(0,pending-1);
   },600);
 }
@@ -649,20 +690,20 @@ function renderJoin(){
   $("#jName").placeholder=t("yourName");
   const b=city.budget, v=M().vibes;
   $("#joinHint").textContent=t(isAdmin()?"joinHostHint":"joinHint");
-  const touched=$("#jBudget")&&!$("#jBudget").classList.contains("unset"), cur=touched?+$("#jBudget").value:null, curV=$("#jVibe")?.value||"";
-  $("#jRow").innerHTML=`<div class="budget"><label for="jBudget">${t("budget")} <span class="budget-val" id="jbv">${cur==null?"—":fmt(cur)}</span></label>
-      <input type="range" id="jBudget"${cur==null?' class="unset"':""} min="${b[0]}" max="${b[1]}" step="${b[2]}" value="${cur??midBudget()}"></div>
+  const curL=$("#jLvls")?.querySelector('[aria-pressed="true"]'), cur=curL?+curL.dataset.lvl:null, curV=$("#jVibe")?.value||"";
+  $("#jRow").innerHTML=`<div class="budget"><span class="blabel" id="jbl">${t("budget")} (${SYM[dispCode()]})</span>
+      <div class="lvls" id="jLvls" role="group" aria-labelledby="jbl">${LEVELS.map((_,j)=>`<button type="button" class="lvl" data-lvl="${j}" aria-pressed="${cur===j}" aria-label="${esc(levelMoney(j))}">${levelLabel(j)}</button>`).join("")}</div></div>
     <div class="field"><label for="jVibe">${t("vibe")}</label><select id="jVibe"><option value="" disabled hidden${curV?"":" selected"}>${t("choose")}</option>${v.map(x=>`<option value="${x}"${x===curV?" selected":""}>${VIBE_T[x][lang]}</option>`).join("")}</select></div>`;
-  $("#jBudget").oninput=e=>{ $("#jbv").textContent=fmt(e.target.value); e.target.classList.remove("unset"); e.target.removeAttribute("aria-invalid"); };
+  $("#jLvls").onclick=e=>{ const b=e.target.closest(".lvl"); if(!b) return; $("#jLvls").querySelectorAll(".lvl").forEach(x=>x.setAttribute("aria-pressed",String(x===b))); };
   $("#jVibe").onchange=e=>e.target.removeAttribute("aria-invalid");
   $("#jName").placeholder=t("namePh");
   $("#jFlagLabel").textContent=t(M().flag);
 }
 $("#joinBtn").onclick=async()=>{
-  const nick=$("#jName").value.trim(), bud=$("#jBudget"), vib=$("#jVibe");
-  if(!nick || bud.classList.contains("unset")){ $("#joinStatus").textContent=t("needJoin"); return; }
+  const nick=$("#jName").value.trim(), lv=$("#jLvls").querySelector('[aria-pressed="true"]'), vib=$("#jVibe");
+  if(!nick || !lv){ $("#joinStatus").textContent=t("needJoin"); return; }
   $("#joinBtn").disabled=true;
-  const r=await api({action:"join",id:outing.id,adminToken:me.admin,self:isAdmin(),member:{nick,budget:+$("#jBudget").value,vibe:vib.value||"",flag:$("#jFlag").checked}});
+  const r=await api({action:"join",id:outing.id,adminToken:me.admin,self:isAdmin(),member:{nick,level:+lv.dataset.lvl,vibe:vib.value||"",flag:$("#jFlag").checked}});
   $("#joinBtn").disabled=false;
   if(r.error){ $("#joinStatus").textContent=t(ERR[r.error]||"errGeneric"); return; }
   me={...me,mid:r.mid,token:r.token}; saveCreds(outing.id,me);
@@ -689,7 +730,7 @@ function applyOuting(o, force){
   const admin=isAdmin();
   ["#area","#start","#end","#metro"].forEach(sel=>$(sel).disabled=!admin);
   document.querySelectorAll("#stops button").forEach(b=>b.disabled=!admin);
-  friends=o.members; renderFriends();
+  friends=o.members; renderCurs(); renderFriends();
   $("#groupHint").hidden=true;
   $("#sharePanel").hidden=!admin; $("#shareUrl").value=location.origin+"/o/"+o.id;
   const joined=!!(me.mid && o.members.some(m=>m.mid===me.mid));
@@ -758,16 +799,16 @@ function renderPlan(p, isExample, quiet){
         <h3>${esc(s.lieu)}</h3>
         <p class="area">${esc(s.adresse||s.quartier)}</p>
         <p class="why">${esc(s.pourquoi)}</p>
-        <p class="meta"><b>${esc(fmt(s.prix_pp))} ${t("perPerson")}</b>${s.trajet_min?` · ${esc(travelText(s.trajet_min,s.trajet_mode,idx===0?$("#area").value:""))}`:(s.trajet?` · ${esc(s.trajet)}`:"")}</p>${s.billet&&!isExample?`<a class="book" href="${esc(bookUrl(s))}" target="_blank" rel="noopener sponsored">${t("book")} <span aria-hidden="true">↗</span></a>`:""}
+        <p class="meta"><b>${esc(money(s.prix_pp))} ${t("perPerson")}</b>${s.trajet_min?` · ${esc(travelText(s.trajet_min,s.trajet_mode,idx===0?$("#area").value:""))}`:(s.trajet?` · ${esc(s.trajet)}`:"")}</p>${s.billet&&!isExample?`<a class="book" href="${esc(bookUrl(s))}" target="_blank" rel="noopener sponsored">${t("book")} <span aria-hidden="true">↗</span></a>`:""}
       </div>
     </li>`).join("");
-  const bs=friends.map(f=>f.budget).filter(b=>typeof b==="number"), minB = bs.length?Math.min(...bs):p.total_pp;
+  const ls=friends.map(f=>f.level).filter(l=>typeof l==="number"), minL = ls.length?Math.min(...ls):null;
   $("#result").innerHTML = `
     ${isExample?`<span class="badge ex">Exemple</span>`:`<span class="badge">${t("ready")}</span>`}
     <div class="res-head"><h2>${esc(p.titre)}</h2><p>${esc(p.resume)}</p></div>
     <div class="pill-row">
-      <span class="pill"><b>${esc(fmt(p.total_pp))}</b> ${t("perPerson")}</span>
-      <span class="pill">${t("tightest")} <b>${fmt(minB)}</b></span>
+      <span class="pill"><b>${esc(money(p.total_pp))}</b> ${t("perPerson")}</span>
+      ${minL!=null?`<span class="pill">${t("tightest")} <b>${esc(levelMoney(minL))}</b></span>`:""}
       <span class="pill"><b>${friends.length}</b> ${t("people")}</span>
     </div>
     <p class="compromis">${esc(p.compromis)}</p>
@@ -911,7 +952,7 @@ async function drawMap(p){
 
 async function copyPlan(){
   const p=lastPlan; if(!p) return;
-  const txt = `${M().emoji} ${p.titre} (${cityName(city)})\n${p.resume}\n\n` + p.etapes.map((s,i)=>`${s.heure?fmtTime(s.heure)+" · ":(i+1)+". "}${s.type} : ${s.lieu} (${s.adresse||s.quartier}), ${fmt(s.prix_pp)}${s.trajet_min?" · "+travelText(s.trajet_min,s.trajet_mode,""):""}`).join("\n") + `\n\n${t("total")} : ${fmt(p.total_pp)} ${t("perPerson")}\n${t("returnLabel")} : ${p.retour}\n\n${t("plannedWith")}`;
+  const txt = `${M().emoji} ${p.titre} (${cityName(city)})\n${p.resume}\n\n` + p.etapes.map((s,i)=>`${s.heure?fmtTime(s.heure)+" · ":(i+1)+". "}${s.type} : ${s.lieu} (${s.adresse||s.quartier}), ${money(s.prix_pp)}${s.trajet_min?" · "+travelText(s.trajet_min,s.trajet_mode,""):""}`).join("\n") + `\n\n${t("total")} : ${money(p.total_pp)} ${t("perPerson")}\n${t("returnLabel")} : ${p.retour}\n\n${t("plannedWith")}`;
   const b=$("#copy");
   try{ await navigator.clipboard.writeText(txt); b.textContent=t("copied"); }
   catch{
@@ -947,7 +988,7 @@ async function plan(){
   ctl?.abort(); ctl = new AbortController();
   try{
     const r = await fetch("/api/plan",{method:"POST",headers:{"Content-Type":"application/json"},signal:ctl.signal,
-      body:JSON.stringify({lang, mode:mode==="day"?"culture":mode, city:city.id, friends:friends.map((f,i)=>({...f,nick:(f.nick||"").trim()||t("friend")+" "+(i+1)})), area:$("#area").value, start:$("#start").value, end:$("#end").value, metro:$("#metro").checked, stops, avoid:getSeen()})});
+      body:JSON.stringify({lang, mode:mode==="day"?"culture":mode, city:city.id, friends:friends.map((f,i)=>({nick:(f.nick||"").trim()||t("friend")+" "+(i+1),vibe:f.vibe,flag:f.flag,level:f.level,budget:levelLocal(f.level),plus:f.level===LEVELS.length-1})), area:$("#area").value, start:$("#start").value, end:$("#end").value, metro:$("#metro").checked, stops, avoid:getSeen()})});
     const data = await r.json().catch(()=>({}));
     if(!r.ok) throw {code:data.error||"server"};
     const p = data.plan;
@@ -965,13 +1006,13 @@ async function plan(){
 const mins=v=>{ const [h,m]=v.split(":").map(Number); return h*60+m; };
 function missingKey(){
   if(friends.some(f=>!String(f.nick||"").trim())) return "needNames";
-  if(friends.some(f=>f.budget==null)) return "needBudgets";
+  if(friends.some(f=>f.level==null)) return "needBudgets";
   if(!friends.some(f=>f.vibe)) return "needVibe";
   if(!$("#area").value) return "needArea";
   if(!$("#start").value) return "needStart";
   if(!stops) return "needStopsMsg";
   const st=$("#start").value, en=$("#end").value;
-  if(en){ let e=mins(en); if(e<=6*60 && mins(st)>e) e+=24*60; if(e<=mins(st)) return "needEndAfter"; }
+  if(en){ let e=mins(en); if(mode==="night" && e<=6*60) e+=24*60; if(e<=mins(st)) return "needEndAfter"; }
   return null;
 }
 $("#go").onclick=()=>{
@@ -1053,7 +1094,7 @@ function openCity(c){
   fillTimes(""); fillEnd(""); $("#metro").checked=false;
   cityTexts();
   $("#result").innerHTML="";
-  renderFriends();
+  renderCurs(); renderFriends();
 }
 let opened="";
 function route(keepScroll){
