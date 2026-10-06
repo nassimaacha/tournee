@@ -61,6 +61,9 @@ header{display:flex;align-items:center;gap:12px;padding:16px 20px;margin:0 -20px
 .mark{width:28px;height:28px}
 .city-tag{border:1px solid var(--accent);color:var(--accent);border-radius:30px;padding:3px 12px;font-size:11px}
 #homeText:empty{display:none}
+header.noline{border-bottom-color:transparent}
+#groupHint,#joinHint,#acctP{display:none!important}
+.panel h2{margin-bottom:18px!important}
 button.city-tag{background:none;font:inherit;font-size:11px;font-weight:600;letter-spacing:.111em;text-transform:uppercase;cursor:pointer;transition:background .15s,color .15s}
 button.city-tag:hover{background:var(--accent);color:var(--bg)}
 button.city-tag:focus-visible{outline:1px solid var(--accent);outline-offset:2px}
@@ -203,7 +206,7 @@ input[type=range]{width:100%;accent-color:var(--accent);margin-top:10px}
 .lvl:hover{border-color:var(--accent)}
 .lvl[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--bg)}
 .lvl:focus-visible{outline:1px solid var(--accent);outline-offset:3px}
-.curs{display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin:14px 0 22px}
+.curs{display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin:14px 0 18px}
 .hint:not([hidden]) + .curs{margin-top:-6px}
 .curs .clabel{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.111em;color:var(--muted);margin-inline-end:4px}
 .cur{background:none;border:1px solid var(--line);border-radius:30px;padding:3px 12px;color:var(--muted);font:inherit;font-size:11px;font-weight:600;letter-spacing:.111em;cursor:pointer}
@@ -435,7 +438,6 @@ footer{color:var(--muted);font-size:12px;padding:28px 0 44px;border-top:1px soli
 
   <section class="panel" id="sharePanel" hidden>
     <h2 data-i18n="shareTitle"></h2>
-    <p class="hint" data-i18n="shareHint"></p>
     <div class="share-row"><input type="text" id="shareUrl" readonly aria-label="URL"><button class="btn" type="button" id="copyLink" data-i18n="copyLink"></button></div>
   </section>
 
@@ -454,14 +456,13 @@ footer{color:var(--muted);font-size:12px;padding:28px 0 44px;border-top:1px soli
     <p class="hint" id="groupHint" data-i18n="groupHint"></p>
     <div class="curs" id="curs" role="group"></div>
     <div class="fchips" id="fchips" hidden></div>
-    <div class="sharegrp" id="shareGrp" hidden><button class="btn" type="button" id="shareGrpBtn" data-i18n="shareGroup"></button><p class="hint" data-i18n="shareGroupHint" style="margin:8px 0 0"></p></div>
+    <div class="sharegrp" id="shareGrp" hidden><button class="btn" type="button" id="shareGrpBtn" data-i18n="shareGroup"></button></div>
     <div id="friends"></div>
     <button class="add" id="addFriend" type="button" data-i18n="add"></button>
   </section>
 
   <section class="panel" aria-labelledby="s-title">
     <h2 id="s-title"></h2>
-    <p class="hint" data-i18n="panelHint"></p>
     <div class="field">
       <label for="area" data-i18n="startLabel"></label>
       <select id="area"></select>
@@ -519,7 +520,6 @@ footer{color:var(--muted);font-size:12px;padding:28px 0 44px;border-top:1px soli
     <div id="acctIn" hidden>
       <section class="panel">
         <h2 data-i18n="profileTitle"></h2>
-        <p class="hint" data-i18n="profileHint"></p>
         <div class="field"><label for="pNick" data-i18n="nick"></label><input type="text" id="pNick" maxlength="20" autocomplete="given-name"></div>
         <div class="budget" style="margin-top:16px"><span class="blabel" id="pbl"></span><div class="lvls" id="pLvls" role="group" aria-labelledby="pbl"></div></div>
         <div class="grid2" style="margin-top:16px">
@@ -534,18 +534,15 @@ footer{color:var(--muted);font-size:12px;padding:28px 0 44px;border-top:1px soli
       </section>
       <section class="panel">
         <h2 data-i18n="friendsTitle"></h2>
-        <p class="hint" data-i18n="friendsHint"></p>
         <div class="share-row"><input type="text" id="fLink" readonly aria-label="URL"><button class="btn" id="fCopy" type="button" data-i18n="copyLink"></button></div>
         <ul class="flist" id="fList"></ul>
       </section>
       <section class="panel">
         <h2 data-i18n="groupsTitle"></h2>
-        <p class="hint" data-i18n="groupsHint"></p>
         <ul class="hlist" id="gList"></ul>
       </section>
       <section class="panel">
         <h2 data-i18n="historyTitle"></h2>
-        <p class="hint" data-i18n="historyHint"></p>
         <ul class="hlist" id="hList"></ul>
       </section>
       <div class="acct-actions"><button class="suggest-link" id="signOut" type="button" data-i18n="signOut"></button><button class="suggest-link" id="delAcct" type="button" data-i18n="deleteAcct"></button></div>
@@ -826,15 +823,18 @@ function roundy(v){
   return Math.round(best);
 }
 // budget circles: euros stay 5/20/50/100/150; everything else is one digit followed by zeros (or 15/25 style), dollars start at 5, others at 10 minimum
+// budget circles per currency: only 5, 10, 20, 25, 50, 75, 100, 150, 250, 500 (with extra zeros for big currencies)
+const BUDGETS={EUR:[5,20,50,100,150],USD:[5,25,50,100,150],GBP:[5,20,50,75,150],CAD:[10,25,75,150,250],MXN:[100,500,1000,2000,2500],
+  BRL:[25,150,250,750,1000],JPY:[1000,2500,7500,15000,25000],KRW:[10000,25000,75000,150000,250000],THB:[200,750,2000,5000,7500],
+  SGD:[10,25,75,150,200],SAR:[20,50,100,250,500],AED:[20,50,100,250,500],MAD:[50,200,500,1000,1500],EGP:[250,1000,2500,5000,7500],
+  ZAR:[100,500,1000,2000,2500],AUD:[10,25,100,200,250]};
 function budgetIn(j,code){
-  if(code==="EUR") return LEVELS[j];
-  if(code==="USD" && j===0) return 5;
-  const r=roundy(LEVELS[j]*RATES[code]);
-  return code==="USD"?r:Math.max(10,r);
+  if(BUDGETS[code]) return BUDGETS[code][j];
+  return Math.max(10,roundy(LEVELS[j]*RATES[code]));
 }
 const levelLocal=j=>j==null?null:budgetIn(j,localCode());
 const levelIn=(j,code)=>budgetIn(j,code);
-const compact=n=>n>=10000?Math.round(n/1000)+"k":String(n);
+const compact=n=>n>=1000?(Math.round(n/100)/10).toString().replace(/\.0$/,"")+"k":String(n);
 const levelLabel=j=>compact(levelIn(j,dispCode()))+(j===LEVELS.length-1?"+":"");
 function fmtCode(n,code){ if(code===localCode()) return fmt(n); if(code==="EUR") return n+" €"; if(code==="USD") return "$"+n; return n+" "+SYM[code]; }
 function money(localAmount){
@@ -843,11 +843,11 @@ function money(localAmount){
   const v=n/RATES[localCode()]*RATES[code];
   return "≈ "+fmtCode(v<10?Math.round(v*10)/10:v<100?Math.round(v):nice(v),code);
 }
-function levelMoney(j){ if(j==null) return "—"; return fmtCode(levelIn(j,dispCode()),dispCode())+(j===LEVELS.length-1?"+":""); }
+function levelMoney(j){ if(j==null) return "—"; return fmtCode(compact(levelIn(j,dispCode())),dispCode())+(j===LEVELS.length-1?"+":""); }
 function renderCurs(){
   const codes=[...new Set([localCode(),"EUR","USD"])];
   $("#curs").onclick=onCurClick; $("#curs").setAttribute("aria-label",t("curLabel"));
-  $("#curs").innerHTML=`<span class="clabel">${t("curLabel")}</span>`+codes.map(c=>`<button type="button" class="cur" data-cur="${c===localCode()?"local":c}" aria-pressed="${c===dispCode()}">${c}</button>`).join("");
+  $("#curs").innerHTML=codes.map(c=>`<button type="button" class="cur" data-cur="${c===localCode()?"local":c}" aria-pressed="${c===dispCode()}">${c}</button>`).join("");
 }
 function onCurClick(e){ const b=e.target.closest("[data-cur]"); if(!b) return;
   dispPref=b.dataset.cur; try{ localStorage.setItem("tournee-cur",dispPref); }catch{}
@@ -1685,7 +1685,7 @@ function renderChips(){
   if(!acct || (outing && !isAdmin()) || $("#planner").hidden){ box.hidden=true; return; }
   const people=[{...acct.me,label:t("me")},...acct.friends.map(f=>({...f,label:f.nick}))];
   box.hidden=false;
-  box.innerHTML=`<span class="clabel">${t("addFriends")}</span>`+people.map(p=>`<button type="button" class="chip" data-uid="${esc(p.uid)}" aria-pressed="${friends.some(f=>f.uid===p.uid)}">${esc(p.label)}</button>`).join("");
+  box.setAttribute("aria-label",t("addFriends")); box.innerHTML=people.map(p=>`<button type="button" class="chip" data-uid="${esc(p.uid)}" aria-pressed="${friends.some(f=>f.uid===p.uid)}">${esc(p.label)}</button>`).join("");
 }
 $("#fchips").addEventListener("click",async e=>{ const b=e.target.closest(".chip"); if(!b||!acct) return;
   const uid=b.dataset.uid, i=friends.findIndex(f=>f.uid===uid);
@@ -1718,6 +1718,7 @@ function route(keepScroll){
   $("#hostBtn").hidden=!(view==="home"||(view==="planner"&&!isOuting));
   $("#go").hidden=view!=="planner"; $("#status").hidden=view!=="planner";
   document.querySelector("footer").hidden=view==="start";
+  document.querySelector("header").classList.toggle("noline",view==="start");
   $("#reviewBox").hidden=view==="start"; if(view==="start") loadReviews();
   document.getElementById("sky").classList.toggle("on",view!=="start");
   if(isOuting){ const key="o/"+c0; if(key!==opened){ opened=key; loadOuting(c0); } }
