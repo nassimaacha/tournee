@@ -224,6 +224,22 @@ select:disabled,input:disabled,.stops button:disabled{opacity:.6;cursor:not-allo
 footer{display:flex;justify-content:space-between;align-items:center;gap:12px 24px;flex-wrap:wrap}
 .slogan{margin:0;font-family:var(--serif);font-style:italic;font-size:22px;line-height:1.2;color:var(--accent);letter-spacing:0}
 .student-note{margin:6px 0 0;font-size:12px;color:var(--muted)}
+.acct-btn{background:none;border:1px solid var(--accent);color:var(--accent);border-radius:30px;padding:4px 12px;font:inherit;font-size:11px;font-weight:600;letter-spacing:.111em;text-transform:uppercase;cursor:pointer;white-space:nowrap;min-height:30px}
+.acct-btn.in{width:30px;height:30px;padding:0;border-radius:50%;background:var(--accent);color:var(--bg);font-size:13px;letter-spacing:0}
+#gsiBtn{min-height:44px}
+.flist{list-style:none;margin:18px 0 0;padding:0}
+.flist li{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0;border-top:1px solid var(--line)}
+.flist .fn{font-family:var(--serif);font-size:24px;line-height:1.1}
+.flist .fm{display:block;font-size:12px;color:var(--muted)}
+.acct-actions{display:flex;gap:24px;padding:8px 0 48px}
+.fchips{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 20px}
+.fchips .clabel{width:100%;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.111em;color:var(--muted)}
+.chip{background:none;border:1px solid var(--line);border-radius:30px;padding:8px 14px;color:var(--ink);font:inherit;font-size:14px;cursor:pointer;min-height:40px;transition:background .15s,color .15s,border-color .15s}
+.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--bg)}
+.legal{max-width:62ch;padding-bottom:48px}
+.legal h2{font-family:var(--serif);font-weight:400;font-size:30px;color:var(--accent);margin:32px 0 8px}
+.legal p{margin:0 0 12px;font-size:15px}
+.footer-link{color:var(--muted);font-size:12px;text-decoration:underline;text-underline-offset:3px;width:100%}
 .partner-note{font-size:11px;opacity:.8}
 footer{color:var(--muted);font-size:12px;padding:28px 0 44px;border-top:1px solid var(--line)}
 #result + footer{border-top:0}
@@ -299,6 +315,7 @@ footer{color:var(--muted);font-size:12px;padding:28px 0 44px;border-top:1px soli
     <span class="city-tag" id="cityTag" hidden></span>
     <div class="controls">
       <button class="switch" id="hostBtn" type="button" hidden data-i18n="host"></button>
+      <button class="acct-btn" id="acctBtn" type="button"></button>
       <select class="lang" id="lang"></select>
     </div>
   </header>
@@ -356,6 +373,7 @@ footer{color:var(--muted);font-size:12px;padding:28px 0 44px;border-top:1px soli
     <h2 id="g-title" data-i18n="group"></h2>
     <p class="hint" id="groupHint" data-i18n="groupHint"></p>
     <div class="curs" id="curs" role="group"></div>
+    <div class="fchips" id="fchips" hidden></div>
     <div id="friends"></div>
     <button class="add" id="addFriend" type="button" data-i18n="add"></button>
   </section>
@@ -393,14 +411,49 @@ footer{color:var(--muted);font-size:12px;padding:28px 0 44px;border-top:1px soli
   <section id="result" class="band" aria-live="polite"></section>
   </main>
 
-  <footer><div><span data-i18n="footer"></span><br><span class="partner-note" data-i18n="partnerNote"></span></div><p class="slogan" data-i18n="slogan"></p></footer>
+  <main id="accountView" class="view" hidden>
+    <section class="hero"><h1 id="acctH1"></h1><p id="acctP"></p></section>
+    <p class="note" id="acctMsg" aria-live="polite" style="text-align:left;margin:0 0 16px"></p>
+    <div id="acctOut">
+      <div id="gsiBtn"></div>
+    </div>
+    <div id="acctIn" hidden>
+      <section class="panel">
+        <h2 data-i18n="profileTitle"></h2>
+        <p class="hint" data-i18n="profileHint"></p>
+        <div class="field"><label for="pNick" data-i18n="nick"></label><input type="text" id="pNick" maxlength="20" autocomplete="given-name"></div>
+        <div class="budget" style="margin-top:16px"><span class="blabel" id="pbl"></span><div class="lvls" id="pLvls" role="group" aria-labelledby="pbl"></div></div>
+        <div class="grid2" style="margin-top:16px">
+          <div class="field"><label for="pVN" data-i18n="vibeNightL"></label><select id="pVN"></select></div>
+          <div class="field"><label for="pVD" data-i18n="vibeDayL"></label><select id="pVD"></select></div>
+        </div>
+        <p class="check" style="margin-top:14px"><input type="checkbox" id="pSober"><label for="pSober" data-i18n="flagNight"></label></p>
+        <p class="check" style="margin-top:8px"><input type="checkbox" id="pStudent"><label for="pStudent" data-i18n="flagDay"></label></p>
+        <p class="note" id="pSaved" aria-live="polite" style="text-align:left;margin:10px 0 0"></p>
+      </section>
+      <section class="panel">
+        <h2 data-i18n="friendsTitle"></h2>
+        <p class="hint" data-i18n="friendsHint"></p>
+        <div class="share-row"><input type="text" id="fLink" readonly aria-label="URL"><button class="btn" id="fCopy" type="button" data-i18n="copyLink"></button></div>
+        <ul class="flist" id="fList"></ul>
+      </section>
+      <div class="acct-actions"><button class="suggest-link" id="signOut" type="button" data-i18n="signOut"></button><button class="suggest-link" id="delAcct" type="button" data-i18n="deleteAcct"></button></div>
+    </div>
+  </main>
+
+  <main id="privacyView" class="view" hidden>
+    <section class="hero"><h1 data-i18n="privacyTitle"></h1></section>
+    <div class="legal" id="privacyText"></div>
+  </main>
+
+  <footer><div><span data-i18n="footer"></span><br><span class="partner-note" data-i18n="partnerNote"></span></div><p class="slogan" data-i18n="slogan"></p><a href="/privacy" class="footer-link" id="privacyLink" data-i18n="privacy"></a></footer>
 </div>
 
 <script>
 const GMAPS_KEY = "AIzaSyB-K5Z8agH0iJ5zSslPaSNzefRy4X-ryVs";
 const LANGS = {fr:"FR", en:"EN", es:"ES"};
 const T = {
-fr:{studentNote:"Prenez le tarif étudiant en réservant, carte étudiante à montrer sur place.",timeToggle:"Choisir un horaire ?",slogan:"Du point A au point C",curLabel:"Devise",book:"Réserver des billets",partnerNote:"Certains liens sont des liens partenaires.",endLabel:"Heure de fin",endPh:"Facultatif",needNames:"Ajoutez un prénom pour chaque personne.",needBudgets:"Indiquez un budget pour chaque personne.",needVibe:"Choisissez au moins une envie pour lancer le plan.",needArea:"Choisissez un point de départ pour continuer.",needStart:"Choisissez une heure de rendez-vous pour continuer.",needStopsMsg:"Choisissez le nombre d'étapes pour continuer.",needEndAfter:"L'heure de fin doit être après l'heure de rendez-vous.",walkMin:"{n} min à pied",transitMin:"{n} min en transports",driveMin:"{n} min en taxi",fromStart:"depuis {a}",sgLink:"Ma ville n'est pas là",sgPh:"Votre ville",sgSend:"Envoyer",sgThanks:"Merci, c'est noté.",contEurope:"Europe",contNA:"Amérique du Nord",contSA:"Amérique du Sud",contAsia:"Asie",contAfrica:"Afrique",contOceania:"Océanie",rideTrain:"On rentre en train ou métro (pas de taxi)",rideWalk:"On rentre à pied (pas de taxi)",namePh:"Prénom",choose:"Choisir…",needFields:"Complétez les champs manquants.",needJoin:"Ajoutez votre prénom et votre budget.",host:"Organiser",hostPick:"Choisissez la ville de votre sortie.",shareTitle:"Invitez le groupe",shareHint:"Envoyez ce lien. Chacun ajoute son prénom et son budget.",copyLink:"Copier le lien",linkCopied:"Lien copié",joinTitle:"Rejoindre la sortie",joinHint:"Ajoutez votre prénom et votre budget. Seul l'organisateur peut modifier les autres.",joinHostHint:"Ajoutez-vous aussi au groupe.",joinBtn:"Rejoindre",yourName:"Votre prénom",youHost:"Organisateur",you:"Vous",waitHost:"L'organisateur lancera le plan quand tout le monde sera là.",full:"Cette sortie est complète (8 personnes max).",notFound:"Cette sortie n'existe pas ou a expiré.",needName:"Ajoutez votre prénom.",noStore:"Le partage n'est pas encore activé sur le serveur.",creating:"Création de la sortie…",groupEmpty:"Personne n'a encore rejoint.",flagShortNight:"sans alcool",flagShortDay:"étudiant",srTitle:"Tournée : choisissez votre sortie",pickNight:"Soirée",pickNightSub:"Bars, clubs, concerts. Du premier verre au dernier métro.",pickDay:"Journée",pickDaySub:"Musées, expos, parcs. Du premier musée au dernier café.",
+fr:{signIn:"Connexion",account:"Mon compte",acctTitle:"Votre compte",acctIntro:"Connectez-vous pour enregistrer votre profil et ajouter vos amis.",acctOff:"Les comptes ne sont pas encore activés.",profileTitle:"Mon profil",profileHint:"Utilisé automatiquement quand vous planifiez.",vibeNightL:"Envie le soir",vibeDayL:"Envie le jour",saved:"Enregistré",friendsTitle:"Mes amis",friendsHint:"Envoyez votre lien : ceux qui l'ouvrent deviennent vos amis sur Tournée.",noFriends:"Pas encore d'amis. Partagez votre lien.",signOut:"Se déconnecter",deleteAcct:"Supprimer mon compte",deleteConfirm:"Supprimer définitivement votre compte et vos amis ?",inviteTitle:"{n} vous invite sur Tournée",inviteSignIn:"Connectez-vous pour l'ajouter en ami.",friendAdded:"{n} est maintenant votre ami.",inviteBad:"Ce lien d'ami n'est pas valide.",inviteSelf:"C'est votre propre lien.",me:"Moi",addFriends:"Ajouter mes amis",privacy:"Confidentialité",privacyTitle:"Confidentialité",signInError:"La connexion a échoué. Réessayez.",studentNote:"Prenez le tarif étudiant en réservant, carte étudiante à montrer sur place.",timeToggle:"Choisir un horaire ?",slogan:"Du point A au point C",curLabel:"Devise",book:"Réserver des billets",partnerNote:"Certains liens sont des liens partenaires.",endLabel:"Heure de fin",endPh:"Facultatif",needNames:"Ajoutez un prénom pour chaque personne.",needBudgets:"Indiquez un budget pour chaque personne.",needVibe:"Choisissez au moins une envie pour lancer le plan.",needArea:"Choisissez un point de départ pour continuer.",needStart:"Choisissez une heure de rendez-vous pour continuer.",needStopsMsg:"Choisissez le nombre d'étapes pour continuer.",needEndAfter:"L'heure de fin doit être après l'heure de rendez-vous.",walkMin:"{n} min à pied",transitMin:"{n} min en transports",driveMin:"{n} min en taxi",fromStart:"depuis {a}",sgLink:"Ma ville n'est pas là",sgPh:"Votre ville",sgSend:"Envoyer",sgThanks:"Merci, c'est noté.",contEurope:"Europe",contNA:"Amérique du Nord",contSA:"Amérique du Sud",contAsia:"Asie",contAfrica:"Afrique",contOceania:"Océanie",rideTrain:"On rentre en train ou métro (pas de taxi)",rideWalk:"On rentre à pied (pas de taxi)",namePh:"Prénom",choose:"Choisir…",needFields:"Complétez les champs manquants.",needJoin:"Ajoutez votre prénom et votre budget.",host:"Organiser",hostPick:"Choisissez la ville de votre sortie.",shareTitle:"Invitez le groupe",shareHint:"Envoyez ce lien. Chacun ajoute son prénom et son budget.",copyLink:"Copier le lien",linkCopied:"Lien copié",joinTitle:"Rejoindre la sortie",joinHint:"Ajoutez votre prénom et votre budget. Seul l'organisateur peut modifier les autres.",joinHostHint:"Ajoutez-vous aussi au groupe.",joinBtn:"Rejoindre",yourName:"Votre prénom",youHost:"Organisateur",you:"Vous",waitHost:"L'organisateur lancera le plan quand tout le monde sera là.",full:"Cette sortie est complète (8 personnes max).",notFound:"Cette sortie n'existe pas ou a expiré.",needName:"Ajoutez votre prénom.",noStore:"Le partage n'est pas encore activé sur le serveur.",creating:"Création de la sortie…",groupEmpty:"Personne n'a encore rejoint.",flagShortNight:"sans alcool",flagShortDay:"étudiant",srTitle:"Tournée : choisissez votre sortie",pickNight:"Soirée",pickNightSub:"Bars, clubs, concerts. Du premier verre au dernier métro.",pickDay:"Journée",pickDaySub:"Musées, expos, parcs. Du premier musée au dernier café.",
  nightTitle:"On sort où<br>ce soir&nbsp;?",nightText:"Choisissez une ville. Tournée trouve la soirée qui convient à tout le groupe, du premier verre au retour.",
  dayTitle:"On visite<br>quoi&nbsp;?",dayText:"Choisissez une ville. Tournée organise une journée qui plaira à tout le groupe, du premier musée au dernier café.",
  citiesLabel:"Villes",clockAria:"{t} à {c}",evening:", c'est le soir",langLabel:"Langue",
@@ -417,7 +470,7 @@ fr:{studentNote:"Prenez le tarif étudiant en réservant, carte étudiante à mo
  thinking:"On cherche le plan qui convient à tout le monde…",retry:"Relancer",errRate:"Trop de demandes d'un coup. Attendez quelques secondes puis réessayez.",
  errKey:"Le service est momentanément indisponible. Réessayez plus tard.",errGeneric:"Impossible de créer le plan. Réessayez.",
  mapCheck:"Vérifiez les adresses avant d'y aller",mapOpen:"Ouvrir l'itinéraire",mapAria:"Carte des étapes",svgCap:"Positions approximatives, carte simplifiée",svgAll:"Voir tout Paris",svgZoom:"Zoomer sur le plan"},
-en:{studentNote:"Choose the student price when booking and bring your student card.",timeToggle:"Select a time?",slogan:"From point A to point C",curLabel:"Currency",book:"Book tickets",partnerNote:"Some links are partner links.",endLabel:"End time",endPh:"Optional",needNames:"Add a name for everyone to continue.",needBudgets:"Set a budget for everyone to continue.",needVibe:"Pick at least one vibe to plan the outing.",needArea:"Add a meeting point to continue.",needStart:"Add a meeting time to continue.",needStopsMsg:"Choose the number of stops to continue.",needEndAfter:"The end time has to be after the meeting time.",walkMin:"{n} min walk",transitMin:"{n} min by public transport",driveMin:"{n} min by taxi",fromStart:"from {a}",sgLink:"My city isn't here",sgPh:"Your city",sgSend:"Send",sgThanks:"Thanks, noted.",contEurope:"Europe",contNA:"North America",contSA:"South America",contAsia:"Asia",contAfrica:"Africa",contOceania:"Oceania",rideTrain:"Getting home by train or metro (no taxi)",rideWalk:"Getting home on foot (no taxi)",namePh:"Name",choose:"Choose…",needFields:"Fill in the missing fields.",needJoin:"Add your name and budget.",host:"Host",hostPick:"Choose the city for your outing.",shareTitle:"Invite the group",shareHint:"Send this link. Everyone adds their name and budget.",copyLink:"Copy link",linkCopied:"Link copied",joinTitle:"Join the outing",joinHint:"Add your name and budget. Only the host can change other people's details.",joinHostHint:"Add yourself to the group too.",joinBtn:"Join",yourName:"Your name",youHost:"Host",you:"You",waitHost:"The host will plan the outing once everyone's in.",full:"This outing is full (8 people max).",notFound:"This outing doesn't exist or has expired.",needName:"Add your name.",noStore:"Sharing isn't set up on the server yet.",creating:"Creating the outing…",groupEmpty:"Nobody has joined yet.",flagShortNight:"no alcohol",flagShortDay:"student",srTitle:"Tournée: pick your outing",pickNight:"Nightlife",pickNightSub:"Bars, clubs, live music. From first drink to last train.",pickDay:"Daylife",pickDaySub:"Museums, galleries, parks. From first museum to last coffee.",
+en:{signIn:"Sign in",account:"My account",acctTitle:"Your account",acctIntro:"Sign in to save your profile and add your friends.",acctOff:"Accounts aren't set up yet.",profileTitle:"My profile",profileHint:"Used automatically when you plan.",vibeNightL:"Night vibe",vibeDayL:"Day vibe",saved:"Saved",friendsTitle:"My friends",friendsHint:"Send your link: anyone who opens it becomes your friend on Tournée.",noFriends:"No friends yet. Share your link.",signOut:"Sign out",deleteAcct:"Delete my account",deleteConfirm:"Delete your account and friend list for good?",inviteTitle:"{n} invited you to Tournée",inviteSignIn:"Sign in to add them as a friend.",friendAdded:"{n} is now your friend.",inviteBad:"This friend link isn't valid.",inviteSelf:"That's your own link.",me:"Me",addFriends:"Add my friends",privacy:"Privacy",privacyTitle:"Privacy",signInError:"Sign in failed. Try again.",studentNote:"Choose the student price when booking and bring your student card.",timeToggle:"Select a time?",slogan:"From point A to point C",curLabel:"Currency",book:"Book tickets",partnerNote:"Some links are partner links.",endLabel:"End time",endPh:"Optional",needNames:"Add a name for everyone to continue.",needBudgets:"Set a budget for everyone to continue.",needVibe:"Pick at least one vibe to plan the outing.",needArea:"Add a meeting point to continue.",needStart:"Add a meeting time to continue.",needStopsMsg:"Choose the number of stops to continue.",needEndAfter:"The end time has to be after the meeting time.",walkMin:"{n} min walk",transitMin:"{n} min by public transport",driveMin:"{n} min by taxi",fromStart:"from {a}",sgLink:"My city isn't here",sgPh:"Your city",sgSend:"Send",sgThanks:"Thanks, noted.",contEurope:"Europe",contNA:"North America",contSA:"South America",contAsia:"Asia",contAfrica:"Africa",contOceania:"Oceania",rideTrain:"Getting home by train or metro (no taxi)",rideWalk:"Getting home on foot (no taxi)",namePh:"Name",choose:"Choose…",needFields:"Fill in the missing fields.",needJoin:"Add your name and budget.",host:"Host",hostPick:"Choose the city for your outing.",shareTitle:"Invite the group",shareHint:"Send this link. Everyone adds their name and budget.",copyLink:"Copy link",linkCopied:"Link copied",joinTitle:"Join the outing",joinHint:"Add your name and budget. Only the host can change other people's details.",joinHostHint:"Add yourself to the group too.",joinBtn:"Join",yourName:"Your name",youHost:"Host",you:"You",waitHost:"The host will plan the outing once everyone's in.",full:"This outing is full (8 people max).",notFound:"This outing doesn't exist or has expired.",needName:"Add your name.",noStore:"Sharing isn't set up on the server yet.",creating:"Creating the outing…",groupEmpty:"Nobody has joined yet.",flagShortNight:"no alcohol",flagShortDay:"student",srTitle:"Tournée: pick your outing",pickNight:"Nightlife",pickNightSub:"Bars, clubs, live music. From first drink to last train.",pickDay:"Daylife",pickDaySub:"Museums, galleries, parks. From first museum to last coffee.",
  nightTitle:"Where are we<br>going tonight?",nightText:"Pick a city. Tournée finds the night out that works for the whole group, from first drink to the ride home.",
  dayTitle:"What are we<br>seeing today?",dayText:"Pick a city. Tournée plans a day the whole group will love, from the first museum to the last coffee.",
  citiesLabel:"Cities",clockAria:"{t} in {c}",evening:", it's evening",langLabel:"Language",
@@ -434,7 +487,7 @@ en:{studentNote:"Choose the student price when booking and bring your student ca
  thinking:"Finding a plan that works for everyone…",retry:"Try again",errRate:"Too many requests at once. Wait a few seconds and try again.",
  errKey:"The service is temporarily unavailable. Try again later.",errGeneric:"Couldn't create the plan. Try again.",
  mapCheck:"Check addresses before you go",mapOpen:"Open directions",mapAria:"Map of the stops",svgCap:"Approximate positions, simplified map",svgAll:"See all of Paris",svgZoom:"Zoom in on the plan"},
-es:{studentNote:"Elige la tarifa de estudiante al reservar y lleva tu carné de estudiante.",timeToggle:"¿Elegir un horario?",slogan:"Del punto A al punto C",curLabel:"Moneda",book:"Reservar entradas",partnerNote:"Algunos enlaces son de afiliados.",endLabel:"Hora de fin",endPh:"Opcional",needNames:"Añade un nombre para cada persona.",needBudgets:"Indica un presupuesto para cada persona.",needVibe:"Elige al menos un plan que te apetezca para continuar.",needArea:"Elige un punto de encuentro para continuar.",needStart:"Elige una hora de encuentro para continuar.",needStopsMsg:"Elige el número de paradas para continuar.",needEndAfter:"La hora de fin tiene que ser después de la hora de encuentro.",walkMin:"{n} min a pie",transitMin:"{n} min en transporte público",driveMin:"{n} min en taxi",fromStart:"desde {a}",sgLink:"Mi ciudad no está",sgPh:"Tu ciudad",sgSend:"Enviar",sgThanks:"Gracias, apuntado.",contEurope:"Europa",contNA:"Norteamérica",contSA:"Sudamérica",contAsia:"Asia",contAfrica:"África",contOceania:"Oceanía",rideTrain:"Volvemos en tren o metro (sin taxi)",rideWalk:"Volvemos a pie (sin taxi)",namePh:"Nombre",choose:"Elegir…",needFields:"Completa los campos que faltan.",needJoin:"Añade tu nombre y tu presupuesto.",host:"Organizar",hostPick:"Elige la ciudad de tu quedada.",shareTitle:"Invita al grupo",shareHint:"Envía este enlace. Cada uno añade su nombre y su presupuesto.",copyLink:"Copiar enlace",linkCopied:"Enlace copiado",joinTitle:"Únete a la quedada",joinHint:"Añade tu nombre y tu presupuesto. Solo el organizador puede cambiar los datos de los demás.",joinHostHint:"Añádete tú también al grupo.",joinBtn:"Unirme",yourName:"Tu nombre",youHost:"Organizador",you:"Tú",waitHost:"El organizador creará el plan cuando estén todos.",full:"Esta quedada está completa (máx. 8 personas).",notFound:"Esta quedada no existe o ha caducado.",needName:"Añade tu nombre.",noStore:"Compartir aún no está activado en el servidor.",creating:"Creando la quedada…",groupEmpty:"Aún no se ha unido nadie.",flagShortNight:"sin alcohol",flagShortDay:"estudiante",srTitle:"Tournée: elige tu plan",pickNight:"De noche",pickNightSub:"Bares, discotecas, conciertos. De la primera copa al último metro.",pickDay:"De día",pickDaySub:"Museos, exposiciones, parques. Del primer museo al último café.",
+es:{signIn:"Iniciar sesión",account:"Mi cuenta",acctTitle:"Tu cuenta",acctIntro:"Inicia sesión para guardar tu perfil y añadir a tus amigos.",acctOff:"Las cuentas aún no están activadas.",profileTitle:"Mi perfil",profileHint:"Se usa automáticamente al planear.",vibeNightL:"Plan de noche",vibeDayL:"Plan de día",saved:"Guardado",friendsTitle:"Mis amigos",friendsHint:"Envía tu enlace: quien lo abra se convierte en tu amigo en Tournée.",noFriends:"Aún no tienes amigos. Comparte tu enlace.",signOut:"Cerrar sesión",deleteAcct:"Eliminar mi cuenta",deleteConfirm:"¿Eliminar tu cuenta y tus amigos para siempre?",inviteTitle:"{n} te invita a Tournée",inviteSignIn:"Inicia sesión para añadirlo como amigo.",friendAdded:"{n} ya es tu amigo.",inviteBad:"Este enlace de amigo no es válido.",inviteSelf:"Es tu propio enlace.",me:"Yo",addFriends:"Añadir a mis amigos",privacy:"Privacidad",privacyTitle:"Privacidad",signInError:"No se pudo iniciar sesión. Inténtalo de nuevo.",studentNote:"Elige la tarifa de estudiante al reservar y lleva tu carné de estudiante.",timeToggle:"¿Elegir un horario?",slogan:"Del punto A al punto C",curLabel:"Moneda",book:"Reservar entradas",partnerNote:"Algunos enlaces son de afiliados.",endLabel:"Hora de fin",endPh:"Opcional",needNames:"Añade un nombre para cada persona.",needBudgets:"Indica un presupuesto para cada persona.",needVibe:"Elige al menos un plan que te apetezca para continuar.",needArea:"Elige un punto de encuentro para continuar.",needStart:"Elige una hora de encuentro para continuar.",needStopsMsg:"Elige el número de paradas para continuar.",needEndAfter:"La hora de fin tiene que ser después de la hora de encuentro.",walkMin:"{n} min a pie",transitMin:"{n} min en transporte público",driveMin:"{n} min en taxi",fromStart:"desde {a}",sgLink:"Mi ciudad no está",sgPh:"Tu ciudad",sgSend:"Enviar",sgThanks:"Gracias, apuntado.",contEurope:"Europa",contNA:"Norteamérica",contSA:"Sudamérica",contAsia:"Asia",contAfrica:"África",contOceania:"Oceanía",rideTrain:"Volvemos en tren o metro (sin taxi)",rideWalk:"Volvemos a pie (sin taxi)",namePh:"Nombre",choose:"Elegir…",needFields:"Completa los campos que faltan.",needJoin:"Añade tu nombre y tu presupuesto.",host:"Organizar",hostPick:"Elige la ciudad de tu quedada.",shareTitle:"Invita al grupo",shareHint:"Envía este enlace. Cada uno añade su nombre y su presupuesto.",copyLink:"Copiar enlace",linkCopied:"Enlace copiado",joinTitle:"Únete a la quedada",joinHint:"Añade tu nombre y tu presupuesto. Solo el organizador puede cambiar los datos de los demás.",joinHostHint:"Añádete tú también al grupo.",joinBtn:"Unirme",yourName:"Tu nombre",youHost:"Organizador",you:"Tú",waitHost:"El organizador creará el plan cuando estén todos.",full:"Esta quedada está completa (máx. 8 personas).",notFound:"Esta quedada no existe o ha caducado.",needName:"Añade tu nombre.",noStore:"Compartir aún no está activado en el servidor.",creating:"Creando la quedada…",groupEmpty:"Aún no se ha unido nadie.",flagShortNight:"sin alcohol",flagShortDay:"estudiante",srTitle:"Tournée: elige tu plan",pickNight:"De noche",pickNightSub:"Bares, discotecas, conciertos. De la primera copa al último metro.",pickDay:"De día",pickDaySub:"Museos, exposiciones, parques. Del primer museo al último café.",
  nightTitle:"¿Dónde salimos<br>esta noche?",nightText:"Elige una ciudad. Tournée encuentra el plan de noche que le va bien a todo el grupo, de la primera copa a la vuelta a casa.",
  dayTitle:"¿Qué vemos<br>hoy?",dayText:"Elige una ciudad. Tournée organiza un día que le encantará a todo el grupo, del primer museo al último café.",
  citiesLabel:"Ciudades",clockAria:"{t} en {c}",evening:", es de noche",langLabel:"Idioma",
@@ -711,6 +764,7 @@ function renderFriends(){
       <p class="ro-meta">${esc(levelMoney(f.level))} · ${esc(VIBE_T[f.vibe]?.[lang]||"—")}${f.flag?" · "+t(mode==="day"?"flagShortDay":"flagShortNight"):""}</p>
     </div>`).join("");
   $("#addFriend").style.display = (friends.length>=8 || (outing && !isAdmin())) ? "none" : "";
+  if(typeof renderChips==="function") renderChips();
 }
 
 $("#friends").addEventListener("input", e=>{
@@ -1188,7 +1242,7 @@ function openCity(c){
   delete $("#area").dataset.city; $("#timeToggle").hidden=false;
   setStops(0);
   ctl?.abort(); lastPlan=null;
-  city=c; friends=[blankFriend()];
+  city=c; friends=[acct?personRow(acct.me):blankFriend()];
   const m=M();
   $("#area").innerHTML=`<option value="" disabled hidden>${t("choose")}</option>`+c.areas.map(a=>`<option>${esc(a)}</option>`).join(""); $("#area").value="";
   fillTimes(""); fillEnd(""); setTimeBox(false); $("#metro").checked=false;
@@ -1197,17 +1251,169 @@ function openCity(c){
   renderCurs(); renderFriends();
 }
 let opened="";
+
+/* ===== Accounts ===== */
+async function renderPrivacy(){
+  const fill=mail=>$("#privacyText").innerHTML=PRIVACY[lang].replaceAll("{email}",mail?`<a href="mailto:${esc(mail)}">${esc(mail)}</a>`:"[e-mail]");
+  fill(acctCfg?.contact);
+  if(!acctCfg){ try{ acctCfg=await fetch("/api/account").then(r=>r.json()); fill(acctCfg.contact); }catch{} }
+}
+const PRIVACY={
+fr:`<p>Dernière mise à jour : octobre 2026.</p>
+<h2>Qui sommes-nous</h2><p>Tournée (tournee.site) est un service édité à titre personnel par Nassim. Contact : {email}.</p>
+<h2>Ce que nous collectons</h2>
+<p><b>Compte.</b> Si vous vous connectez avec Google, nous gardons un identifiant Google chiffré, votre prénom et votre profil (budget habituel, envies, étudiant, sans alcool), ainsi que votre liste d'amis. Nous ne gardons ni votre e-mail, ni votre photo.</p>
+<p><b>Sorties organisées.</b> Les prénoms, budgets et envies saisis dans une sortie partagée, conservés 30 jours.</p>
+<p><b>Plans.</b> Pour créer un plan, les informations du groupe (prénoms, budgets, envies, ville, horaires) sont envoyées à nos prestataires techniques. Elles ne sont pas conservées par Tournée.</p>
+<p><b>Villes demandées.</b> La ville suggérée, la langue et le fuseau horaire.</p>
+<p><b>Sur votre appareil.</b> Langue, devise, lieux déjà proposés et session de connexion sont gardés dans le stockage local de votre navigateur. Pas de cookies publicitaires.</p>
+<h2>Nos prestataires</h2><p>Vercel (hébergement), Upstash (base de données), Google (connexion, cartes, vérification des lieux et temps de trajet), Anthropic (rédaction des plans). Quand vous cliquez sur un lien partenaire (GetYourGuide, Fever, Ticketmaster), ce site peut déposer ses propres cookies et nous verser une commission.</p>
+<h2>Durée de conservation</h2><p>Compte : jusqu'à sa suppression. Session de connexion : 60 jours. Sorties organisées : 30 jours.</p>
+<h2>Vos droits</h2><p>Vous pouvez supprimer votre compte à tout moment depuis « Mon compte » : votre profil et vos liens d'amitié sont effacés. Pour toute demande d'accès, de rectification ou de suppression, écrivez à {email}. Vous pouvez aussi contacter la CNIL.</p>`,
+en:`<p>Last updated: October 2026.</p>
+<h2>Who we are</h2><p>Tournée (tournee.site) is a service run personally by Nassim. Contact: {email}.</p>
+<h2>What we collect</h2>
+<p><b>Account.</b> If you sign in with Google, we keep an encrypted Google identifier, your first name and your profile (usual budget, vibes, student, no alcohol), plus your friend list. We don't keep your email or your photo.</p>
+<p><b>Hosted outings.</b> The names, budgets and vibes entered in a shared outing, kept for 30 days.</p>
+<p><b>Plans.</b> To build a plan, the group's details (names, budgets, vibes, city, times) are sent to our technical providers. Tournée doesn't keep them.</p>
+<p><b>City requests.</b> The suggested city, the language and the time zone.</p>
+<p><b>On your device.</b> Language, currency, places already suggested and your sign in session are kept in your browser's local storage. No advertising cookies.</p>
+<h2>Our providers</h2><p>Vercel (hosting), Upstash (database), Google (sign in, maps, place checks and travel times), Anthropic (writing the plans). When you click a partner link (GetYourGuide, Fever, Ticketmaster), that site may set its own cookies and pay us a commission.</p>
+<h2>How long we keep data</h2><p>Account: until you delete it. Sign in session: 60 days. Hosted outings: 30 days.</p>
+<h2>Your rights</h2><p>You can delete your account at any time from "My account": your profile and friend links are erased. For any request to access, correct or delete your data, write to {email}.</p>`,
+es:`<p>Última actualización: octubre de 2026.</p>
+<h2>Quiénes somos</h2><p>Tournée (tournee.site) es un servicio gestionado a título personal por Nassim. Contacto: {email}.</p>
+<h2>Qué recogemos</h2>
+<p><b>Cuenta.</b> Si inicias sesión con Google, guardamos un identificador de Google cifrado, tu nombre y tu perfil (presupuesto habitual, gustos, estudiante, sin alcohol), además de tu lista de amigos. No guardamos tu e-mail ni tu foto.</p>
+<p><b>Quedadas organizadas.</b> Los nombres, presupuestos y gustos introducidos en una quedada compartida, guardados 30 días.</p>
+<p><b>Planes.</b> Para crear un plan, los datos del grupo (nombres, presupuestos, gustos, ciudad, horarios) se envían a nuestros proveedores técnicos. Tournée no los guarda.</p>
+<p><b>Ciudades solicitadas.</b> La ciudad sugerida, el idioma y la zona horaria.</p>
+<p><b>En tu dispositivo.</b> El idioma, la moneda, los lugares ya propuestos y tu sesión se guardan en el almacenamiento local del navegador. Sin cookies publicitarias.</p>
+<h2>Nuestros proveedores</h2><p>Vercel (alojamiento), Upstash (base de datos), Google (inicio de sesión, mapas, verificación de lugares y tiempos de trayecto), Anthropic (redacción de los planes). Al hacer clic en un enlace de afiliado (GetYourGuide, Fever, Ticketmaster), ese sitio puede usar sus propias cookies y pagarnos una comisión.</p>
+<h2>Cuánto tiempo guardamos los datos</h2><p>Cuenta: hasta que la elimines. Sesión: 60 días. Quedadas: 30 días.</p>
+<h2>Tus derechos</h2><p>Puedes eliminar tu cuenta en cualquier momento desde "Mi cuenta": tu perfil y tus amistades se borran. Para cualquier solicitud de acceso, rectificación o eliminación, escribe a {email}.</p>`
+};
+
+let acct=null, acctCfg=null, gsiLoaded=null, pendingCode=null, invite=null;
+const session=()=>{ try{ return localStorage.getItem("tournee-session")||""; }catch{ return ""; } };
+const setSession=v=>{ try{ v?localStorage.setItem("tournee-session",v):localStorage.removeItem("tournee-session"); }catch{} };
+async function acctApi(body){
+  try{
+    const r=await fetch("/api/account",{method:"POST",headers:{"Content-Type":"application/json",...(session()?{Authorization:"Bearer "+session()}:{})},body:JSON.stringify(body)});
+    const d=await r.json().catch(()=>({})); if(!r.ok) d.error=d.error||"server";
+    if(d.error==="signed_out"){ setSession(""); acct=null; updateAcctBtn(); }
+    return d;
+  }catch{ return {error:"server"}; }
+}
+function updateAcctBtn(){
+  const b=$("#acctBtn");
+  if(acct){ b.classList.add("in"); b.textContent=(acct.me.nick||"?").charAt(0).toUpperCase(); b.setAttribute("aria-label",t("account")); }
+  else { b.classList.remove("in"); b.textContent=t("signIn"); b.removeAttribute("aria-label"); }
+}
+$("#acctBtn").onclick=()=>go("account");
+async function loadAcct(){
+  if(!session()) { updateAcctBtn(); return; }
+  const d=await acctApi({action:"me"});
+  if(!d.error){ acct={me:d.me,friends:d.friends};
+    if(!$("#planner").hidden && !outing && friends.length===1 && isBlankRow(friends[0])){ friends[0]=personRow(acct.me); renderFriends(); } }
+  updateAcctBtn(); renderChips();
+  if(!$("#accountView").hidden) renderAccount();
+}
+function loadGsi(){
+  return gsiLoaded ||= new Promise((res,rej)=>{ const sc=document.createElement("script"); sc.src="https://accounts.google.com/gsi/client"; sc.async=true; sc.onload=res; sc.onerror=rej; document.head.appendChild(sc); });
+}
+async function showSignIn(){
+  const box=$("#gsiBtn"); box.innerHTML="";
+  try{
+    acctCfg ||= await fetch("/api/account").then(r=>r.json());
+    if(!acctCfg.clientId || !acctCfg.ready){ $("#acctMsg").textContent=t("acctOff"); return; }
+    await loadGsi();
+    google.accounts.id.initialize({client_id:acctCfg.clientId, callback:onCredential});
+    google.accounts.id.renderButton(box,{theme:"outline",size:"large",shape:"pill",text:"signin_with",locale:lang});
+  }catch{ $("#acctMsg").textContent=t("acctOff"); }
+}
+async function onCredential(resp){
+  const d=await acctApi({action:"login",credential:resp.credential});
+  if(d.error){ $("#acctMsg").textContent=t("signInError"); return; }
+  setSession(d.token); acct={me:d.me,friends:d.friends}; updateAcctBtn();
+  if(pendingCode){ const code=pendingCode; pendingCode=null; await addFriendCode(code); }
+  renderAccount();
+}
+async function addFriendCode(code){
+  const d=await acctApi({action:"addFriend",code});
+  if(d.error==="self") $("#acctMsg").textContent=t("inviteSelf");
+  else if(d.error) $("#acctMsg").textContent=t("inviteBad");
+  else { acct.friends=d.friends; $("#acctMsg").textContent=t("friendAdded",{n:d.added}); }
+  history.replaceState(null,"","/account");
+}
+function profLevelCode(){ return dispPref==="USD"?"USD":"EUR"; }
+function renderAccount(){
+  $("#acctH1").textContent=invite&&!acct?t("inviteTitle",{n:invite}):t("acctTitle");
+  $("#acctP").textContent=acct?"":(invite?t("inviteSignIn"):t("acctIntro"));
+  $("#acctOut").hidden=!!acct; $("#acctIn").hidden=!acct;
+  if(!acct){ showSignIn(); return; }
+  const p=acct.me, code=profLevelCode();
+  $("#pNick").value=p.nick||"";
+  $("#pbl").textContent=`${t("budget")} (${SYM[code]})`;
+  $("#pLvls").innerHTML=LEVELS.map((_,j)=>`<button type="button" class="lvl" data-lvl="${j}" aria-pressed="${p.level===j}">${compact(budgetIn(j,code))}${j===LEVELS.length-1?"+":""}</button>`).join("");
+  const opts=(list,v)=>`<option value="">${t("choose")}</option>`+list.map(x=>`<option value="${x}"${x===v?" selected":""}>${VIBE_T[x][lang]}</option>`).join("");
+  $("#pVN").innerHTML=opts(MODES.night.vibes,p.vibeNight); $("#pVD").innerHTML=opts(MODES.day.vibes,p.vibeDay);
+  $("#pSober").checked=!!p.sober; $("#pStudent").checked=!!p.student;
+  $("#fLink").value=location.origin+"/f/"+p.code;
+  $("#fList").innerHTML=acct.friends.length?acct.friends.map(f=>`<li><span><span class="fn">${esc(f.nick)}</span><span class="fm">${f.level!=null?esc(LEVELS[f.level]+(f.level===4?"+":"")+" €"):"—"}${f.vibeNight?" · "+esc(VIBE_T[f.vibeNight][lang]):""}</span></span><button class="remove" type="button" data-rmf="${esc(f.uid)}">${t("remove")}</button></li>`).join(""):`<li><span class="fm">${t("noFriends")}</span></li>`;
+}
+let profTimer=null;
+function saveProfile(){
+  clearTimeout(profTimer);
+  profTimer=setTimeout(async()=>{
+    const lv=$("#pLvls").querySelector('[aria-pressed="true"]');
+    const d=await acctApi({action:"profile",profile:{nick:$("#pNick").value.trim(),level:lv?+lv.dataset.lvl:null,vibeNight:$("#pVN").value,vibeDay:$("#pVD").value,sober:$("#pSober").checked,student:$("#pStudent").checked}});
+    if(!d.error){ acct.me=d.me; updateAcctBtn(); $("#pSaved").textContent=t("saved"); setTimeout(()=>$("#pSaved").textContent="",1500); }
+  },500);
+}
+$("#pNick").addEventListener("input",saveProfile);
+["#pVN","#pVD","#pSober","#pStudent"].forEach(x=>$(x).addEventListener("change",saveProfile));
+$("#pLvls").addEventListener("click",e=>{ const b=e.target.closest(".lvl"); if(!b) return;
+  $("#pLvls").querySelectorAll(".lvl").forEach(x=>{ x.setAttribute("aria-pressed",String(x===b)); x.classList.remove("pop"); }); void b.offsetWidth; b.classList.add("pop"); saveProfile(); });
+$("#fCopy").onclick=async()=>{ const u=$("#fLink").value, b=$("#fCopy");
+  try{ await navigator.clipboard.writeText(u); }catch{ $("#fLink").select(); try{document.execCommand("copy")}catch{} }
+  b.textContent=t("linkCopied"); setTimeout(()=>b.textContent=t("copyLink"),2000); };
+$("#fList").addEventListener("click",async e=>{ const b=e.target.closest("[data-rmf]"); if(!b) return;
+  const d=await acctApi({action:"removeFriend",uid:b.dataset.rmf}); if(!d.error){ acct.friends=d.friends; renderAccount(); } });
+$("#signOut").onclick=async()=>{ await acctApi({action:"logout"}); setSession(""); acct=null; updateAcctBtn(); try{ google.accounts.id.disableAutoSelect(); }catch{} renderAccount(); };
+$("#delAcct").onclick=async()=>{ if(!confirm(t("deleteConfirm"))) return; await acctApi({action:"delete"}); setSession(""); acct=null; updateAcctBtn(); renderAccount(); };
+$("#privacyLink").addEventListener("click",e=>{ e.preventDefault(); go("privacy"); });
+
+/* friends as chips in the planner */
+function personRow(p){ return {nick:p.nick||"", level:p.level??null, vibe:(mode==="day"?p.vibeDay:p.vibeNight)||"", flag:!!(mode==="day"?p.student:p.sober), uid:p.uid}; }
+const isBlankRow=f=>!f.uid && !String(f.nick||"").trim() && f.level==null && !f.vibe;
+function renderChips(){
+  const box=$("#fchips"); if(!box) return;
+  if(!acct || outing || $("#planner").hidden){ box.hidden=true; return; }
+  const people=[{...acct.me,label:t("me")},...acct.friends.map(f=>({...f,label:f.nick}))];
+  box.hidden=false;
+  box.innerHTML=`<span class="clabel">${t("addFriends")}</span>`+people.map(p=>`<button type="button" class="chip" data-uid="${esc(p.uid)}" aria-pressed="${friends.some(f=>f.uid===p.uid)}">${esc(p.label)}</button>`).join("");
+}
+$("#fchips").addEventListener("click",e=>{ const b=e.target.closest(".chip"); if(!b||!acct) return;
+  const uid=b.dataset.uid, i=friends.findIndex(f=>f.uid===uid);
+  if(i>=0){ friends.splice(i,1); if(!friends.length) friends.push(blankFriend()); }
+  else { if(friends.length>=8) return; const p=uid===acct.me.uid?acct.me:acct.friends.find(f=>f.uid===uid); if(!p) return;
+    const blank=friends.findIndex(isBlankRow); if(blank>=0) friends[blank]=personRow(p); else friends.push(personRow(p)); }
+  renderFriends(); });
+
 function route(keepScroll){
   const [m0,c0,extra]=location.pathname.split("/").filter(Boolean);
   const isOuting=m0==="o" && !!c0 && !extra;
-  const valid=!m0 || isOuting || (MODES[m0] && (!c0 || CITIES.some(x=>x.id===c0)) && !extra);
+  const special=(m0==="account"||m0==="privacy") && !c0 ? m0 : (m0==="f" && c0 && !extra ? "friend" : "");
+  const valid=!m0 || isOuting || special || (MODES[m0] && (!c0 || CITIES.some(x=>x.id===c0)) && !extra);
   if(!valid){ history.replaceState(null,"","/"); return route(keepScroll); }
   const c=MODES[m0]?CITIES.find(x=>x.id===c0):null;
-  const view=isOuting?"planner":!MODES[m0]?"start":c?"planner":"home";
+  const view=special?(special==="privacy"?"privacy":"account"):isOuting?"planner":!MODES[m0]?"start":c?"planner":"home";
   if(MODES[m0]){ mode=m0; applyMode(); }
-  else if(!isOuting){ document.documentElement.dataset.theme="light"; delete document.documentElement.dataset.mode; }
+  else if(!isOuting && !special){ document.documentElement.dataset.theme="light"; delete document.documentElement.dataset.mode; }
   if(view!=="home") hostingPick=false;
   $("#landing").hidden=view!=="start"; $("#home").hidden=view!=="home"; $("#planner").hidden=view!=="planner";
+  $("#accountView").hidden=view!=="account"; $("#privacyView").hidden=view!=="privacy";
   $("#cityTag").hidden=view!=="planner";
   $("#hostBtn").hidden=!(view==="home"||(view==="planner"&&!isOuting));
   $("#go").hidden=view!=="planner"; $("#status").hidden=view!=="planner";
@@ -1215,6 +1421,11 @@ function route(keepScroll){
   document.getElementById("sky").classList.toggle("on",view!=="start");
   if(isOuting){ const key="o/"+c0; if(key!==opened){ opened=key; loadOuting(c0); } }
   else if(view==="planner"){ const key=mode+"/"+c.id; if(key!==opened){ openCity(c); opened=key; } document.title="Tournée, "+cityName(c); }
+  else if(view==="account"){ opened=""; invite=null; $("#acctMsg").textContent=""; document.title="Tournée, "+t("account");
+    if(special==="friend"){ const code=c0; acctApi({action:"peek",code}).then(d=>{ if(d.error){ $("#acctMsg").textContent=t("inviteBad"); history.replaceState(null,"","/account"); renderAccount(); return; }
+      invite=d.nick; if(acct) addFriendCode(code).then(renderAccount); else { pendingCode=code; renderAccount(); } }); }
+    else renderAccount(); }
+  else if(view==="privacy"){ opened=""; renderPrivacy(); document.title="Tournée, "+t("privacy"); }
   else if(view==="home"){ opened=""; outing=null; renderCities(keepScroll!==true); document.title="Tournée, "+t(M().label).toLowerCase(); }
   else { opened=""; outing=null; document.title="Tournée"; }
   if(keepScroll!==true) window.scrollTo(0,0);
@@ -1224,6 +1435,7 @@ function route(keepScroll){
     html+=`<span style="left:${x}%;top:${y}%;width:${z}px;height:${z}px;--d:${d}s;--w:${w}s"></span>`; }
   sky.innerHTML=html; })();
 window.addEventListener("popstate",route);
+loadAcct();
 setInterval(()=>{ if(!$("#home").hidden) renderCities(); },30000);
 /* Language */
 function applyLang(){
@@ -1239,6 +1451,7 @@ $("#homeLink").addEventListener("click",e=>{ e.preventDefault(); go(""); });
 $("#lang").addEventListener("change",e=>{
   lang=e.target.value; try{localStorage.setItem("tournee-lang",lang)}catch{}
   const keep=$("#start").value, keepEnd=$("#end").value; applyLang(); fillTimes(keep); fillEnd(keepEnd); route(true);
+  updateAcctBtn(); if(!$("#accountView").hidden) renderAccount(); if(!$("#privacyView").hidden) renderPrivacy();
   if(!$("#planner").hidden){ if(outing){ applyOuting(outing,"lang"); } else { cityTexts(); renderFriends(); if(lastPlan) renderPlan(lastPlan,lastIsExample,true); } }
 });
 applyLang();
