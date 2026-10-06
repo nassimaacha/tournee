@@ -50,7 +50,7 @@ function member(raw, meta, prev = {}) {
     vibe: list.includes(raw?.vibe) ? raw.vibe : (prev.vibe || ""),
     flag: raw?.flag === undefined ? !!prev.flag : !!raw.flag,
     level: Number.isInteger(raw?.level) && raw.level >= 0 && raw.level <= 4 ? raw.level : (prev.level ?? null),
-    adult: raw?.adult === undefined ? (prev.adult ?? true) : !!raw.adult,
+    minor: raw?.minor === undefined ? !!prev.minor : !!raw.minor,
   };
 }
 
@@ -75,7 +75,7 @@ async function sessionUid(req) {
 function publicView(id, o) {
   const { admin, ...meta } = o.meta;
   const members = Object.entries(o.members)
-    .map(([mid, m]) => ({ mid, uid: m.uid || null, adult: m.adult !== false, nick: m.nick, level: m.level ?? null, vibe: m.vibe, flag: m.flag, host: !!m.host, t: m.t }))
+    .map(([mid, m]) => ({ mid, uid: m.uid || null, minor: !!m.minor, nick: m.nick, level: m.level ?? null, vibe: m.vibe, flag: m.flag, host: !!m.host, t: m.t }))
     .sort((a, b) => a.t - b.t);
   return { id, ...meta, members, plan: o.plan };
 }
@@ -151,8 +151,7 @@ module.exports = async (req, res) => {
       const prev = o.members[body.mid];
       if (!prev) return res.status(404).json({ error: "not_found" });
       if (!isAdmin && !same(body.token, prev.token) && !(me && prev.uid === me)) return res.status(403).json({ error: "forbidden" });
-      // only the host can change someone's 18+ status inside a group
-      const m = member(isAdmin ? body.member : { ...(body.member || {}), adult: undefined }, o.meta, prev);
+      const m = member(body.member, o.meta, prev);
       await kv([["HSET", k.members, body.mid, JSON.stringify(m)], ...touch(id)]);
       o.members[body.mid] = m;
       return res.status(200).json({ outing: publicView(id, o) });

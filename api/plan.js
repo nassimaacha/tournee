@@ -184,7 +184,7 @@ Règles :
 - Le coût total par personne ne doit pas dépasser ${friends.every(f => f.plus) ? `environ ${minB} ${c.cur} (tout le monde a un gros budget, tu peux aller un peu au delà)` : `${minB} ${c.cur} (le plus petit budget du groupe)`}. Personne ne doit se sentir exclu.
 ${ticketRule(input0(stops, friends), mode)}
 - Chaque envie exprimée dans le groupe doit être servie au moins une fois. Les personnes sans préférence suivent le groupe.
-${friends.some(f => !f.adult) ? "- IMPORTANT : au moins une personne du groupe a moins de 18 ans. Propose UNIQUEMENT des lieux ouverts à tous les âges et sans alcool : aucun bar, club, rooftop bar, pub, bar à cocktails, karaoké réservé aux adultes ni lieu interdit aux mineurs. Les envies liées à l'alcool deviennent des équivalents sans alcool (café, salon de thé, glacier, bowling, jeux, concert tout public)." : ""}
+${friends.some(f => f.minor) ? "- IMPORTANT : au moins une personne du groupe a moins de 18 ans. Propose UNIQUEMENT des lieux ouverts à tous les âges et sans alcool : aucun bar, club, rooftop bar, pub, bar à cocktails, karaoké réservé aux adultes ni lieu interdit aux mineurs. Les envies liées à l'alcool deviennent des équivalents sans alcool (café, salon de thé, glacier, bowling, jeux, concert tout public)." : ""}
 ${rules}
 - Prix réalistes en ${c.curName} : prix_pp et total_pp sont des nombres dans cette monnaie.
 ${accuracy}
@@ -309,7 +309,7 @@ module.exports = async (req, res) => {
       nick: clean(f?.nick, 20) || "Quelqu'un",
       budget: Number.isFinite(b) ? Math.min(c.max, Math.max(0, Math.round(b))) : 0,
       plus: f?.plus === true,
-      adult: f?.adult !== false,
+      minor: f?.minor === true,
       level: Number.isInteger(f?.level) ? f.level : null,
       vibe: VIBES[mode][f?.vibe] || null,
       flag: !!(f?.flag ?? f?.sober),
