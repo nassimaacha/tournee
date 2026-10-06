@@ -583,8 +583,22 @@ let dispPref=(()=>{ try{ return localStorage.getItem("tournee-cur")||"local"; }c
 const localCode=()=>CODE_OF[city.pre+"|"+city.post]||"EUR";
 const dispCode=()=>dispPref==="local"?localCode():dispPref;
 const nice=x=>x<20?Math.round(x):x<200?Math.round(x/5)*5:x<2000?Math.round(x/10)*10:x<20000?Math.round(x/100)*100:Math.round(x/1000)*1000;
-const levelLocal=j=>j==null?null:(localCode()==="EUR"?LEVELS[j]:nice(LEVELS[j]*RATES[localCode()]));
-const levelIn=(j,code)=>code===localCode()?levelLocal(j):(code==="EUR"?LEVELS[j]:nice(LEVELS[j]*RATES[code]));
+// budget circles: euros stay 5/20/50/100/150, dollars start at 5 and end in 0 or 5, every other currency ends in 0
+function roundy(v){
+  const e=Math.pow(10,Math.floor(Math.log10(v)));
+  let best=e; for(const m of [1,1.5,2,2.5,3,4,5,6,7,8,9,10]){ if(Math.abs(m*e-v)<Math.abs(best-v)) best=m*e; }
+  if(Math.round(best/e)===9) best=10*e;   // 90 reads better as 100
+  return Math.round(best);
+}
+// budget circles: euros stay 5/20/50/100/150; everything else is one digit followed by zeros (or 15/25 style), dollars start at 5, others at 10 minimum
+function budgetIn(j,code){
+  if(code==="EUR") return LEVELS[j];
+  if(code==="USD" && j===0) return 5;
+  const r=roundy(LEVELS[j]*RATES[code]);
+  return code==="USD"?r:Math.max(10,r);
+}
+const levelLocal=j=>j==null?null:budgetIn(j,localCode());
+const levelIn=(j,code)=>budgetIn(j,code);
 const compact=n=>n>=10000?Math.round(n/1000)+"k":String(n);
 const levelLabel=j=>compact(levelIn(j,dispCode()))+(j===LEVELS.length-1?"+":"");
 function fmtCode(n,code){ if(code===localCode()) return fmt(n); if(code==="EUR") return n+" €"; if(code==="USD") return "$"+n; return n+" "+SYM[code]; }
