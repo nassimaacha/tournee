@@ -26,7 +26,7 @@ async function kv(cmds) {
   return (await r.json()).map(x => { if (x.error) throw new Error(x.error); return x.result; });
 }
 
-const publicView = u => ({ uid: u.uid, nick: u.profile.nick, level: u.profile.level, vibeNight: u.profile.vibeNight, vibeDay: u.profile.vibeDay, sober: u.profile.sober, student: u.profile.student });
+const publicView = u => ({ uid: u.uid, nick: u.profile.nick, level: u.profile.level, vibeNight: u.profile.vibeNight, vibeDay: u.profile.vibeDay, sober: u.profile.sober, student: u.profile.student, adult: !!u.profile.adult });
 
 function cleanProfile(p, prev) {
   const lv = Number.isInteger(p?.level) && p.level >= 0 && p.level <= 4 ? p.level : (p?.level === null ? null : prev.level ?? null);
@@ -37,6 +37,7 @@ function cleanProfile(p, prev) {
     vibeDay: VIBES.day.includes(p?.vibeDay) ? p.vibeDay : (p?.vibeDay === "" ? "" : prev.vibeDay || ""),
     sober: p?.sober === undefined ? !!prev.sober : !!p.sober,
     student: p?.student === undefined ? !!prev.student : !!p.student,
+    adult: p?.adult === undefined ? !!prev.adult : !!p.adult,
   };
 }
 
