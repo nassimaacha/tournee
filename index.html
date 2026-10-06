@@ -273,7 +273,10 @@ header{position:relative}
 @keyframes np-drop{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
 .inv-box{margin-top:10px;display:flex;flex-direction:column;gap:10px}
 .inv-box .fchips{margin:0}
-.review{padding:4px 0 24px}
+.review{padding:0}
+.review-form:not([hidden]){margin:8px 0 28px}
+#rvMsg:empty{display:none}
+.foot-links .footer-link{width:auto}
 #rvMsg:empty{display:none}
 .review-form{display:flex;flex-direction:column;gap:12px;max-width:420px;margin-top:12px}
 .review-form textarea{font:inherit;letter-spacing:.036em;color:var(--ink);background:var(--field);border:1px solid var(--line);border-radius:18px;padding:10px 16px;width:100%;resize:vertical}
@@ -291,6 +294,9 @@ header{position:relative}
 .legal{max-width:62ch;padding-bottom:48px}
 .legal h2{font-family:var(--serif);font-weight:400;font-size:30px;color:var(--accent);margin:32px 0 8px}
 .legal p{margin:0 0 12px;font-size:15px}
+.foot-links{width:100%;display:flex;justify-content:space-between;align-items:center;gap:12px}
+.review-link{background:none;border:0;padding:0;font:inherit;cursor:pointer}
+.review-link:hover,.footer-link:hover{color:var(--accent)}
 .footer-link{color:var(--muted);font-size:12px;text-decoration:underline;text-underline-offset:3px;width:100%}
 .partner-note{font-size:11px;opacity:.8}
 footer{color:var(--muted);font-size:12px;padding:28px 0 44px;border-top:1px solid var(--line)}
@@ -533,7 +539,6 @@ footer{color:var(--muted);font-size:12px;padding:28px 0 44px;border-top:1px soli
   </main>
 
   <div class="review" id="reviewBox">
-    <button class="suggest-link" id="reviewOpen" type="button" aria-expanded="false" aria-controls="reviewForm" data-i18n="reviewLink"></button>
     <form class="review-form" id="reviewForm" novalidate hidden>
       <span class="blabel" id="rvStarsL" data-i18n="reviewStarsL"></span>
       <div class="rv-stars" id="rvStars" role="radiogroup" aria-labelledby="rvStarsL"></div>
@@ -543,7 +548,7 @@ footer{color:var(--muted);font-size:12px;padding:28px 0 44px;border-top:1px soli
     </form>
     <p class="note" id="rvMsg" aria-live="polite" style="text-align:left;margin:8px 0 0"></p>
   </div>
-  <footer><div><span data-i18n="footer"></span><br><span class="partner-note" data-i18n="partnerNote"></span></div><p class="slogan" data-i18n="slogan"></p><a href="/privacy" class="footer-link" id="privacyLink" data-i18n="privacy"></a></footer>
+  <footer><div><span data-i18n="footer"></span><br><span class="partner-note" data-i18n="partnerNote"></span></div><p class="slogan" data-i18n="slogan"></p><div class="foot-links"><a href="/privacy" class="footer-link" id="privacyLink" data-i18n="privacy"></a><button class="footer-link review-link" id="reviewOpen" type="button" aria-expanded="false" aria-controls="reviewForm" data-i18n="reviewLink"></button></div></footer>
 </div>
 
 <script>
@@ -1428,7 +1433,7 @@ function renderStars(){
   $("#rvStars").innerHTML=[1,2,3,4,5].map(n=>`<button type="button" role="radio" aria-checked="${n===rvStars}" aria-label="${esc(t("starAria",{n}))}" data-star="${n}" class="${n<=rvStars?"lit":""}">★</button>`).join("");
 }
 $("#reviewOpen").onclick=()=>{ const f=$("#reviewForm"), open=f.hidden; f.hidden=!open; $("#reviewOpen").setAttribute("aria-expanded",String(open));
-  if(open){ renderStars(); if(acct&&!$("#rvName").value) $("#rvName").value=acct.me.nick||""; $("#rvMsg").textContent=""; } };
+  if(open){ $("#reviewBox").scrollIntoView({behavior:calm()?"auto":"smooth",block:"center"}); renderStars(); if(acct&&!$("#rvName").value) $("#rvName").value=acct.me.nick||""; $("#rvMsg").textContent=""; } };
 $("#rvStars").addEventListener("click",e=>{ const b=e.target.closest("[data-star]"); if(!b) return; rvStars=+b.dataset.star; renderStars(); $("#rvStars").querySelector(`[data-star="${rvStars}"]`).focus(); });
 $("#rvStars").addEventListener("keydown",e=>{ if(e.key!=="ArrowRight"&&e.key!=="ArrowLeft") return; e.preventDefault(); rvStars=Math.min(5,Math.max(1,(rvStars||0)+(e.key==="ArrowRight"?1:-1))); renderStars(); $("#rvStars").querySelector(`[data-star="${rvStars}"]`).focus(); });
 $("#reviewForm").addEventListener("submit",async e=>{ e.preventDefault();
