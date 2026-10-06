@@ -1253,10 +1253,11 @@ function openCity(c){
 let opened="";
 
 /* ===== Accounts ===== */
+const CONTACT_EMAIL="tournee.help@gmail.com";
 async function renderPrivacy(){
   const fill=mail=>$("#privacyText").innerHTML=PRIVACY[lang].replaceAll("{email}",mail?`<a href="mailto:${esc(mail)}">${esc(mail)}</a>`:"[e-mail]");
-  fill(acctCfg?.contact);
-  if(!acctCfg){ try{ acctCfg=await fetch("/api/account").then(r=>r.json()); fill(acctCfg.contact); }catch{} }
+  fill(acctCfg?.contact||CONTACT_EMAIL);
+  if(!acctCfg){ try{ acctCfg=await fetch("/api/account").then(r=>r.json()); fill(acctCfg.contact||CONTACT_EMAIL); }catch{} }
 }
 const PRIVACY={
 fr:`<p>Dernière mise à jour : octobre 2026.</p>
