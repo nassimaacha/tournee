@@ -9,6 +9,9 @@ const VIBES = {
 };
 const LANGS = { fr: "français", en: "anglais", es: "espagnol" };
 const CITIES = {
+  "riyadh": { dry: true, tz: "Asia/Riyadh", cultureNotes: "Musées et sites historiques : Musée national, forteresse de Masmak, Diriyah (At-Turaif, classé UNESCO). Il fait très chaud une grande partie de l'année : intérieur l'après midi, extérieur en fin de journée. Tenue correcte exigée.", name: "Riyad", cur: "SAR", curName: "riyals saoudiens (SAR)", min: 0, max: 600,
+    transit: "en métro de Riyad, qui ferme vers minuit, sinon VTC",
+    notes: "L'alcool est totalement interdit en Arabie saoudite : AUCUN bar ni alcool, jamais. Propose des cafés de spécialité, lounges, restaurants, desserts, Boulevard City, concerts et événements, karaoké, bowling, sorties en soirée en famille ou entre amis. Tenue correcte et règles locales à respecter." },
   "vienna": { tz: "Europe/Vienna", cultureNotes: "Beaucoup de musées ont des tarifs étudiants ; le MuseumsQuartier et le Prater se visitent gratuitement.", name: "Vienne", cur: "€", curName: "euros", min: 0, max: 500,
     transit: "en U-Bahn, qui roule toute la nuit le vendredi, le samedi et les veilles de jours fériés, sinon bus de nuit (NightLine)",
     notes: "Âge légal : 16 ans pour la bière et le vin, 18 ans pour les alcools forts. Le Gürtel concentre beaucoup de bars sous les arches du métro." },
@@ -168,7 +171,7 @@ Construis UN plan de soirée qui convient à tout le groupe ci dessous.`;
 - Tiens compte du jour : évite les lieux habituellement fermés ce jour là.
 - Contexte local : ${c.cultureNotes}`
     : `- Exactement ${stops} étape(s)${stops > 1 ? ", proches les unes des autres (à pied ou 1 ou 2 stations de métro)" : ""}.
-- Si quelqu'un ne boit pas d'alcool, chaque bar doit avoir de vraies options sans alcool.
+${c.dry ? "- Aucun alcool dans cette ville : ne propose jamais de bar." : "- Si quelqu'un ne boit pas d'alcool, chaque bar doit avoir de vraies options sans alcool."}
 - Contexte local : ${c.notes}`;
   return `${intro}
 
