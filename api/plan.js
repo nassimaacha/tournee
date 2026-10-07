@@ -219,6 +219,16 @@ function detectLang(plan) {
   return ranked[0][1] >= 3 && ranked[0][1] >= ranked[1][1] * 1.5 ? ranked[0][0] : null;
 }
 
+// hard limit: never more stops than asked, keeping the ticketed ones the plan needs
+function trimStops(plan, max, need) {
+  if (!Array.isArray(plan.etapes) || plan.etapes.length <= max) return;
+  const keep = new Set();
+  plan.etapes.forEach((s, i) => { if (s.billet === true && keep.size < Math.min(need, max)) keep.add(i); });
+  for (let i = 0; i < plan.etapes.length && keep.size < max; i++) keep.add(i);
+  plan.etapes = plan.etapes.filter((_, i) => keep.has(i));
+  plan.total_pp = plan.etapes.reduce((n, s) => n + (Number(s.prix_pp) || 0), 0);
+}
+
 async function claude(key, messages) {
   const r = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
@@ -362,7 +372,7 @@ module.exports = async (req, res) => {
         const again = await claude(key, [
           { role: "user", content: prompt },
           { role: "assistant", content: text },
-          { role: "user", content: `Les textes sont dans la mauvaise langue. Réécris exactement le même plan, avec les mêmes lieux, mais avec TOUS les textes en ${LANGS[lang]}. Réponds avec le JSON complet, sans texte autour.` },
+          { role: "user", content: `Les textes sont dans la mauvaise langue. Réécris exactement le même plan, avec les mêmes lieux et EXACTEMENT ${input.stops} étape(s), mais avec TOUS les textes en ${LANGS[lang]}. Réponds avec le JSON complet, sans texte autour.` },
         ]);
         if (Array.isArray(again.plan.etapes) && again.plan.etapes.length) { text = again.text; plan = again.plan; }
       } catch (e) { console.error("language retry failed", e); }
@@ -384,7 +394,7 @@ module.exports = async (req, res) => {
           const fix = await claude(key, [
             { role: "user", content: prompt },
             { role: "assistant", content: text },
-            { role: "user", content: `${asks.join(" ")} Garde toutes les autres étapes identiques et respecte les mêmes règles. Réponds avec le JSON complet, sans texte autour.` },
+            { role: "user", content: `${asks.join(" ")} Garde toutes les autres étapes identiques, garde EXACTEMENT ${input.stops} étape(s) au total et respecte les mêmes règles. Réponds avec le JSON complet, sans texte autour.` },
           ]);
           if (Array.isArray(fix.plan.etapes) && fix.plan.etapes.length) {
             plan = fix.plan;
@@ -398,9 +408,11 @@ module.exports = async (req, res) => {
           }
         } catch (e) { console.error("retry failed", e); }
       }
+      trimStops(plan, input.stops, need);
       if (GKEY) await addTravelTimes(plan, c, lang, input.area, input.metro);
     }
 
+    trimStops(plan, input.stops, need);
     (plan.etapes || []).forEach(s => { delete s._why; delete s._ok; s.billet = s.billet === true; if (!input.end) s.heure = ""; });
     plan.excluded = excluded;
     return res.status(200).json({ plan });
