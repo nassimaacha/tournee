@@ -4,7 +4,7 @@
 // Keys live in Vercel environment variables: ANTHROPIC_API_KEY and GOOGLE_SERVER_KEY.
 
 const VIBES = {
-  night: { chill: "Chill, on discute", cocktails: "Bar à cocktails", dance: "Danser", karaoke: "Karaoké", food: "Bien manger", cheap: "Bar pas cher", music: "Concert ou DJ set", rooftop: "Rooftop" },
+  night: { chill: "Chill, on discute", cocktails: "Bar à cocktails", dance: "Danser", club: "Club / boîte de nuit", karaoke: "Karaoké", food: "Bien manger", cheap: "Bar pas cher", music: "Concert ou DJ set", rooftop: "Rooftop" },
   culture: { museums: "Musées", contemporary: "Art contemporain", galleries: "Expos et galeries", streetart: "Street art", architecture: "Architecture", parks: "Parcs et jardins", markets: "Marchés", views: "Balade et points de vue", conceptcafe: "Cafés concept (café à chats, jeux de société, livres, mangas, thèmes originaux)" },
 };
 const LANGS = { fr: "français", en: "anglais", es: "espagnol" };
