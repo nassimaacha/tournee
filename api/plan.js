@@ -9,6 +9,12 @@ const VIBES = {
 };
 const LANGS = { fr: "français", en: "anglais", es: "espagnol" };
 const CITIES = {
+  "khobar": { dry: true, tz: "Asia/Riyadh", cultureNotes: "Corniche de Khobar, quartier de la Water Tower, plages de Half Moon Bay, Ithra (centre culturel du roi Abdulaziz, à Dhahran tout proche). Il fait très chaud : intérieur l'après midi, Corniche en fin de journée. Tenue correcte exigée.", name: "Khobar", cur: "SAR", curName: "riyals saoudiens (SAR)", min: 0, max: 600,
+    transit: "à pied : il n'y a pas de métro, garde des étapes très proches les unes des autres",
+    notes: "L'alcool est totalement interdit en Arabie saoudite : AUCUN bar ni alcool, jamais. Propose des cafés de spécialité, lounges, restaurants, desserts, balades sur la Corniche, Ajdan Walk, bowling, karaoké et événements. Tenue correcte et règles locales à respecter." },
+  "prague": { tz: "Europe/Prague", cultureNotes: "Château de Prague, pont Charles, Vieille Ville, musées et galeries, parc de Letná. Beaucoup de musées ont des tarifs étudiants.", name: "Prague", cur: "Kč", curName: "couronnes tchèques (CZK)", min: 0, max: 5000,
+    transit: "en métro, qui roule jusque vers minuit, puis en tramways de nuit",
+    notes: "Âge légal pour l'alcool : 18 ans. La bière est très bon marché ; quartiers animés : Vieille Ville, Žižkov, Vinohrady, Karlín." },
   "riyadh": { dry: true, tz: "Asia/Riyadh", cultureNotes: "Musées et sites historiques : Musée national, forteresse de Masmak, Diriyah (At-Turaif, classé UNESCO). Il fait très chaud une grande partie de l'année : intérieur l'après midi, extérieur en fin de journée. Tenue correcte exigée.", name: "Riyad", cur: "SAR", curName: "riyals saoudiens (SAR)", min: 0, max: 600,
     transit: "en métro de Riyad, qui ferme vers minuit, sinon VTC",
     notes: "L'alcool est totalement interdit en Arabie saoudite : AUCUN bar ni alcool, jamais. Propose des cafés de spécialité, lounges, restaurants, desserts, Boulevard City, concerts et événements, karaoké, bowling, sorties en soirée en famille ou entre amis. Tenue correcte et règles locales à respecter." },
@@ -173,7 +179,9 @@ Construis UN plan de soirée qui convient à tout le groupe ci dessous.`;
     : `- Exactement ${stops} étape(s)${stops > 1 ? ", proches les unes des autres (à pied ou 1 ou 2 stations de métro)" : ""}.
 ${c.dry ? "- Aucun alcool dans cette ville : ne propose jamais de bar." : "- Si quelqu'un ne boit pas d'alcool, chaque bar doit avoir de vraies options sans alcool."}
 - Contexte local : ${c.notes}`;
-  return `${intro}
+  return `LANGUE DE RÉPONSE OBLIGATOIRE : ${LANGS[lang].toUpperCase()}. Tous les textes du JSON (titre, resume, compromis, type, pourquoi, trajet, retour) doivent être écrits en ${LANGS[lang]}, même si ces consignes sont en français.
+
+${intro}
 
 Groupe :
 ${groupText(friends, c, mode)}
@@ -195,6 +203,20 @@ ${accuracy}
 ${avoidRule(avoid)}${style(lang)}
 
 ${JSON_SHAPE}`;
+}
+
+// rough language check on the plan's own sentences (place names are ignored on purpose)
+const MARKERS = {
+  fr: [" les ", " des ", " et ", " une ", " pour ", " avec ", " du ", " est ", " au ", " vous ", " ton "],
+  es: [" los ", " las ", " y ", " una ", " para ", " con ", " del ", " es ", " al ", " tu ", " el "],
+  en: [" the ", " and ", " a ", " for ", " with ", " of ", " is ", " to ", " your ", " you "],
+};
+function detectLang(plan) {
+  const txt = " " + [plan.resume, plan.compromis, plan.retour, ...(plan.etapes || []).map(s => s.pourquoi)].filter(Boolean).join(" ").toLowerCase().replace(/[.,;:!?()"']/g, " ") + " ";
+  if (txt.trim().length < 40) return null;
+  const score = l => MARKERS[l].reduce((n, w) => n + (txt.split(w).length - 1), 0);
+  const ranked = Object.keys(MARKERS).map(l => [l, score(l)]).sort((a, b) => b[1] - a[1]);
+  return ranked[0][1] >= 3 && ranked[0][1] >= ranked[1][1] * 1.5 ? ranked[0][0] : null;
 }
 
 async function claude(key, messages) {
@@ -334,6 +356,17 @@ module.exports = async (req, res) => {
   try {
     const prompt = buildPrompt(input);
     let { text, plan } = await claude(key, [{ role: "user", content: prompt }]);
+    // safety net: the plan came back in the wrong language, ask once more
+    if (detectLang(plan) && detectLang(plan) !== lang) {
+      try {
+        const again = await claude(key, [
+          { role: "user", content: prompt },
+          { role: "assistant", content: text },
+          { role: "user", content: `Les textes sont dans la mauvaise langue. Réécris exactement le même plan, avec les mêmes lieux, mais avec TOUS les textes en ${LANGS[lang]}. Réponds avec le JSON complet, sans texte autour.` },
+        ]);
+        if (Array.isArray(again.plan.etapes) && again.plan.etapes.length) { text = again.text; plan = again.plan; }
+      } catch (e) { console.error("language retry failed", e); }
+    }
     const excluded = [];
 
     const need = ticketsNeeded(input.stops, friends);
