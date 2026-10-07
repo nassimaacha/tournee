@@ -5,7 +5,7 @@
 
 const VIBES = {
   night: { chill: "Chill, on discute", cocktails: "Bar à cocktails", dance: "Danser", karaoke: "Karaoké", food: "Bien manger", cheap: "Bar pas cher", music: "Concert ou DJ set", rooftop: "Rooftop" },
-  culture: { museums: "Musées", contemporary: "Art contemporain", galleries: "Expos et galeries", streetart: "Street art", architecture: "Architecture", parks: "Parcs et jardins", markets: "Marchés", views: "Balade et points de vue" },
+  culture: { museums: "Musées", contemporary: "Art contemporain", galleries: "Expos et galeries", streetart: "Street art", architecture: "Architecture", parks: "Parcs et jardins", markets: "Marchés", views: "Balade et points de vue", conceptcafe: "Cafés concept (café à chats, jeux de société, livres, mangas, thèmes originaux)" },
 };
 const LANGS = { fr: "français", en: "anglais", es: "espagnol" };
 const CITIES = {
@@ -171,7 +171,7 @@ Construis UN plan de soirée qui convient à tout le groupe ci dessous.`;
     : `Retour : ${metro ? c.transit : "taxi ou VTC possible"}`;
   const rules = mode === "culture"
     ? `- Exactement ${stops} étape(s)${stops > 1 ? ", proches les unes des autres" : ""}. Au moins ${Math.min(2, stops)} étape(s) doivent être de vrais lieux culturels ou de plein air : musée, expo, galerie, monument, parc, jardin, marché, point de vue, street art.
-- Une seule pause café ou snack maximum, jamais de bar ni d'alcool.
+- Une seule pause café ou snack maximum, jamais de bar ni d'alcool. Exception : un café concept (café à chats, jeux de société, livres, mangas, thème original) demandé par le groupe compte comme une vraie activité, pas comme une pause.
 - Le champ "type" décrit l'activité (ex : Musée, Parc, Galerie, Marché, Balade, Pause café).
 - Utilise les gratuités et les tarifs étudiants pour les personnes qui sont étudiantes.
 - Tiens compte du jour : évite les lieux habituellement fermés ce jour là.

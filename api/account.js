@@ -11,7 +11,7 @@ const SESSION_TTL = 60 * 60 * 24 * 60; // 60 days
 
 const VIBES = {
   night: ["chill", "cocktails", "dance", "karaoke", "food", "cheap", "music", "rooftop"],
-  day: ["museums", "contemporary", "galleries", "streetart", "architecture", "parks", "markets", "views"],
+  day: ["museums", "contemporary", "galleries", "streetart", "architecture", "parks", "markets", "views", "conceptcafe"],
 };
 const clean = (s, n) => String(s ?? "").replace(/[\r\n<>"`]/g, " ").replace(/\s+/g, " ").trim().slice(0, n);
 const rid = n => { const abc = "abcdefghjkmnpqrstuvwxyz23456789"; return [...crypto.randomBytes(n)].map(b => abc[b % abc.length]).join(""); };
