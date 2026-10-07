@@ -633,6 +633,7 @@ const VIBE_T = {
  chill:{fr:"Chill, on discute",en:"Chill, just chatting",es:"Tranqui, para charlar"},
  cocktails:{fr:"Bar à cocktails",en:"Cocktail bar",es:"Bar de cócteles"},
  dance:{fr:"Danser",en:"Dancing",es:"Bailar"},
+ club:{fr:"Club / boîte de nuit",en:"Club",es:"Discoteca"},
  karaoke:{fr:"Karaoké",en:"Karaoke",es:"Karaoke"},
  food:{fr:"Bien manger",en:"Good food",es:"Comer bien"},
  cheap:{fr:"Bar pas cher",en:"Cheap bar",es:"Bar barato"},
@@ -709,7 +710,7 @@ function fillEnd(val){ fillSel("end",WIN[mode].end,t("endPh"),val||"",true); }
 
 const MODES = {
   night:{theme:"dark", emoji:"🌙", panel:"panelNight", cta:"ctaNight", end:"endNight", flag:"flagNight", homeTitle:"nightTitle", homeText:"nightText", hero:"heroNight", label:"pickNight",
-    vibes:["chill","cocktails","dance","karaoke","food","cheap","music","rooftop"], picks:["cheap","dance","food"], flags:[false,false,true]},
+    vibes:["chill","cocktails","dance","club","karaoke","food","cheap","music","rooftop"], picks:["cheap","dance","food"], flags:[false,false,true]},
   day:{theme:"light", emoji:"🎨", panel:"panelDay", cta:"ctaDay", end:"endDay", flag:"flagDay", homeTitle:"dayTitle", homeText:"dayText", hero:"heroDay", label:"pickDay",
     vibes:["museums","contemporary","galleries","streetart","architecture","parks","markets","views","conceptcafe"], picks:["museums","streetart","parks"], flags:[true,true,true]}
 };
@@ -820,7 +821,7 @@ let city = CITIES.find(c=>c.id==="paris");
 const fmt = n => city.pre + n + city.post;
 let friends = [];
 const dryNight=()=>mode==="night" && !!(city && city.noAlcohol);
-const vibesHere=()=>M().vibes.filter(v=>!(dryNight() && (v==="cocktails"||v==="cheap")));
+const vibesHere=()=>M().vibes.filter(v=>!(dryNight() && (v==="cocktails"||v==="cheap"||v==="club")));
 const blankFriend=()=>({nick:"", level:null, vibe:"", flag:false, minor:false});
 const RATES={SAR:4.28,CZK:25,EUR:1,USD:1.14,GBP:0.86,CAD:1.58,MXN:21.1,JPY:170,KRW:1600,THB:37.7,SGD:1.48,AED:4.2,MAD:10.7,EGP:56,BRL:6.3,ZAR:20.6,AUD:1.74};
 const CODE_OF={"| Kč":"CZK","| SAR":"SAR","| €":"EUR","£|":"GBP","$|":"USD","US$|":"USD","CA$|":"CAD","| MXN":"MXN","¥|":"JPY","₩|":"KRW","฿|":"THB","S$|":"SGD","| AED":"AED","| MAD":"MAD","| EGP":"EGP","R$|":"BRL","R|":"ZAR","A$|":"AUD"};
