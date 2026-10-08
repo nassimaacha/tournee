@@ -22,6 +22,7 @@ const CITY_T = {
  "riyadh":{fr:"Riyad",en:"Riyadh",es:"Riad"},
  "khobar":{fr:"Khobar",en:"Khobar",es:"Khobar"},
  "prague":{fr:"Prague",en:"Prague",es:"Praga"},
+ "istanbul":{fr:"Istanbul",en:"Istanbul",es:"Estambul"},
  "tokyo":{fr:"Tokyo",en:"Tokyo",es:"Tokio"},
  "seoul":{fr:"Séoul",en:"Seoul",es:"Seúl"},
  "bangkok":{fr:"Bangkok",en:"Bangkok",es:"Bangkok"},
