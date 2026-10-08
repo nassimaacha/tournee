@@ -1092,7 +1092,15 @@ const studentGroup=()=>mode==="day" && friends.some(f=>f.flag);
 // GetYourGuide in the site's current language: French and Spanish sites, English otherwise
 const GYG_SITE={fr:"https://www.getyourguide.fr",es:"https://www.getyourguide.es",en:"https://www.getyourguide.com"};
 const GYG_STUDENT={fr:" billet étudiant",es:" entrada estudiante",en:" student ticket"};
+// Fever (impact.com) for ticketed night stops in the cities Fever covers; GetYourGuide for everything else
+const FEVER_LINK="https://fever.pxf.io/c/7915007/1356939/16345";
+const FEVER_CITY={london:"london",dubai:"dubai",paris:"paris",madrid:"madrid","new-york":"new-york","los-angeles":"los-angeles",casablanca:"casablanca",barcelona:"barcelona",berlin:"berlin",amsterdam:"amsterdam",lisbon:"lisbon",rome:"rome",miami:"miami",houston:"houston","mexico-city":"mexico-city",montreal:"montreal",riyadh:"riyadh",tokyo:"tokyo",seoul:"seoul",singapore:"singapore","buenos-aires":"buenos-aires",rio:"rio-de-janeiro","sao-paulo":"sao-paulo",sydney:"sydney",melbourne:"melbourne",toronto:"toronto"};
 function bookUrl(s){
+  const fc=mode==="night"&&FEVER_CITY[city.id];
+  if(fc){
+    const dest=`https://feverup.com/${["fr","es","en"].includes(lang)?lang:"en"}/${fc}/search?q=${encodeURIComponent(s.lieu||"")}`;
+    return `${FEVER_LINK}?u=${encodeURIComponent(dest)}`;
+  }
   const q=`${s.lieu} ${CITY_T[city.id]?.[lang]||CITY_T[city.id]?.en||""}${studentGroup()?GYG_STUDENT[lang]||GYG_STUDENT.en:""}`.trim();
   return `${GYG_SITE[lang]||GYG_SITE.en}/s/?q=${encodeURIComponent(q)}&partner_id=${GYG_PARTNER}&cmp=tournee&locale_autoredirect_optout=true`;
 }
