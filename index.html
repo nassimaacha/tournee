@@ -356,7 +356,10 @@ header{position:relative}
 .review{padding:0}
 .review-form:not([hidden]){margin:8px 0 28px}
 #rvMsg:empty{display:none}
-.foot-links .legal-links{display:inline-flex;gap:16px;flex-wrap:wrap}
+.foot-links .legal-links{display:inline-grid;grid-template-columns:auto auto;gap:16px 28px;justify-items:start}
+/* "Install the app" sits on the same line as Privacy, Terms below */
+#privacyLink{order:1}.install-link{order:2}#termsLink{order:3}
+.install-link{background:none;border:0;padding:0;font:inherit;font-size:12px;cursor:pointer;width:auto!important;white-space:nowrap;text-align:left}
 .footer-link{width:auto}
 #rvMsg:empty{display:none}
 .review-form{display:flex;flex-direction:column;gap:12px;max-width:420px;margin-top:12px}
