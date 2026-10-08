@@ -5,7 +5,7 @@
 // No photo and no Google token is kept.
 
 const crypto = require("crypto");
-const { sendPartyMail } = require("./_mail");
+const { sendPartyMail, sendResetMail } = require("./_mail");
 const LANG_OK = ["fr", "en", "es"];
 const KV_URL = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
 const KV_TOKEN = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
@@ -219,6 +219,44 @@ module.exports = async (req, res) => {
       return res.status(200).json(await openSession(u));
     }
 
+    /* ---- forgot password: email a one time link (30 min). The answer never says whether the email exists. ---- */
+    if (action === "forgot") {
+      const email = String(body.email || "").trim().toLowerCase().slice(0, 120);
+      if (!EMAIL_RE.test(email)) return res.status(400).json({ error: "email" });
+      const h = crypto.createHash("sha256").update(email).digest("hex");
+      const ip = String(req.headers["x-forwarded-for"] || "").split(",")[0].trim() || "?";
+      const rl = "rf:" + crypto.createHash("sha256").update(ip + "|" + email).digest("hex").slice(0, 32);
+      const [n] = await kv([["INCR", rl], ["EXPIRE", rl, 900]]);
+      if (n > 3) return res.status(200).json({ ok: true }); // quietly ignore spam
+      const [pwUid, gUid] = await kv([["GET", "em:" + h], ["GET", "ge:" + h]]);
+      const lg = LANG_OK.includes(body.lang) ? body.lang : "fr";
+      if (pwUid) {
+        const token = crypto.randomBytes(32).toString("hex");
+        await kv([["SET", "pr:" + crypto.createHash("sha256").update(token).digest("hex"), pwUid, "EX", 1800]]);
+        await sendResetMail({ to: email, lang: lg, token });
+      } else if (gUid) {
+        await sendResetMail({ to: email, lang: lg, google: true });
+      }
+      return res.status(200).json({ ok: true });
+    }
+
+    if (action === "reset") {
+      const token = String(body.token || "");
+      const password = String(body.password || "");
+      if (!/^[a-f0-9]{64}$/.test(token)) return res.status(400).json({ error: "bad_link" });
+      if (password.length < 8 || password.length > 200) return res.status(400).json({ error: "weak" });
+      const prKey = "pr:" + crypto.createHash("sha256").update(token).digest("hex");
+      const [uid] = await kv([["GET", prKey], ["DEL", prKey]]); // one use only
+      const u = uid ? await getUser(uid) : null;
+      if (!u || !u.pw) return res.status(400).json({ error: "bad_link" });
+      const salt = crypto.randomBytes(16).toString("hex");
+      u.pw = { salt, hash: (await scrypt(password, salt)).toString("hex") };
+      // sign out every device, then sign in here with the new password
+      const [tokens] = await kv([["SMEMBERS", `us:${uid}`]]);
+      await kv([["SET", `u:${uid}`, JSON.stringify(u)], ...(tokens || []).map(t => ["DEL", `s:${t}`]), ["DEL", `us:${uid}`]]);
+      return res.status(200).json(await openSession(u));
+    }
+
     if (action === "login") {
       if (!CLIENT_ID) return res.status(500).json({ error: "no_google" });
       const g = await verifyGoogle(String(body.credential || ""));
@@ -235,7 +273,8 @@ module.exports = async (req, res) => {
       const lg = LANG_OK.includes(body.lang) ? body.lang : u.lang;
       if (!!u.admin !== isAdminEmail(g.email) || (g.email && u.email !== g.email) || u.lang !== lg) {
         u.admin = isAdminEmail(g.email); if (g.email) u.email = g.email; u.lang = lg;
-        await kv([["SET", `u:${uid}`, JSON.stringify(u)]]);
+        const ge = g.email ? [["SET", "ge:" + crypto.createHash("sha256").update(g.email.trim().toLowerCase()).digest("hex"), uid]] : [];
+        await kv([["SET", `u:${uid}`, JSON.stringify(u)], ...ge]);
       }
       const token = crypto.randomBytes(24).toString("hex");
       await kv([["SET", `s:${token}`, uid, "EX", SESSION_TTL], ["SADD", `us:${uid}`, token]]);
@@ -389,8 +428,10 @@ module.exports = async (req, res) => {
       if (fid === u.uid) return res.status(400).json({ error: "self" });
       const [count] = await kv([["SCARD", `fr:${u.uid}`]]);
       if (count >= 200) return res.status(409).json({ error: "full" });
-      await kv([["SADD", `fr:${u.uid}`, fid], ["SADD", `fr:${fid}`, u.uid]]);
+      const [isNew] = await kv([["SADD", `fr:${u.uid}`, fid], ["SADD", `fr:${fid}`, u.uid]]);
       const f = await getUser(fid);
+      // tell the link's owner by email that someone added them (only for a new friendship)
+      if (isNew && f && f.email && f.profile?.mail !== false) await sendPartyMail({ to: f.email, lang: f.lang, kind: "friend", from: u.profile.nick });
       return res.status(200).json({ added: f ? f.profile.nick : "", friends: await friendsOf(u.uid) });
     }
 
@@ -409,6 +450,7 @@ module.exports = async (req, res) => {
       const [friendIds, tokens] = await kv([["SMEMBERS", `fr:${u.uid}`], ["SMEMBERS", `us:${u.uid}`]]);
       const cmds = (friendIds || []).map(f => ["SREM", `fr:${f}`, u.uid]);
       (tokens || []).forEach(t => cmds.push(["DEL", `s:${t}`]));
+      if (u.email && !u.pw) cmds.push(["DEL", "ge:" + crypto.createHash("sha256").update(u.email.trim().toLowerCase()).digest("hex")]);
       cmds.push(["DEL", `u:${u.uid}`, `fr:${u.uid}`, `us:${u.uid}`, `fc:${u.code}`, `h:${u.uid}`, `ha:${u.uid}`, `g:${u.uid}`, `n:${u.uid}`, `nseen:${u.uid}`]);
       if (u.sk) cmds.push(["DEL", u.sk]);
       await kv(cmds);
