@@ -161,7 +161,7 @@ function buildPrompt({ c, mode, lang, avoid, stops, friends, area, start, end, m
   const minB = Math.min(...friends.map(f => f.budget));
   const intro = mode === "culture"
     ? `Tu es Tournée, une IA qui organise des sorties culturelles à ${c.name} pour des groupes d'étudiants de 18 à 25 ans.
-Construis UN plan de journée (musées, expos, galeries, street art, architecture, parcs, jardins, marchés, points de vue) qui convient à tout le groupe ci dessous.`
+Construis UN plan de journée qui suit les envies du groupe ci dessous.`
     : `Tu es Tournée, une IA qui organise des soirées à ${c.name} pour des groupes d'étudiants de 18 à 25 ans.
 Construis UN plan de soirée qui convient à tout le groupe ci dessous.`;
   const moves = mode === "culture"
@@ -170,10 +170,10 @@ Construis UN plan de soirée qui convient à tout le groupe ci dessous.`;
   const rules = mode === "culture"
     ? `- Exactement ${stops} étape(s)${stops > 1 ? ", proches les unes des autres" : ""}. Chaque étape doit correspondre aux envies du groupe.${friends.some(f => MUSEUM_VIBES.has(f.vibeKey)) ? "" : stops >= 4 ? " Personne n'a choisi musées, art ou expos : pas de musée, d'expo ni de galerie, sauf UNE seule étape au maximum si elle s'insère vraiment naturellement entre deux autres. Ce n'est jamais obligatoire." : " IMPORTANT : personne n'a choisi musées, art ou expos, donc ne propose AUCUN musée, AUCUNE expo et AUCUNE galerie."}
 - Une seule pause café ou snack maximum, jamais de bar ni d'alcool. Exception : un café concept (café à chats, jeux de société, livres, mangas, thème original) demandé par le groupe compte comme une vraie activité, pas comme une pause.
-- Le champ "type" décrit l'activité (ex : Musée, Parc, Galerie, Marché, Balade, Pause café).
+- Le champ "type" décrit l'activité (ex : Parc, Marché, Balade, Café concept, Pause café, Musée).
 - Utilise les gratuités et les tarifs étudiants pour les personnes qui sont étudiantes.
 - Tiens compte du jour : évite les lieux habituellement fermés ce jour là.
-- Contexte local : ${c.cultureNotes}`
+- Contexte local, à utiliser seulement si ça correspond aux envies du groupe : ${c.cultureNotes}`
     : `- Exactement ${stops} étape(s)${stops > 1 ? ", proches les unes des autres (à pied ou 1 ou 2 stations de métro)" : ""}.
 ${c.dry ? "- Aucun alcool dans cette ville : ne propose jamais de bar." : "- Si quelqu'un ne boit pas d'alcool, chaque bar doit avoir de vraies options sans alcool."}
 - Contexte local : ${c.notes}`;
