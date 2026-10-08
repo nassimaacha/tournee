@@ -130,6 +130,15 @@ module.exports = async (req, res) => {
     const isAdmin = same(body.adminToken, o.meta.admin);
     const me = await sessionUid(req);
 
+    // the host (admin link) signed in: make sure the party is linked to their account and shows in "My parties"
+    if (action === "claim") {
+      if (!isAdmin || !me) return res.status(403).json({ error: "forbidden" });
+      const cmds = [["SADD", `g:${me}`, id], ["EXPIRE", `g:${me}`, TTL]];
+      if (!o.meta.owner) cmds.push(["SET", k.meta, JSON.stringify({ ...o.meta, owner: me }), "EX", TTL]);
+      const [added] = await kv(cmds);
+      return res.status(200).json({ ok: true, added: !!added });
+    }
+
     // host only: delete the group for everyone
     if (action === "delete") {
       const hostUid = Object.values(o.members).find(m => m.host && m.uid)?.uid;
