@@ -135,20 +135,11 @@ const timing = (start, end) => !isTime(start)
 const JSON_SHAPE = `Réponds UNIQUEMENT avec un objet JSON valide, sans texte autour, de cette forme :
 {"titre":"nom accrocheur (5 mots max)","resume":"une phrase","compromis":"une ou deux phrases qui expliquent comment le plan respecte chaque personne, en citant les pseudos","etapes":[{"heure":"","type":"type d'étape","lieu":"nom exact du lieu","quartier":"quartier ou rue","pourquoi":"une phrase","prix_pp":10,"billet":false,"trajet":"comment venir de l'étape précédente","lat":48.8534,"lng":2.3711}],"total_pp":28,"retour":"comment rentrer","retour_station":"nom de l'arrêt ou de la station","retour_lat":48.8532,"retour_lng":2.3692}`;
 
-// how many stops must have a booking link: none for 1 stop, 1 for 2 or 3, 2 for 4 or 5.
-const linksNeeded = stops => stops <= 1 ? 0 : stops <= 3 ? 1 : 2;
-// the AI is only pushed toward paid tickets when nobody picked the smallest budget
+// how many stops must be real places with a bookable ticket: 1 for 2 or 3 stops, 2 for 4 or 5.
+// skipped when someone picked the smallest budget (a paid ticket would break it). No link is ever forced.
 function ticketsNeeded(stops, friends) {
   if (friends.some(f => f.level === 0)) return 0;
-  return linksNeeded(stops);
-}
-// safety net: if the plan still has too few bookable stops, give booking links to the priciest other stops
-function ensureLinks(plan, n) {
-  if (!Array.isArray(plan.etapes)) return;
-  let missing = n - plan.etapes.filter(s => s.billet === true).length;
-  if (missing <= 0) return;
-  plan.etapes.map((s, i) => [i, Number(s.prix_pp) || 0]).filter(([i]) => plan.etapes[i].billet !== true)
-    .sort((a, b) => b[1] - a[1]).forEach(([i]) => { if (missing-- > 0) plan.etapes[i].billet = true; });
+  return stops <= 1 ? 0 : stops <= 3 ? 1 : 2;
 }
 const input0 = (stops, friends) => ticketsNeeded(stops, friends);
 function ticketRule(n, mode) {
@@ -422,7 +413,6 @@ module.exports = async (req, res) => {
     }
 
     trimStops(plan, input.stops, need);
-    ensureLinks(plan, linksNeeded(input.stops));
     (plan.etapes || []).forEach(s => { delete s._why; delete s._ok; s.billet = s.billet === true; if (!input.end) s.heure = ""; });
     plan.excluded = excluded;
     return res.status(200).json({ plan });
