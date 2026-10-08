@@ -354,12 +354,15 @@ module.exports = async (req, res) => {
         mailTo.push(fid); sent++;
       });
       if (cmds.length) await kv(cmds);
-      // email each invited friend who has an email and didn't turn invite emails off
       if (mailTo.length) {
         const raws = await kv(mailTo.map(fid => ["GET", `u:${fid}`]));
-        await Promise.allSettled(raws.map(raw => {
-          const f = raw ? JSON.parse(raw) : null;
-          if (!f || !f.email || f.profile?.mail === false) return null;
+        const invited = raws.map(raw => raw ? JSON.parse(raw) : null).filter(Boolean);
+        // the host gets a notification confirming who received the invite
+        const note = { nid: rid(10), type: "sent", names: invited.map(f => f.profile?.nick || "?"), outing: oid, city: meta.city, mode: meta.mode, at: Date.now() };
+        await kv([["LPUSH", `n:${u.uid}`, JSON.stringify(note)], ["LTRIM", `n:${u.uid}`, 0, 49]]);
+        // email each invited friend who has an email and didn't turn invite emails off
+        await Promise.allSettled(invited.map(f => {
+          if (!f.email || f.profile?.mail === false) return null;
           return sendPartyMail({ to: f.email, lang: f.lang, kind: "invite", from: u.profile.nick, city: meta.city, mode: meta.mode, outing: oid });
         }));
       }
