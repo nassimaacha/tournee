@@ -26,6 +26,10 @@ async function kv(cmds) {
   return (await r.json()).map(x => { if (x.error) throw new Error(x.error); return x.result; });
 }
 
+// the owner's account: whoever signs in with the email set in ADMIN_EMAIL (Vercel) gets admin rights.
+// The email itself is only compared at sign in, never stored for Google accounts.
+const isAdminEmail = e => !!process.env.ADMIN_EMAIL && !!e && String(e).trim().toLowerCase() === process.env.ADMIN_EMAIL.trim().toLowerCase();
+const meView = u => ({ ...publicView(u), code: u.code, admin: !!u.admin });
 const publicView = u => ({ uid: u.uid, nick: u.profile.nick, level: u.profile.level, vibeNight: u.profile.vibeNight, vibeDay: u.profile.vibeDay, sober: u.profile.sober, student: u.profile.student, minor: !!u.profile.minor });
 
 function cleanProfile(p, prev) {
@@ -91,7 +95,7 @@ const scrypt = (pw, salt) => new Promise((ok, ko) => crypto.scrypt(pw, salt, 64,
 async function openSession(u) {
   const token = crypto.randomBytes(24).toString("hex");
   await kv([["SET", `s:${token}`, u.uid, "EX", SESSION_TTL], ["SADD", `us:${u.uid}`, token]]);
-  return { token, me: { ...publicView(u), code: u.code }, friends: await friendsOf(u.uid), history: await historyOf(u.uid), groups: await groupsOf(u.uid), ...(await notifsOf(u.uid)) };
+  return { token, me: meView(u), friends: await friendsOf(u.uid), history: await historyOf(u.uid), groups: await groupsOf(u.uid), ...(await notifsOf(u.uid)) };
 }
 
 const INVITE_TTL = 60 * 60 * 24 * 30;
@@ -124,7 +128,7 @@ async function verifyGoogle(credential) {
   const t = await r.json();
   const okIss = t.iss === "accounts.google.com" || t.iss === "https://accounts.google.com";
   if (!okIss || t.aud !== CLIENT_ID || Number(t.exp) * 1000 < Date.now() || !t.sub) return null;
-  return { sub: String(t.sub), name: clean(t.given_name || t.name || "", 20) };
+  return { sub: String(t.sub), name: clean(t.given_name || t.name || "", 20), email: (t.email_verified === true || t.email_verified === "true") ? String(t.email || "") : "" };
 }
 
 module.exports = async (req, res) => {
@@ -176,6 +180,7 @@ module.exports = async (req, res) => {
         return res.status(401).json({ error: "creds" });
       }
       await kv([["DEL", rlKey]]);
+      if (!!u.admin !== isAdminEmail(u.email)) { u.admin = isAdminEmail(u.email); await kv([["SET", `u:${u.uid}`, JSON.stringify(u)]]); }
       return res.status(200).json(await openSession(u));
     }
 
@@ -192,9 +197,10 @@ module.exports = async (req, res) => {
         u = { uid, code, sk: subKey, created: Date.now(), profile: cleanProfile({ nick: g.name || "Moi" }, {}) };
         await kv([["SET", `u:${uid}`, JSON.stringify(u)], ["SET", subKey, uid], ["SET", `fc:${code}`, uid]]);
       }
+      if (!!u.admin !== isAdminEmail(g.email)) { u.admin = isAdminEmail(g.email); await kv([["SET", `u:${uid}`, JSON.stringify(u)]]); }
       const token = crypto.randomBytes(24).toString("hex");
       await kv([["SET", `s:${token}`, uid, "EX", SESSION_TTL], ["SADD", `us:${uid}`, token]]);
-      return res.status(200).json({ token, me: { ...publicView(u), code: u.code }, friends: await friendsOf(uid), history: await historyOf(uid), groups: await groupsOf(uid), ...(await notifsOf(uid)) });
+      return res.status(200).json({ token, me: meView(u), friends: await friendsOf(uid), history: await historyOf(uid), groups: await groupsOf(uid), ...(await notifsOf(uid)) });
     }
 
     if (action === "peek") {
@@ -208,7 +214,14 @@ module.exports = async (req, res) => {
     if (!a) return res.status(401).json({ error: "signed_out" });
     const { u, token } = a;
 
-    if (action === "me") return res.status(200).json({ me: { ...publicView(u), code: u.code }, friends: await friendsOf(u.uid), history: await historyOf(u.uid), groups: await groupsOf(u.uid), ...(await notifsOf(u.uid)) });
+    if (action === "admin") {
+      if (!u.admin) return res.status(403).json({ error: "forbidden" });
+      const key = process.env.ADMIN_KEY || "";
+      const [pending, cities] = await kv([["LLEN", "rv:pending"], ["ZCARD", "sg:count"]]);
+      return res.status(200).json({ pending: pending || 0, cities: cities || 0, reviewsUrl: key ? "/api/review?key=" + encodeURIComponent(key) : null, citiesUrl: key ? "/api/suggest?key=" + encodeURIComponent(key) : null });
+    }
+
+    if (action === "me") return res.status(200).json({ me: meView(u), friends: await friendsOf(u.uid), history: await historyOf(u.uid), groups: await groupsOf(u.uid), ...(await notifsOf(u.uid)) });
 
     if (action === "saveOuting") {
       const e = cleanEntry(body);
@@ -288,7 +301,7 @@ module.exports = async (req, res) => {
     if (action === "profile") {
       u.profile = cleanProfile(body.profile || {}, u.profile);
       await kv([["SET", `u:${u.uid}`, JSON.stringify(u)]]);
-      return res.status(200).json({ me: { ...publicView(u), code: u.code } });
+      return res.status(200).json({ me: meView(u) });
     }
 
     if (action === "addFriend") {
