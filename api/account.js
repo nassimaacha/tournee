@@ -1,9 +1,12 @@
 // Accounts: sign in with Google, a profile reused when planning, and friends added through invite links.
 // Env: GOOGLE_CLIENT_ID (OAuth web client) + the Upstash Redis vars already used by outings.
-// Stored per user: a random id, the display name, the planning profile, a friend code and the friend list.
-// No email, no photo, no Google token is kept.
+// Stored per user: a random id, the display name, the planning profile, a friend code, the friend list,
+// the email (only to send party invites, which can be turned off in the profile) and the site language.
+// No photo and no Google token is kept.
 
 const crypto = require("crypto");
+const { sendPartyMail } = require("./_mail");
+const LANG_OK = ["fr", "en", "es"];
 const KV_URL = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
 const KV_TOKEN = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
 const CLIENT_ID = process.env.GOOGLE_CLIENT_ID || "";
@@ -29,7 +32,7 @@ async function kv(cmds) {
 // the owner's account: whoever signs in with the email set in ADMIN_EMAIL (Vercel) gets admin rights.
 // The email itself is only compared at sign in, never stored for Google accounts.
 const isAdminEmail = e => !!process.env.ADMIN_EMAIL && !!e && String(e).trim().toLowerCase() === process.env.ADMIN_EMAIL.trim().toLowerCase();
-const meView = u => ({ ...publicView(u), code: u.code, admin: !!u.admin });
+const meView = u => ({ ...publicView(u), code: u.code, admin: !!u.admin, mail: u.profile.mail !== false });
 const publicView = u => ({ uid: u.uid, nick: u.profile.nick, level: u.profile.level, vibeNight: u.profile.vibeNight, vibeDay: u.profile.vibeDay, sober: u.profile.sober, student: u.profile.student, minor: !!u.profile.minor });
 
 function cleanProfile(p, prev) {
@@ -42,6 +45,7 @@ function cleanProfile(p, prev) {
     sober: p?.sober === undefined ? !!prev.sober : !!p.sober,
     student: p?.student === undefined ? !!prev.student : !!p.student,
     minor: p?.minor === undefined ? !!prev.minor : !!p.minor,
+    mail: p?.mail === undefined ? prev.mail !== false : !!p.mail,
   };
 }
 
@@ -191,7 +195,7 @@ module.exports = async (req, res) => {
         if (exists) return res.status(409).json({ error: "exists" });
         const uid = rid(12), code = rid(8), salt = crypto.randomBytes(16).toString("hex");
         const hash = (await scrypt(password, salt)).toString("hex");
-        const u = { uid, code, sk: emKey, email, last, pw: { salt, hash }, created: Date.now(), profile: cleanProfile({ nick: first.split(" ")[0] }, {}) };
+        const u = { uid, code, sk: emKey, email, last, lang: LANG_OK.includes(body.lang) ? body.lang : "fr", pw: { salt, hash }, created: Date.now(), profile: cleanProfile({ nick: first.split(" ")[0] }, {}) };
         const [ok] = await kv([["SET", emKey, uid, "NX"]]);
         if (!ok) return res.status(409).json({ error: "exists" });
         await kv([["SET", `u:${uid}`, JSON.stringify(u)], ["SET", `fc:${code}`, uid]]);
@@ -228,7 +232,11 @@ module.exports = async (req, res) => {
         u = { uid, code, sk: subKey, created: Date.now(), profile: cleanProfile({ nick: g.name || "Moi" }, {}) };
         await kv([["SET", `u:${uid}`, JSON.stringify(u)], ["SET", subKey, uid], ["SET", `fc:${code}`, uid]]);
       }
-      if (!!u.admin !== isAdminEmail(g.email)) { u.admin = isAdminEmail(g.email); await kv([["SET", `u:${uid}`, JSON.stringify(u)]]); }
+      const lg = LANG_OK.includes(body.lang) ? body.lang : u.lang;
+      if (!!u.admin !== isAdminEmail(g.email) || (g.email && u.email !== g.email) || u.lang !== lg) {
+        u.admin = isAdminEmail(g.email); if (g.email) u.email = g.email; u.lang = lg;
+        await kv([["SET", `u:${uid}`, JSON.stringify(u)]]);
+      }
       const token = crypto.randomBytes(24).toString("hex");
       await kv([["SET", `s:${token}`, uid, "EX", SESSION_TTL], ["SADD", `us:${uid}`, token]]);
       return res.status(200).json({ token, me: meView(u), friends: await friendsOf(uid), history: await historyOf(uid), archive: await archiveOf(uid), groups: await groupsOf(uid), ...(await notifsOf(uid)) });
@@ -244,6 +252,8 @@ module.exports = async (req, res) => {
     const a = await auth(req);
     if (!a) return res.status(401).json({ error: "signed_out" });
     const { u, token } = a;
+    // remember the site language so emails go out in it
+    if (LANG_OK.includes(body.lang) && u.lang !== body.lang) { u.lang = body.lang; await kv([["SET", `u:${u.uid}`, JSON.stringify(u)]]); }
 
     if (action === "admin") {
       if (!u.admin) return res.status(403).json({ error: "forbidden" });
@@ -297,13 +307,23 @@ module.exports = async (req, res) => {
       const wanted = (Array.isArray(body.uids) ? body.uids : []).slice(0, 8).map(x => clean(x, 20));
       const flags = wanted.length ? await kv(wanted.map(id => ["SISMEMBER", `fr:${u.uid}`, id])) : [];
       const cmds = []; let sent = 0;
+      const mailTo = [];
       wanted.forEach((fid, i) => {
         if (!flags[i]) return;
         const n = { nid: rid(10), type: "invite", from: u.profile.nick, outing: oid, city: meta.city, mode: meta.mode, at: Date.now() };
         cmds.push(["LPUSH", `n:${fid}`, JSON.stringify(n)], ["LTRIM", `n:${fid}`, 0, 49], ["SET", `inv:${oid}:${fid}`, "1", "EX", INVITE_TTL]);
-        sent++;
+        mailTo.push(fid); sent++;
       });
       if (cmds.length) await kv(cmds);
+      // email each invited friend who has an email and didn't turn invite emails off
+      if (mailTo.length) {
+        const raws = await kv(mailTo.map(fid => ["GET", `u:${fid}`]));
+        await Promise.allSettled(raws.map(raw => {
+          const f = raw ? JSON.parse(raw) : null;
+          if (!f || !f.email || f.profile?.mail === false) return null;
+          return sendPartyMail({ to: f.email, lang: f.lang, kind: "invite", from: u.profile.nick, city: meta.city, mode: meta.mode, outing: oid });
+        }));
+      }
       return res.status(200).json({ sent });
     }
 

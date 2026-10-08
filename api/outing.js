@@ -3,6 +3,7 @@
 // Storage: Upstash Redis (Vercel Storage), read through its REST API, so no npm packages are needed.
 
 const crypto = require("crypto");
+const { sendPartyMail } = require("./_mail");
 
 const KV_URL = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
 const KV_TOKEN = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
@@ -153,14 +154,18 @@ module.exports = async (req, res) => {
       if (!isAdmin && !clean(body.member?.nick, 20)) return res.status(400).json({ error: "name" });
       const extra = m.uid ? [["SADD", `g:${m.uid}`, id], ["EXPIRE", `g:${m.uid}`, TTL]] : [];
       // a friend added by the host gets a notification (bell) in their account
+      let mailFriend = null;
       if (m.uid && me && m.uid !== me) {
-        const [hostRaw] = await kv([["GET", `u:${me}`]]);
+        const [hostRaw, friendRaw] = await kv([["GET", `u:${me}`], ["GET", `u:${m.uid}`]]);
         const from = hostRaw ? (JSON.parse(hostRaw).profile?.nick || "") : "";
+        const f = friendRaw ? JSON.parse(friendRaw) : null;
+        if (f && f.email && f.profile?.mail !== false) mailFriend = { to: f.email, lang: f.lang, kind: "added", from, city: o.meta.city, mode: o.meta.mode, outing: id };
         const note = { nid: newId(), type: "added", from, outing: id, city: o.meta.city, mode: o.meta.mode, at: Date.now() };
         extra.push(["LPUSH", `n:${m.uid}`, JSON.stringify(note)], ["LTRIM", `n:${m.uid}`, 0, 49]);
       }
       await kv([["HSET", k.members, mid, JSON.stringify(m)], ...touch(id), ...extra]);
       o.members[mid] = m;
+      if (mailFriend) await sendPartyMail(mailFriend); // email the friend the host just added
       return res.status(200).json({ mid, token, outing: publicView(id, o) });
     }
 
