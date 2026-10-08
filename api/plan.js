@@ -135,17 +135,15 @@ const timing = (start, end) => !isTime(start)
 const JSON_SHAPE = `Réponds UNIQUEMENT avec un objet JSON valide, sans texte autour, de cette forme :
 {"titre":"nom accrocheur (5 mots max)","resume":"une phrase","compromis":"une ou deux phrases qui expliquent comment le plan respecte chaque personne, en citant les pseudos","etapes":[{"heure":"","type":"type d'étape","lieu":"nom exact du lieu","quartier":"quartier ou rue","pourquoi":"une phrase","prix_pp":10,"billet":false,"trajet":"comment venir de l'étape précédente","lat":48.8534,"lng":2.3711}],"total_pp":28,"retour":"comment rentrer","retour_station":"nom de l'arrêt ou de la station","retour_lat":48.8532,"retour_lng":2.3692}`;
 
-// how many stops must be real places with a bookable ticket: 1 for 2 or 3 stops, 2 for 4 or 5.
-// skipped when someone picked the smallest budget (a paid ticket would break it). No link is ever forced.
-function ticketsNeeded(stops, friends) {
-  if (friends.some(f => f.level === 0)) return 0;
-  return stops <= 1 ? 0 : stops <= 3 ? 1 : 2;
-}
+// No ticketed stop is ever forced: plans follow the group's vibes, and a "Book" button only shows
+// when a stop really sells tickets. (Forcing tickets used to slip museums into food or coffee plans.)
+const MUSEUM_VIBES = new Set(["museums", "contemporary", "galleries"]);
+function ticketsNeeded() { return 0; }
 const input0 = (stops, friends) => ticketsNeeded(stops, friends);
 function ticketRule(n, mode) {
   if (!n) return "";
   const kinds = mode === "culture"
-    ? "musée, monument, visite guidée, croisière, attraction, spectacle"
+    ? "visite guidée, croisière, attraction, point de vue payant, spectacle, ou musée si quelqu'un l'a demandé"
     : "concert, spectacle comique, croisière ou soirée en bateau, visite nocturne, bar crawl organisé, rooftop ou club avec entrée payante";
   return `- OBLIGATOIRE : au moins ${n} étape(s) doivent être des lieux avec un billet réservable en ligne ("billet": true), par exemple : ${kinds}. Choisis des lieux connus qu'on trouve sur GetYourGuide.`;
 }
@@ -170,7 +168,7 @@ Construis UN plan de soirée qui convient à tout le groupe ci dessous.`;
     ? `Déplacements : ${metro ? "en transports en commun et à pied, pas de taxi" : "taxi ou VTC possible"}`
     : `Retour : ${metro ? c.transit : "taxi ou VTC possible"}`;
   const rules = mode === "culture"
-    ? `- Exactement ${stops} étape(s)${stops > 1 ? ", proches les unes des autres" : ""}. Au moins ${Math.min(2, stops)} étape(s) doivent être de vrais lieux culturels ou de plein air : musée, expo, galerie, monument, parc, jardin, marché, point de vue, street art.
+    ? `- Exactement ${stops} étape(s)${stops > 1 ? ", proches les unes des autres" : ""}. Chaque étape doit correspondre aux envies du groupe.${friends.some(f => MUSEUM_VIBES.has(f.vibeKey)) ? "" : stops >= 4 ? " Personne n'a choisi musées, art ou expos : pas de musée, d'expo ni de galerie, sauf UNE seule étape au maximum si elle s'insère vraiment naturellement entre deux autres. Ce n'est jamais obligatoire." : " IMPORTANT : personne n'a choisi musées, art ou expos, donc ne propose AUCUN musée, AUCUNE expo et AUCUNE galerie."}
 - Une seule pause café ou snack maximum, jamais de bar ni d'alcool. Exception : un café concept (café à chats, jeux de société, livres, mangas, thème original) demandé par le groupe compte comme une vraie activité, pas comme une pause.
 - Le champ "type" décrit l'activité (ex : Musée, Parc, Galerie, Marché, Balade, Pause café).
 - Utilise les gratuités et les tarifs étudiants pour les personnes qui sont étudiantes.
@@ -347,6 +345,7 @@ module.exports = async (req, res) => {
       minor: f?.minor === true,
       level: Number.isInteger(f?.level) ? f.level : null,
       vibe: VIBES[mode][f?.vibe] || null,
+      vibeKey: VIBES[mode][f?.vibe] ? f.vibe : null,
       flag: !!(f?.flag ?? f?.sober),
     };
   });
