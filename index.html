@@ -356,9 +356,10 @@ header{position:relative}
 .review{padding:0}
 .review-form:not([hidden]){margin:8px 0 28px}
 #rvMsg:empty{display:none}
-.foot-links .legal-links{display:inline-grid;grid-template-columns:auto auto;gap:16px 28px;justify-items:start}
-/* "Install the app" sits on the same line as Privacy, Terms below */
-#privacyLink{order:1}.install-link{order:2}#termsLink{order:3}
+.foot-links .legal-links{display:inline-flex;gap:16px;flex-wrap:wrap}
+/* right column: "Leave a review", then "Install the app" right under it */
+.foot-right{display:flex;flex-direction:column;align-items:flex-end;gap:16px}
+.foot-right .footer-link{width:auto;text-align:right}
 .install-link{-webkit-appearance:none;appearance:none;background:none!important;border:0!important;border-radius:0;box-shadow:none;padding:0!important;margin:0;min-height:0;font:inherit;font-size:12px;line-height:inherit;color:var(--muted)!important;cursor:pointer;width:auto!important;white-space:nowrap;text-align:left;text-decoration:underline;text-underline-offset:3px}
 .footer-link{width:auto}
 #rvMsg:empty{display:none}
@@ -671,7 +672,7 @@ footer{color:var(--muted);font-size:12px;padding:28px 0 44px;border-top:1px soli
     <p id="installTxt"></p>
     <button class="btn" type="button" id="installClose" data-i18n="closeL"></button>
   </dialog>
-  <footer><div><span data-i18n="footer"></span><br><span class="partner-note" data-i18n="partnerNote"></span></div><p class="slogan" data-i18n="slogan"></p><div class="foot-links"><span class="legal-links"><a href="/privacy" class="footer-link" id="privacyLink" data-i18n="privacy"></a><a href="/terms" class="footer-link" id="termsLink" data-i18n="terms"></a><button class="footer-link install-link" id="installBtn" type="button" data-i18n="installLink" hidden></button></span><button class="footer-link review-link" id="reviewOpen" type="button" aria-expanded="false" aria-controls="reviewForm" data-i18n="reviewLink"></button></div></footer>
+  <footer><div><span data-i18n="footer"></span><br><span class="partner-note" data-i18n="partnerNote"></span></div><p class="slogan" data-i18n="slogan"></p><div class="foot-links"><span class="legal-links"><a href="/privacy" class="footer-link" id="privacyLink" data-i18n="privacy"></a><a href="/terms" class="footer-link" id="termsLink" data-i18n="terms"></a></span><span class="foot-right"><button class="footer-link review-link" id="reviewOpen" type="button" aria-expanded="false" aria-controls="reviewForm" data-i18n="reviewLink"></button><button class="footer-link install-link" id="installBtn" type="button" data-i18n="installLink" hidden></button></span></div></footer>
 </div>
 
 <script>
