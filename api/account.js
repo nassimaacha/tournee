@@ -108,7 +108,8 @@ async function groupsOf(uid) {
     const host = m.owner === uid || rows.some(x => x.host && x.uid === uid);
     // same people (account, or first name for guests) + same city + same mode = same group
     const sig = rows.length >= 2 ? [m.mode, m.city, ...rows.map(x => x.uid || "n:" + String(x.nick || "").toLowerCase()).sort()].join("|") : null;
-    out.push({ id, city: m.city, mode: m.mode, created: m.created || 0, count: lens[i] || 0, uids, status: plans[i] ? "ready" : "waiting", host, sig, meta: m });
+    const names = rows.slice().sort((a, b) => (a.t || 0) - (b.t || 0)).map(x => clean(x.nick, 20)).filter(Boolean);
+    out.push({ id, city: m.city, mode: m.mode, created: m.created || 0, count: lens[i] || 0, uids, names, status: plans[i] ? "ready" : "waiting", host, sig, meta: m });
   });
   // a newer group with the same people and city replaces the older ones (their link redirects to it)
   out.sort((a, b) => b.created - a.created);
