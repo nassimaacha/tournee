@@ -1,8 +1,13 @@
 {
   "rewrites": [
-    { "source": "/((?!api/).*)", "destination": "/index.html" }
+    {
+      "source": "/((?!api/|_vercel/).*)",
+      "destination": "/index.html"
+    }
   ],
   "functions": {
-    "api/plan.js": { "maxDuration": 60 }
+    "api/plan.js": {
+      "maxDuration": 60
+    }
   }
 }
