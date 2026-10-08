@@ -1098,7 +1098,7 @@ const FEVER_CITY={london:"london",dubai:"dubai",paris:"paris",madrid:"madrid","n
 function bookUrl(s){
   const fc=mode==="night"&&FEVER_CITY[city.id];
   if(fc){
-    const dest=`https://feverup.com/${["fr","es","en"].includes(lang)?lang:"en"}/${fc}/search?q=${encodeURIComponent(s.lieu||"")}`;
+    const dest=`https://feverup.com/${["fr","es","en"].includes(lang)?lang:"en"}/${fc}`; // city page: venue searches often come back empty
     return `${FEVER_LINK}?u=${encodeURIComponent(dest)}`;
   }
   const q=`${s.lieu} ${CITY_T[city.id]?.[lang]||CITY_T[city.id]?.en||""}${studentGroup()?GYG_STUDENT[lang]||GYG_STUDENT.en:""}`.trim();
