@@ -345,6 +345,8 @@ header{position:relative}
 .footer-link{width:auto}
 #rvMsg:empty{display:none}
 .review-form{display:flex;flex-direction:column;gap:12px;max-width:420px;margin-top:12px}
+/* .btn grows (flex:1 1 180px) in rows; in these column layouts it must keep its natural height */
+.review-form .btn,.inv-box .btn{flex:none}
 .review-form textarea{font:inherit;letter-spacing:.036em;color:var(--ink);background:var(--field);border:1px solid var(--line);border-radius:18px;padding:10px 16px;width:100%;resize:vertical}
 .rv-stars{display:flex;gap:4px}
 .rv-stars button{background:none;border:0;padding:2px;font-size:26px;line-height:1;color:var(--line);cursor:pointer;transition:color .15s,transform .15s}
@@ -1092,6 +1094,12 @@ function applyOuting(o, force){
   if(o.plan && (key!==planShown || force==="lang")){ planShown=key; renderPlan(o.plan,false,true); }
   document.title="Tournée, "+cityName(city);
 }
+// host signed in: link the party to the account (older parties were not), then refresh "My parties"
+let claimed="";
+function maybeClaim(){
+  if(!acct||!outing||!me?.admin||claimed===outing.id||(acct.groups||[]).some(g=>g.id===outing.id)) return;
+  claimed=outing.id; api({action:"claim",id:outing.id,adminToken:me.admin}).then(c=>{ if(c.added) loadAcct(); });
+}
 async function loadOuting(id){
   outing=null; me=creds(id); planShown="";
   $("#planner").classList.add("loading"); $("#result").innerHTML="";
@@ -1101,6 +1109,7 @@ async function loadOuting(id){
     if(d.error==="moved"&&d.to){ history.replaceState(null,"","/o/"+d.to); opened="o/"+d.to; return loadOuting(d.to); }
     if(!r.ok) throw d.error||"server";
     applyOuting(d.outing,true);
+    maybeClaim();
   }catch(err){
     document.documentElement.dataset.theme="dark";
     $("#heroText").textContent=t(err==="not_found"?"notFound":err==="no_store"?"noStore":"errGeneric");
@@ -1549,7 +1558,7 @@ fr:`<p>Dernière mise à jour : octobre 2026.</p>
 <p><b>Historique.</b> Si vous êtes connecté, vos 50 derniers plans (date, ville, lieux, prénoms du groupe) sont gardés dans « Mon compte », et aussi chez les amis qui faisaient partie du groupe. Vous pouvez les supprimer un par un.</p>
 <p><b>Sorties organisées.</b> Les prénoms, budgets et envies saisis dans une sortie partagée, conservés 30 jours.</p>
 <p><b>Plans.</b> Pour créer un plan, les informations du groupe (prénoms, budgets, envies, ville, horaires) sont envoyées à nos prestataires techniques. Elles ne sont pas conservées par Tournée.</p>
-<p><b>Avis.</b> La note, le texte et le prénom facultatif que vous laissez. Les avis de 4 ou 5 étoiles peuvent être affichés publiquement sur la page d'accueil.</p>
+<p><b>Avis.</b> La note, le texte et le prénom facultatif que vous laissez. Si vous êtes connecté, votre e-mail est joint à l'avis pour que nous puissions vous répondre ; il n'est jamais affiché. Les avis de 4 ou 5 étoiles peuvent être affichés publiquement sur la page d'accueil.</p>
 <p><b>Villes demandées.</b> La ville suggérée, la langue et le fuseau horaire.</p>
 <p><b>Sur votre appareil.</b> Langue, devise, lieux déjà proposés et session de connexion sont gardés dans le stockage local de votre navigateur. Pas de cookies publicitaires. Nous mesurons la fréquentation de façon anonyme (Vercel Web Analytics, sans cookies).</p>
 <h2>Nos prestataires</h2><p>Vercel (hébergement), Upstash (base de données), Resend (e-mails), Google (connexion, cartes, vérification des lieux et temps de trajet), Anthropic (rédaction des plans). Quand vous cliquez sur un lien partenaire (GetYourGuide, Fever, Ticketmaster), ce site peut déposer ses propres cookies et nous verser une commission.</p>
@@ -1563,7 +1572,7 @@ en:`<p>Last updated: October 2026.</p>
 <p><b>History.</b> When you're signed in, your last 50 plans (date, city, places, names in the group) are kept in "My account", and also for friends who were part of the group. You can delete them one by one.</p>
 <p><b>Hosted outings.</b> The names, budgets and vibes entered in a shared outing, kept for 30 days.</p>
 <p><b>Plans.</b> To build a plan, the group's details (names, budgets, vibes, city, times) are sent to our technical providers. Tournée doesn't keep them.</p>
-<p><b>Reviews.</b> The rating, text and optional first name you leave. Reviews with 4 or 5 stars may be shown publicly on the homepage.</p>
+<p><b>Reviews.</b> The rating, text and optional first name you leave. If you're signed in, your email is attached to the review so we can reply; it's never shown. Reviews with 4 or 5 stars may be shown publicly on the homepage.</p>
 <p><b>City requests.</b> The suggested city, the language and the time zone.</p>
 <p><b>On your device.</b> Language, currency, places already suggested and your sign in session are kept in your browser's local storage. No advertising cookies. We measure visits anonymously (Vercel Web Analytics, no cookies).</p>
 <h2>Our providers</h2><p>Vercel (hosting), Upstash (database), Resend (emails), Google (sign in, maps, place checks and travel times), Anthropic (writing the plans). When you click a partner link (GetYourGuide, Fever, Ticketmaster), that site may set its own cookies and pay us a commission.</p>
@@ -1577,7 +1586,7 @@ es:`<p>Última actualización: octubre de 2026.</p>
 <p><b>Historial.</b> Si has iniciado sesión, tus últimos 50 planes (fecha, ciudad, lugares, nombres del grupo) se guardan en "Mi cuenta", y también para los amigos que formaban parte del grupo. Puedes eliminarlos uno a uno.</p>
 <p><b>Quedadas organizadas.</b> Los nombres, presupuestos y gustos introducidos en una quedada compartida, guardados 30 días.</p>
 <p><b>Planes.</b> Para crear un plan, los datos del grupo (nombres, presupuestos, gustos, ciudad, horarios) se envían a nuestros proveedores técnicos. Tournée no los guarda.</p>
-<p><b>Opiniones.</b> La valoración, el texto y el nombre opcional que dejas. Las opiniones de 4 o 5 estrellas pueden mostrarse públicamente en la página de inicio.</p>
+<p><b>Opiniones.</b> La valoración, el texto y el nombre opcional que dejas. Si has iniciado sesión, tu correo se adjunta a la opinión para poder responderte; nunca se muestra. Las opiniones de 4 o 5 estrellas pueden mostrarse públicamente en la página de inicio.</p>
 <p><b>Ciudades solicitadas.</b> La ciudad sugerida, el idioma y la zona horaria.</p>
 <p><b>En tu dispositivo.</b> El idioma, la moneda, los lugares ya propuestos y tu sesión se guardan en el almacenamiento local del navegador. Sin cookies publicitarias. Medimos las visitas de forma anónima (Vercel Web Analytics, sin cookies).</p>
 <h2>Nuestros proveedores</h2><p>Vercel (alojamiento), Upstash (base de datos), Resend (correos), Google (inicio de sesión, mapas, verificación de lugares y tiempos de trayecto), Anthropic (redacción de los planes). Al hacer clic en un enlace de afiliado (GetYourGuide, Fever, Ticketmaster), ese sitio puede usar sus propias cookies y pagarnos una comisión.</p>
@@ -1608,7 +1617,7 @@ $("#rvStars").addEventListener("keydown",e=>{ if(e.key!=="ArrowRight"&&e.key!=="
 $("#reviewForm").addEventListener("submit",async e=>{ e.preventDefault();
   if(!rvStars){ $("#rvMsg").textContent=t("reviewNeedStars"); return; }
   const btn=$("#reviewForm .btn"); btn.disabled=true;
-  let r={}; try{ const res=await fetch("/api/review",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({stars:rvStars,name:$("#rvName").value.trim(),text:$("#rvText").value.trim(),lang,city:(typeof city!=="undefined"&&city&&!$("#planner").hidden)?cityName(city):""})}); r=await res.json().catch(()=>({})); if(!res.ok) r.error=r.error||"server"; }catch{ r={error:"server"}; }
+  let r={}; try{ const res=await fetch("/api/review",{method:"POST",headers:{"Content-Type":"application/json",...(session()?{Authorization:"Bearer "+session()}:{})},body:JSON.stringify({stars:rvStars,name:$("#rvName").value.trim(),text:$("#rvText").value.trim(),lang,city:(typeof city!=="undefined"&&city&&!$("#planner").hidden)?cityName(city):""})}); r=await res.json().catch(()=>({})); if(!res.ok) r.error=r.error||"server"; }catch{ r={error:"server"}; }
   btn.disabled=false;
   if(r.error){ $("#rvMsg").textContent=t(r.error==="already"?"reviewAlready":"errGeneric"); return; }
   rvStars=0; $("#rvText").value=""; $("#reviewForm").hidden=true; $("#reviewOpen").setAttribute("aria-expanded","false"); $("#rvMsg").textContent=t("reviewThanks"); rvLoaded=false; });
@@ -1666,7 +1675,7 @@ async function loadAcct(){
   if(!d.error){ acct={me:d.me,friends:d.friends,history:d.history||[],archive:d.archive||[],groups:d.groups||[]}; setNotifs(d);
     if(!$("#planner").hidden && !outing && friends.length===1 && isBlankRow(friends[0])){ friends[0]=personRow(acct.me); renderFriends(); } }
   updateAcctBtn(); renderChips();
-  if(outing) applyOuting(outing,true);
+  if(outing){ applyOuting(outing,true); maybeClaim(); }
   if(!$("#accountView").hidden) renderAccount();
 }
 function loadGsi(){
