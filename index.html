@@ -109,7 +109,7 @@ header select.lang{width:auto;padding:4px 30px 4px 14px;font-size:12px;font-weig
 .friend:first-of-type{border-top:0;padding-top:0}
 .friend-top{display:flex;gap:10px;align-items:center;grid-column:1/-1}
 .dot{width:8px;height:8px;border-radius:50%;flex:none;background:var(--jewel)}
-input[type=text],select{font:inherit;letter-spacing:.036em;color:var(--ink);background:var(--field);border:1px solid var(--line);
+input[type=text],input[type=date],select{font:inherit;letter-spacing:.036em;color:var(--ink);background:var(--field);border:1px solid var(--line);
   border-radius:30px;padding:10px 18px;width:100%;min-width:0;appearance:none;-webkit-appearance:none}
 select{background-image:linear-gradient(45deg,transparent 50%,var(--accent) 50%),linear-gradient(135deg,var(--accent) 50%,transparent 50%);
   background-position:calc(100% - 22px) 55%,calc(100% - 17px) 55%;background-size:5px 5px;background-repeat:no-repeat;padding-right:40px}
@@ -307,7 +307,10 @@ footer{display:flex;justify-content:space-between;align-items:center;gap:12px 24
 #landing{position:relative}
 .back-group{position:absolute;top:14px;left:50%;transform:translateX(-50%);z-index:3;white-space:nowrap;max-width:calc(100% - 32px);overflow:hidden;text-overflow:ellipsis;background:#271A47;color:#DBC9FF;border:1px solid #BC994E;border-radius:30px;padding:9px 18px;font-size:12px;font-weight:600;letter-spacing:.111em;text-transform:uppercase;text-decoration:none;box-shadow:0 6px 20px rgba(0,0,0,.25)}
 .back-group:hover{background:#312257}
+.hdate-toggle{margin:0 0 14px}
 .hdate{max-width:240px;margin:0 0 14px}
+input[type=date]{min-height:44px;color-scheme:light dark}
+input[type=date]::-webkit-calendar-picker-indicator{opacity:.6;cursor:pointer}
 .hclear{margin-top:14px}
 .hlist li.hmore{border-top:1px solid var(--line);padding-top:14px;align-items:flex-start}
 .hlist .htitle{font-family:var(--serif);font-size:28px;line-height:1.1}
@@ -592,7 +595,8 @@ footer{color:var(--muted);font-size:12px;padding:28px 0 44px;border-top:1px soli
       </section>
       <section class="panel">
         <h2 data-i18n="historyTitle"></h2>
-        <div class="field hdate" id="hDateBox" hidden><label for="hDate" data-i18n="histDateL"></label><input type="date" id="hDate"></div>
+        <button class="suggest-link hdate-toggle" id="hDateToggle" type="button" aria-expanded="false" aria-controls="hDateBox" data-i18n="histDateL" hidden></button>
+        <div class="field hdate" id="hDateBox" hidden><input type="date" id="hDate" aria-labelledby="hDateToggle"></div>
         <ul class="hlist" id="hList"></ul>
         <button class="suggest-link hclear" id="hClear" type="button" data-i18n="clearAll" hidden></button>
       </section>
@@ -1746,7 +1750,7 @@ const dayKey=ts=>{ const d=new Date(ts); return `${d.getFullYear()}-${String(d.g
 function renderHistory(){
   const full=acct?.history||[], day=$("#hDate").value;
   const all=day?full.filter(e=>dayKey(e.at)===day):full, h=all.slice(0,histShown);
-  $("#hDateBox").hidden=!full.length; $("#hClear").hidden=!full.length;
+  $("#hDateToggle").hidden=!full.length; if(!full.length) $("#hDateBox").hidden=true; $("#hClear").hidden=!full.length;
   renderArchive();
   if(day&&!all.length){ $("#hList").innerHTML=`<li><span class="hpeople">${t("histNoDay")}</span></li>`; return; }
   const df=new Intl.DateTimeFormat(lang==="en"?"en-US":lang==="es"?"es-ES":"fr-FR",{day:"numeric",month:"short",year:"numeric"});
@@ -1814,6 +1818,9 @@ function renderArchive(){
 $("#aList").addEventListener("click",async e=>{ const b=e.target.closest("[data-restore]"); if(!b) return;
   const d=await acctApi({action:"restoreOuting",id:b.dataset.restore}); if(!d.error){ acct.history=d.history; acct.archive=d.archive; renderHistory(); } });
 $("#hDate").addEventListener("input",()=>{ histShown=3; renderHistory(); });
+// the date search stays hidden until you click "Search by date"; closing it clears the filter
+$("#hDateToggle").onclick=()=>{ const open=$("#hDateBox").hidden; $("#hDateBox").hidden=!open; $("#hDateToggle").setAttribute("aria-expanded",String(open));
+  if(open) $("#hDate").focus(); else if($("#hDate").value){ $("#hDate").value=""; histShown=3; renderHistory(); } };
 $("#hClear").onclick=async()=>{ if(!confirm(t("clearConfirm"))) return;
   const d=await acctApi({action:"clearHistory"}); if(!d.error){ acct.history=d.history; acct.archive=d.archive; histShown=3; $("#hDate").value=""; renderHistory(); } };
 // landing: shortcut to the most recent group still waiting for its plan
