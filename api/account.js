@@ -98,6 +98,10 @@ async function groupsOf(uid) {
   const lens = await kv(ids.map(id => ["HLEN", `o:${id}:m`]));
   const mems = await kv(ids.map(id => ["HVALS", `o:${id}:m`]));
   const plans = await kv(ids.map(id => ["EXISTS", `o:${id}:p`]));
+  // members linked to an account but saved without a first name: use the name from their profile
+  const blankUids = [...new Set(mems.flat().map(x => { try { const r = JSON.parse(x); return !String(r.nick || "").trim() && r.uid ? r.uid : null; } catch { return null; } }).filter(Boolean))];
+  const profNick = {};
+  if (blankUids.length) (await kv(blankUids.map(x => ["GET", `u:${x}`]))).forEach((raw, j) => { try { profNick[blankUids[j]] = JSON.parse(raw).profile?.nick || ""; } catch {} });
   const out = [], dead = [];
   ids.forEach((id, i) => {
     if (!metas[i]) { dead.push(id); return; }
@@ -108,7 +112,7 @@ async function groupsOf(uid) {
     const host = m.owner === uid || rows.some(x => x.host && x.uid === uid);
     // same people (account, or first name for guests) + same city + same mode = same group
     const sig = rows.length >= 2 ? [m.mode, m.city, ...rows.map(x => x.uid || "n:" + String(x.nick || "").toLowerCase()).sort()].join("|") : null;
-    const names = rows.slice().sort((a, b) => (a.t || 0) - (b.t || 0)).map(x => clean(x.nick, 20)).filter(Boolean);
+    const names = rows.slice().sort((a, b) => (a.t || 0) - (b.t || 0)).map(x => clean(x.nick, 20) || clean(profNick[x.uid], 20)).filter(Boolean);
     out.push({ id, city: m.city, mode: m.mode, created: m.created || 0, count: lens[i] || 0, uids, names, status: plans[i] ? "ready" : "waiting", host, sig, meta: m });
   });
   // a newer group with the same people and city replaces the older ones (their link redirects to it)
