@@ -86,7 +86,7 @@ function cleanEntry(b) {
     city: clean(b.city, 30), mode: MODES_OK.includes(b.mode) ? b.mode : "night",
     title: clean(plan.titre, 80), stops,
     people: (Array.isArray(b.people) ? b.people : []).slice(0, 8).map(p => ({ nick: clean(p?.nick, 20) || "?", uid: clean(p?.uid, 20) || null })),
-    settings: { area: clean(b.settings?.area, 40), start: /^\d{2}:\d{2}$/.test(b.settings?.start) ? b.settings.start : "", end: /^\d{2}:\d{2}$/.test(b.settings?.end) ? b.settings.end : "", stops: Math.min(5, Math.max(0, parseInt(b.settings?.stops, 10) || 0)) },
+    settings: { area: clean(b.settings?.area, 40), start: /^\d{2}:\d{2}$/.test(b.settings?.start) ? b.settings.start : "", end: /^\d{2}:\d{2}$/.test(b.settings?.end) ? b.settings.end : "", stops: Math.min(5, Math.max(0, parseInt(b.settings?.stops, 10) || 0)), date: /^\d{4}-\d{2}-\d{2}$/.test(b.settings?.date) ? b.settings.date : "" },
   };
 }
 
@@ -113,7 +113,7 @@ async function groupsOf(uid) {
     // same people (account, or first name for guests) + same city + same mode = same group
     const sig = rows.length >= 2 ? [m.mode, m.city, ...rows.map(x => x.uid || "n:" + String(x.nick || "").toLowerCase()).sort()].join("|") : null;
     const names = rows.slice().sort((a, b) => (a.t || 0) - (b.t || 0)).map(x => clean(x.nick, 20) || clean(profNick[x.uid], 20)).filter(Boolean);
-    out.push({ id, city: m.city, mode: m.mode, created: m.created || 0, count: lens[i] || 0, uids, names, status: plans[i] ? "ready" : "waiting", host, sig, meta: m });
+    out.push({ id, city: m.city, mode: m.mode, created: m.created || 0, date: m.date || "", count: lens[i] || 0, uids, names, status: plans[i] ? "ready" : "waiting", host, sig, meta: m });
   });
   // a newer group with the same people and city replaces the older ones (their link redirects to it)
   out.sort((a, b) => b.created - a.created);

@@ -116,8 +116,16 @@ const clean = (s, n) => String(s ?? "").replace(/[\r\n"`]/g, " ").slice(0, n).tr
 const GKEY = process.env.GOOGLE_SERVER_KEY || process.env.GOOGLE_PLACES_KEY;
 const isTime = v => /^\d{2}:\d{2}$/.test(v || "");
 
-function today(c) {
-  return new Intl.DateTimeFormat("fr-FR", { weekday: "long", day: "numeric", month: "long", timeZone: c.tz }).format(new Date());
+// the outing's date: the day picked on the site (today by default), as YYYY-MM-DD in the city's time zone
+const ymd = (c, d = new Date()) => new Intl.DateTimeFormat("en-CA", { timeZone: c.tz, year: "numeric", month: "2-digit", day: "2-digit" }).format(d);
+function pickDate(c, v) {
+  const now = ymd(c), max = ymd(c, new Date(Date.now() + 90 * 864e5));
+  return /^\d{4}-\d{2}-\d{2}$/.test(v || "") && v >= now && v <= max ? v : now;
+}
+function today(c, date) {
+  const d = date ? new Date(date + "T12:00:00Z") : new Date();
+  const label = new Intl.DateTimeFormat("fr-FR", { weekday: "long", day: "numeric", month: "long", timeZone: date ? "UTC" : c.tz }).format(d);
+  return !date || date === ymd(c) ? `${label} (aujourd'hui)` : label;
 }
 
 const avoidRule = avoid => avoid.length
@@ -125,7 +133,7 @@ const avoidRule = avoid => avoid.length
   : "";
 const style = lang => `- Écris toutes les valeurs texte du JSON en ${LANGS[lang]}, ton direct et complice, phrases courtes. Garde les noms propres des lieux tels quels. Les clés JSON restent identiques.
 - ${lang === "en" ? "Dans les textes, écris les heures au format 12 h avec AM/PM (ex : 11:30 PM)." : "Dans les textes, écris les heures au format 24 h (ex : 23:30)."}`;
-const accuracy = `- N'utilise QUE des lieux qui existent vraiment et qui sont ouverts aujourd'hui : jamais de lieu fermé définitivement ou temporairement, ni de lieu dont tu n'es pas sûr qu'il existe encore. Préfère les lieux établis depuis longtemps.
+const accuracy = `- N'utilise QUE des lieux qui existent vraiment et qui sont ouverts ce jour-là (voir la date) : jamais de lieu fermé définitivement ou temporairement, ni de lieu dont tu n'es pas sûr qu'il existe encore. Préfère les lieux établis depuis longtemps.
 - Le champ "lieu" doit être le nom exact du lieu tel qu'il apparaît sur Google Maps.
 - "billet" vaut true seulement pour les lieux avec un billet réservable en ligne (musée, monument, visite guidée, croisière, spectacle, attraction), false pour les bars, restaurants, clubs, parcs gratuits et rues.
 - Chaque étape est UN lieu précis avec une adresse (un musée, un parc, un bar, une rue précise de street art), jamais une zone vague comme "quartier X et rues adjacentes".
@@ -160,7 +168,7 @@ function groupText(friends, c, mode) {
   }).join("\n");
 }
 
-function buildPrompt({ c, mode, lang, avoid, stops, friends, area, start, end, metro }) {
+function buildPrompt({ c, mode, lang, avoid, stops, friends, area, start, end, metro, date }) {
   const minB = Math.min(...friends.map(f => f.budget));
   const intro = mode === "culture"
     ? `Tu es Tournée, une IA qui organise des sorties culturelles à ${c.name} pour des groupes d'étudiants de 18 à 25 ans.
@@ -179,6 +187,7 @@ Construis UN plan de soirée qui convient à tout le groupe ci dessous.`;
 - Contexte local, à utiliser seulement si ça correspond aux envies du groupe : ${c.cultureNotes}`
     : `- Exactement ${stops} étape(s)${stops > 1 ? ", proches les unes des autres (à pied ou 1 ou 2 stations de métro)" : ""}.
 ${c.dry ? "- Aucun alcool dans cette ville : ne propose jamais de bar." : "- Si quelqu'un ne boit pas d'alcool, chaque bar doit avoir de vraies options sans alcool."}
+- Tiens compte du jour de la semaine : évite les lieux habituellement fermés ce soir-là.
 - Contexte local : ${c.notes}`;
   return `LANGUE DE RÉPONSE OBLIGATOIRE : ${LANGS[lang].toUpperCase()}. Tous les textes du JSON (titre, resume, compromis, type, pourquoi, trajet, retour) doivent être écrits en ${LANGS[lang]}, même si ces consignes sont en français.
 
@@ -187,7 +196,7 @@ ${intro}
 Groupe :
 ${groupText(friends, c, mode)}
 
-Date : ${today(c)}
+Date de la sortie : ${today(c, date)}
 Point de départ : ${area}, ${c.name}
 ${timing(start, end)}
 ${moves}
@@ -363,6 +372,7 @@ module.exports = async (req, res) => {
     start: isTime(body.start) ? body.start : "",
     end: isTime(body.end) ? body.end : "",
     metro: body.metro === true,
+    date: pickDate(c, body.date),
   };
 
   try {
@@ -390,7 +400,7 @@ module.exports = async (req, res) => {
         bad.forEach(i => excluded.push(plan.etapes[i].lieu));
         const list = bad.map(i => `étape ${i + 1} "${plan.etapes[i].lieu}" (${plan.etapes[i]._why})`).join(", ");
         const asks = [];
-        if (bad.length) asks.push(`Vérification Google Maps : ${list}. Remplace UNIQUEMENT ces étapes par d'autres lieux réels, ouverts aujourd'hui, du même type et proches des autres étapes. N'utilise aucun de ces lieux : ${excluded.join(", ")}.`);
+        if (bad.length) asks.push(`Vérification Google Maps : ${list}. Remplace UNIQUEMENT ces étapes par d'autres lieux réels, ouverts le jour de la sortie, du même type et proches des autres étapes. N'utilise aucun de ces lieux : ${excluded.join(", ")}.`);
         if (missingTickets) asks.push(`Il manque ${missingTickets} étape(s) avec un billet réservable en ligne ("billet": true). Remplace une ou plusieurs étapes sans billet par des lieux connus avec billet (${mode === "culture" ? "musée, monument, visite, croisière" : "concert, spectacle, croisière de nuit, entrée payante"}), en respectant le budget.`);
         try {
           const fix = await claude(key, [

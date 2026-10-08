@@ -112,6 +112,7 @@ module.exports = async (req, res) => {
         end: /^\d{2}:\d{2}$/.test(body.end) ? body.end : "",
         stops: Math.min(5, Math.max(0, parseInt(body.stops, 10) || 0)),
         metro: body.metro === true,
+        date: /^\d{4}-\d{2}-\d{2}$/.test(body.date) ? body.date : "", // the outing's day (empty = today)
         created: Date.now(),
       };
       // the signed in creator owns the group: it shows in their account and they can delete it
@@ -204,6 +205,7 @@ module.exports = async (req, res) => {
       if (body.end !== undefined) meta.end = /^\d{2}:\d{2}$/.test(body.end) ? body.end : "";
       if (body.stops !== undefined) meta.stops = Math.min(5, Math.max(0, parseInt(body.stops, 10) || 0));
       if (body.metro !== undefined) meta.metro = !!body.metro;
+      if (body.date !== undefined) meta.date = /^\d{4}-\d{2}-\d{2}$/.test(body.date) ? body.date : "";
       await kv([["SET", k.meta, JSON.stringify(meta), "EX", TTL], ...touch(id)]);
       o.meta = meta;
       return res.status(200).json({ outing: publicView(id, o) });
