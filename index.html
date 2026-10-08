@@ -201,7 +201,7 @@ input[type=range]{width:100%;accent-color:var(--accent);margin-top:10px}
 #home .hero{min-height:28svh;display:flex;flex-direction:column;justify-content:flex-end;padding:28px 0 18px}
 #home .hero h1{font-size:clamp(2.4rem,10vw,4.4rem);margin:0 0 12px}
 #home .hero p{font-size:15px}
-.world{--rows:10;--rowh:max(44px,calc((100svh - 28svh - 62px - 64px) / var(--rows)));padding-bottom:24px}
+.world{--rows:11;--rowh:max(44px,calc((100svh - 28svh - 62px - 64px) / var(--rows)));padding-bottom:24px}
 .conts{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;margin:0 -20px 8px;padding:4px 20px 8px}
 .conts::-webkit-scrollbar{display:none}
 .cont{flex:none;background:none;border:0;border-radius:30px;padding:7px 14px;color:var(--muted);font:inherit;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.111em;cursor:pointer;white-space:nowrap;transition:background .15s,color .15s}
@@ -741,6 +741,7 @@ const CITY_T = {
  "riyadh":{fr:"Riyad",en:"Riyadh",es:"Riad"},
  "khobar":{fr:"Khobar",en:"Khobar",es:"Khobar"},
  "prague":{fr:"Prague",en:"Prague",es:"Praga"},
+ "istanbul":{fr:"Istanbul",en:"Istanbul",es:"Estambul"},
  "tokyo":{fr:"Tokyo",en:"Tokyo",es:"Tokio"},
  "seoul":{fr:"Séoul",en:"Seoul",es:"Seúl"},
  "bangkok":{fr:"Bangkok",en:"Bangkok",es:"Bangkok"},
@@ -843,6 +844,9 @@ const CITIES = [
   {id:"prague", cont:"europe", tz:"Europe/Prague", pre:"", post:" Kč", budget:[0,5000,100,0,5000,2500], start:"20:00",
    bbox:[49.98,50.15,14.30,14.60], ride:"rideMetro",
    areas:["Staré Město","Malá Strana","Nové Město","Vinohrady","Žižkov","Karlín","Holešovice","Smíchov"]},
+  {id:"istanbul", cont:"europe", tz:"Europe/Istanbul", pre:"", post:" ₺", budget:[0,28000,250,0,28000,14000], start:"20:00",
+   bbox:[40.95,41.12,28.85,29.10], ride:"rideMetro",
+   areas:["Beyoğlu","Karaköy","Galata","Cihangir","Kadıköy","Moda","Beşiktaş","Nişantaşı","Sultanahmet","Balat"]},
   {id:"riyadh", cont:"asia", tz:"Asia/Riyadh", pre:"", post:" SAR", budget:[0,600,25,0,600,300], start:"20:00", noAlcohol:true,
    bbox:[24.45,25.05,46.45,47.05], ride:"rideMetro",
    areas:["Olaya","Tahlia","Al Malqa","KAFD","Diriyah","Al Murabba","Hittin","Al Nakheel","Boulevard City"]},
@@ -895,9 +899,9 @@ let friends = [];
 const dryNight=()=>mode==="night" && !!(city && city.noAlcohol);
 const vibesHere=()=>M().vibes.filter(v=>!(dryNight() && (v==="cocktails"||v==="cheap"||v==="club")));
 const blankFriend=()=>({nick:"", level:null, vibe:"", flag:false, minor:false});
-const RATES={SAR:4.28,CZK:25,EUR:1,USD:1.14,GBP:0.86,CAD:1.58,MXN:21.1,JPY:170,KRW:1600,THB:37.7,SGD:1.48,AED:4.2,MAD:10.7,EGP:56,BRL:6.3,ZAR:20.6,AUD:1.74};
-const CODE_OF={"| Kč":"CZK","| SAR":"SAR","| €":"EUR","£|":"GBP","$|":"USD","US$|":"USD","CA$|":"CAD","| MXN":"MXN","¥|":"JPY","₩|":"KRW","฿|":"THB","S$|":"SGD","| AED":"AED","| MAD":"MAD","| EGP":"EGP","R$|":"BRL","R|":"ZAR","A$|":"AUD"};
-const SYM={SAR:"SAR",CZK:"Kč",EUR:"€",USD:"$",GBP:"£",CAD:"CA$",MXN:"MXN",JPY:"¥",KRW:"₩",THB:"฿",SGD:"S$",AED:"AED",MAD:"MAD",EGP:"EGP",BRL:"R$",ZAR:"R",AUD:"A$"};
+const RATES={SAR:4.28,CZK:25,TRY:55,EUR:1,USD:1.14,GBP:0.86,CAD:1.58,MXN:21.1,JPY:170,KRW:1600,THB:37.7,SGD:1.48,AED:4.2,MAD:10.7,EGP:56,BRL:6.3,ZAR:20.6,AUD:1.74};
+const CODE_OF={"| Kč":"CZK","| ₺":"TRY","| SAR":"SAR","| €":"EUR","£|":"GBP","$|":"USD","US$|":"USD","CA$|":"CAD","| MXN":"MXN","¥|":"JPY","₩|":"KRW","฿|":"THB","S$|":"SGD","| AED":"AED","| MAD":"MAD","| EGP":"EGP","R$|":"BRL","R|":"ZAR","A$|":"AUD"};
+const SYM={SAR:"SAR",CZK:"Kč",TRY:"₺",EUR:"€",USD:"$",GBP:"£",CAD:"CA$",MXN:"MXN",JPY:"¥",KRW:"₩",THB:"฿",SGD:"S$",AED:"AED",MAD:"MAD",EGP:"EGP",BRL:"R$",ZAR:"R",AUD:"A$"};
 const LEVELS=[5,20,50,100,150];
 let dispPref=(()=>{ try{ return localStorage.getItem("tournee-cur")||"local"; }catch{ return "local"; } })();
 const localCode=()=>CODE_OF[city.pre+"|"+city.post]||"EUR";
@@ -914,7 +918,7 @@ function roundy(v){
 // budget circles per currency: only 5, 10, 20, 25, 50, 75, 100, 150, 250, 500 (with extra zeros for big currencies)
 const BUDGETS={EUR:[5,20,50,100,150],USD:[5,25,50,100,150],GBP:[5,20,50,75,150],CAD:[10,25,75,150,250],MXN:[100,500,1000,2000,2500],
   BRL:[25,150,250,750,1000],JPY:[1000,2500,7500,15000,25000],KRW:[10000,25000,75000,150000,250000],THB:[200,750,2000,5000,7500],
-  SGD:[10,25,75,150,200],SAR:[20,50,100,250,500],CZK:[100,500,1000,2500,5000],AED:[20,50,100,250,500],MAD:[50,200,500,1000,1500],EGP:[250,1000,2500,5000,7500],
+  SGD:[10,25,75,150,200],SAR:[20,50,100,250,500],CZK:[100,500,1000,2500,5000],TRY:[250,1000,2500,5000,7500],AED:[20,50,100,250,500],MAD:[50,200,500,1000,1500],EGP:[250,1000,2500,5000,7500],
   ZAR:[100,500,1000,2000,2500],AUD:[10,25,100,200,250]};
 function budgetIn(j,code){
   if(BUDGETS[code]) return BUDGETS[code][j];
@@ -1758,7 +1762,7 @@ function renderGroups(){
   $("#gList").innerHTML=g.length?g.map(x=>{ const c=CITIES.find(y=>y.id===x.city);
     return `<li><span class="hmeta">${x.created?esc(df.format(new Date(x.created)))+" · ":""}${esc(t(MODES[x.mode]?.label||"pickNight"))}</span>
       <span class="htitle">${esc(c?cityName(c):x.city)}</span>
-      <span class="hpeople">${x.count} ${t(x.count===1?"person1":"people")} · <span class="gstatus ${x.status==="ready"?"ready":""}">${t(x.status==="ready"?"stReady":"stWaiting")}</span></span>
+      <span class="hpeople">${x.count} ${t(x.count===1?"person1":"people")}</span>
       <span class="hact"><a class="remove" href="/o/${esc(x.id)}" data-open="${esc(x.id)}" style="text-decoration:none">${t("open")}</a>${creds(x.id).admin?`<button class="remove" type="button" data-inv="${esc(x.id)}">${t("inviteFriends")}</button>`:""}${x.host||creds(x.id).admin?`<button class="remove" type="button" data-gdel="${esc(x.id)}">${t("del")}</button>`:`<button class="remove" type="button" data-gleave="${esc(x.id)}">${t("groupLeave")}</button>`}</span>
       <div class="inv-box" id="inv-${esc(x.id)}" hidden></div></li>`; }).join("")
     +(all.length>groupsShown?`<li class="hmore"><button class="suggest-link" type="button" data-gmore>${t(groupsShown===3?"seeAll":"seeMore")}</button></li>`:"")
@@ -1868,9 +1872,9 @@ $("#hDateToggle").onclick=()=>{ const open=$("#hDateBox").hidden; $("#hDateBox")
   if(open) $("#hDate").focus(); else if($("#hDate").value){ $("#hDate").value=""; histShown=3; renderHistory(); } };
 $("#hClear").onclick=async()=>{ if(!confirm(t("clearConfirm"))) return;
   const d=await acctApi({action:"clearHistory"}); if(!d.error){ acct.history=d.history; acct.archive=d.archive; histShown=3; $("#hDate").value=""; renderHistory(); } };
-// landing: shortcut to the most recent group still waiting for its plan
+// landing: shortcut to the most recent party (plan made or not)
 function renderBackGroup(){
-  const b=$("#backGroup"), g=(acct?.groups||[]).find(x=>x.status!=="ready");
+  const b=$("#backGroup"), g=(acct?.groups||[])[0];
   b.hidden=!g; if(!g) return;
   const c=CITIES.find(y=>y.id===g.city);
   b.textContent=t("backGroup",{c:c?cityName(c):g.city}); b.href="/o/"+g.id; b.dataset.id=g.id;
@@ -1957,7 +1961,7 @@ function route(keepScroll){
   $("#go").hidden=view!=="planner"; $("#status").hidden=view!=="planner";
   document.querySelector("footer").hidden=view==="start";
   document.querySelector("header").classList.toggle("noline",view==="start");
-  $("#reviewBox").hidden=view==="start"; if(view==="start") loadReviews();
+  $("#reviewBox").hidden=view==="start"; if(view==="start"){ loadReviews(); if(acct) loadAcct(); } // fresh party list for the home button
   document.getElementById("sky").classList.toggle("on",view!=="start");
   if(isOuting){ const key="o/"+c0; if(key!==opened){ opened=key; loadOuting(c0); } }
   else if(view==="planner"){ const key=mode+"/"+c.id; if(key!==opened){ openCity(c); opened=key; } document.title="Tournée, "+cityName(c); }
