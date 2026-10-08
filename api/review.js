@@ -107,7 +107,7 @@ module.exports = async (req, res) => {
     const [fresh] = await kv([["SET", `rv:v:${voter}`, "1", "NX", "EX", 604800]]); // one review per person per week; extras are silently ignored
     if (fresh) {
       const r = { rid: crypto.randomBytes(6).toString("hex"), stars, text: clean(body.text, 280), name: clean(body.name, 20), city: clean(body.city, 30), lang: clean(body.lang, 5), at: Date.now() };
-      await kv([["LPUSH", "rv:pending", JSON.stringify(r)], ["LTRIM", "rv:pending", 0, 199]]);
+      await kv([["LPUSH", "rv:pending", JSON.stringify(r)], ["LTRIM", "rv:pending", 0, 199], ["SET", "adm:newReview", Date.now()]]);
     }
     return res.status(200).json({ ok: true });
   } catch (e) {

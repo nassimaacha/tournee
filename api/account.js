@@ -56,6 +56,20 @@ async function historyOf(uid) {
   const [rows] = await kv([["LRANGE", `h:${uid}`, 0, 49]]);
   return (rows || []).map(r => { try { return JSON.parse(r); } catch { return null; } }).filter(Boolean);
 }
+// deleted outings go to an archive for 3 days, then they are gone for good
+const ARCHIVE_MS = 3 * 24 * 60 * 60 * 1000;
+const listCmds = (key, arr, ttlSec) => {
+  const c = [["DEL", key]];
+  if (arr.length) { c.push(["RPUSH", key, ...arr.map(x => JSON.stringify(x))]); if (ttlSec) c.push(["EXPIRE", key, ttlSec]); }
+  return c;
+};
+async function archiveOf(uid) {
+  const [rows] = await kv([["LRANGE", `ha:${uid}`, 0, 199]]);
+  const all = (rows || []).map(r => { try { return JSON.parse(r); } catch { return null; } }).filter(Boolean);
+  const live = all.filter(x => Date.now() - (x.deletedAt || 0) < ARCHIVE_MS);
+  if (live.length !== all.length) await kv(listCmds(`ha:${uid}`, live, ARCHIVE_MS / 1000));
+  return live;
+}
 const MODES_OK = ["night", "day"];
 function cleanEntry(b) {
   const plan = b.plan || {};
@@ -95,7 +109,7 @@ const scrypt = (pw, salt) => new Promise((ok, ko) => crypto.scrypt(pw, salt, 64,
 async function openSession(u) {
   const token = crypto.randomBytes(24).toString("hex");
   await kv([["SET", `s:${token}`, u.uid, "EX", SESSION_TTL], ["SADD", `us:${u.uid}`, token]]);
-  return { token, me: meView(u), friends: await friendsOf(u.uid), history: await historyOf(u.uid), groups: await groupsOf(u.uid), ...(await notifsOf(u.uid)) };
+  return { token, me: meView(u), friends: await friendsOf(u.uid), history: await historyOf(u.uid), archive: await archiveOf(u.uid), groups: await groupsOf(u.uid), ...(await notifsOf(u.uid)) };
 }
 
 const INVITE_TTL = 60 * 60 * 24 * 30;
@@ -200,7 +214,7 @@ module.exports = async (req, res) => {
       if (!!u.admin !== isAdminEmail(g.email)) { u.admin = isAdminEmail(g.email); await kv([["SET", `u:${uid}`, JSON.stringify(u)]]); }
       const token = crypto.randomBytes(24).toString("hex");
       await kv([["SET", `s:${token}`, uid, "EX", SESSION_TTL], ["SADD", `us:${uid}`, token]]);
-      return res.status(200).json({ token, me: meView(u), friends: await friendsOf(uid), history: await historyOf(uid), groups: await groupsOf(uid), ...(await notifsOf(uid)) });
+      return res.status(200).json({ token, me: meView(u), friends: await friendsOf(uid), history: await historyOf(uid), archive: await archiveOf(uid), groups: await groupsOf(uid), ...(await notifsOf(uid)) });
     }
 
     if (action === "peek") {
@@ -217,11 +231,18 @@ module.exports = async (req, res) => {
     if (action === "admin") {
       if (!u.admin) return res.status(403).json({ error: "forbidden" });
       const key = process.env.ADMIN_KEY || "";
-      const [pending, cities] = await kv([["LLEN", "rv:pending"], ["ZCARD", "sg:count"]]);
-      return res.status(200).json({ pending: pending || 0, cities: cities || 0, reviewsUrl: key ? "/api/review?key=" + encodeURIComponent(key) : null, citiesUrl: key ? "/api/suggest?key=" + encodeURIComponent(key) : null });
+      const [pending, cities, nr, nc, sr, sc] = await kv([["LLEN", "rv:pending"], ["ZCARD", "sg:count"], ["GET", "adm:newReview"], ["GET", "adm:newCity"], ["GET", "adm:seenReview"], ["GET", "adm:seenCity"]]);
+      // "new" = something arrived since the owner last opened that page; the account page makes the button blink
+      return res.status(200).json({ pending: pending || 0, cities: cities || 0, newReviews: Number(nr) > (Number(sr) || 0), newCities: Number(nc) > (Number(sc) || 0), reviewsUrl: key ? "/api/review?key=" + encodeURIComponent(key) : null, citiesUrl: key ? "/api/suggest?key=" + encodeURIComponent(key) : null });
     }
 
-    if (action === "me") return res.status(200).json({ me: meView(u), friends: await friendsOf(u.uid), history: await historyOf(u.uid), groups: await groupsOf(u.uid), ...(await notifsOf(u.uid)) });
+    if (action === "adminSeen") {
+      if (!u.admin) return res.status(403).json({ error: "forbidden" });
+      await kv([["SET", body.what === "cities" ? "adm:seenCity" : "adm:seenReview", Date.now()]]);
+      return res.status(200).json({ ok: true });
+    }
+
+    if (action === "me") return res.status(200).json({ me: meView(u), friends: await friendsOf(u.uid), history: await historyOf(u.uid), archive: await archiveOf(u.uid), groups: await groupsOf(u.uid), ...(await notifsOf(u.uid)) });
 
     if (action === "saveOuting") {
       const e = cleanEntry(body);
@@ -288,14 +309,28 @@ module.exports = async (req, res) => {
       return res.status(200).json({ outing: oid, notifs, groups: await groupsOf(u.uid) });
     }
 
-    if (action === "deleteOuting") {
+    // delete one outing, or all of them: they move to the archive (3 days to restore)
+    if (action === "deleteOuting" || action === "clearHistory") {
       const id = clean(body.id, 12);
       const list = await historyOf(u.uid);
-      const keep = list.filter(x => x.id !== id);
-      const cmds = [["DEL", `h:${u.uid}`]];
-      if (keep.length) cmds.push(["RPUSH", `h:${u.uid}`, ...keep.map(x => JSON.stringify(x))]);
-      await kv(cmds);
-      return res.status(200).json({ history: keep });
+      const gone = action === "clearHistory" ? list : list.filter(x => x.id === id);
+      const keep = list.filter(x => !gone.includes(x));
+      const now = Date.now();
+      const archive = [...gone.map(x => ({ ...x, deletedAt: now })), ...(await archiveOf(u.uid))].slice(0, 200);
+      await kv([...listCmds(`h:${u.uid}`, keep), ...listCmds(`ha:${u.uid}`, archive, ARCHIVE_MS / 1000)]);
+      return res.status(200).json({ history: keep, archive });
+    }
+
+    if (action === "restoreOuting") {
+      const id = clean(body.id, 12);
+      const archive = await archiveOf(u.uid);
+      const back = archive.find(x => x.id === id);
+      if (!back) return res.status(404).json({ error: "not_found" });
+      const rest = archive.filter(x => x !== back);
+      const { deletedAt, ...entry } = back;
+      const history = [entry, ...(await historyOf(u.uid)).filter(x => x.id !== id)].sort((a, b) => (b.at || 0) - (a.at || 0)).slice(0, 50);
+      await kv([...listCmds(`h:${u.uid}`, history), ...listCmds(`ha:${u.uid}`, rest, ARCHIVE_MS / 1000)]);
+      return res.status(200).json({ history, archive: rest });
     }
 
     if (action === "profile") {
@@ -331,7 +366,7 @@ module.exports = async (req, res) => {
       const [friendIds, tokens] = await kv([["SMEMBERS", `fr:${u.uid}`], ["SMEMBERS", `us:${u.uid}`]]);
       const cmds = (friendIds || []).map(f => ["SREM", `fr:${f}`, u.uid]);
       (tokens || []).forEach(t => cmds.push(["DEL", `s:${t}`]));
-      cmds.push(["DEL", `u:${u.uid}`, `fr:${u.uid}`, `us:${u.uid}`, `fc:${u.code}`, `h:${u.uid}`, `g:${u.uid}`, `n:${u.uid}`, `nseen:${u.uid}`]);
+      cmds.push(["DEL", `u:${u.uid}`, `fr:${u.uid}`, `us:${u.uid}`, `fc:${u.code}`, `h:${u.uid}`, `ha:${u.uid}`, `g:${u.uid}`, `n:${u.uid}`, `nseen:${u.uid}`]);
       if (u.sk) cmds.push(["DEL", u.sk]);
       await kv(cmds);
       return res.status(200).json({ ok: true });
