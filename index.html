@@ -1599,6 +1599,10 @@ es:`<p>Última actualización: octubre de 2026.</p>
 };
 
 let acct=null, acctCfg=null, gsiLoaded=null, pendingCode=null, invite=null;
+// a friend link opened while signed out is remembered for a day, so it still works after a reload or a detour
+const FCODE="tournee-fcode";
+try{ const f=JSON.parse(localStorage.getItem(FCODE)||"null"); if(f&&Date.now()-f.at<864e5) pendingCode=f.code; else localStorage.removeItem(FCODE); }catch{}
+function keepCode(code){ pendingCode=code; try{ code?localStorage.setItem(FCODE,JSON.stringify({code,at:Date.now()})):localStorage.removeItem(FCODE); }catch{} }
 const session=()=>{ try{ return localStorage.getItem("tournee-session")||""; }catch{ return ""; } };
 const setSession=v=>{ try{ v?localStorage.setItem("tournee-session",v):localStorage.removeItem("tournee-session"); }catch{} };
 async function acctApi(body){
@@ -1673,10 +1677,12 @@ function updateAcctBtn(){
   else { b.classList.remove("in"); b.textContent=t("signIn"); b.removeAttribute("aria-label"); }
 }
 $("#acctBtn").onclick=()=>go("account");
+let refreshingAcct=false;
 async function loadAcct(){
   if(!session()) { updateAcctBtn(); return; }
   const d=await acctApi({action:"me"});
   if(!d.error){ acct={me:d.me,friends:d.friends,history:d.history||[],archive:d.archive||[],groups:d.groups||[]}; setNotifs(d);
+    if(pendingCode){ const code=pendingCode; keepCode(null); await addFriendCode(code); }
     if(!$("#planner").hidden && !outing && friends.length===1 && isBlankRow(friends[0])){ friends[0]=personRow(acct.me); renderFriends(); } }
   updateAcctBtn(); renderChips();
   if(outing){ applyOuting(outing,true); maybeClaim(); }
@@ -1701,7 +1707,7 @@ async function showSignIn(){
 const PW_ERR={exists:"errExists",creds:"errCreds",weak:"errWeak",email:"errEmail",missing:"errMissing",too_many:"errTooMany"};
 async function signedIn(d){
   setSession(d.token); acct={me:d.me,friends:d.friends,history:d.history||[],archive:d.archive||[],groups:d.groups||[]}; setNotifs(d); updateAcctBtn();
-  if(pendingCode){ const code=pendingCode; pendingCode=null; await addFriendCode(code); }
+  if(pendingCode){ const code=pendingCode; keepCode(null); await addFriendCode(code); }
   renderAccount();
 }
 // forgot password: ask for the email, then the emailed link opens /reset/<token> to choose a new one
@@ -1742,7 +1748,7 @@ async function onCredential(resp){
   const d=await acctApi({action:"login",credential:resp.credential});
   if(d.error){ $("#acctMsg").textContent=t("signInError"); return; }
   setSession(d.token); acct={me:d.me,friends:d.friends,history:d.history||[],archive:d.archive||[],groups:d.groups||[]}; setNotifs(d); updateAcctBtn();
-  if(pendingCode){ const code=pendingCode; pendingCode=null; await addFriendCode(code); }
+  if(pendingCode){ const code=pendingCode; keepCode(null); await addFriendCode(code); }
   renderAccount();
 }
 async function addFriendCode(code){
@@ -1750,7 +1756,7 @@ async function addFriendCode(code){
   if(d.error==="self") $("#acctMsg").textContent=t("inviteSelf");
   else if(d.error) $("#acctMsg").textContent=t("inviteBad");
   else { acct.friends=d.friends; $("#acctMsg").textContent=t("friendAdded",{n:d.added}); }
-  history.replaceState(null,"","/account");
+  if(location.pathname.startsWith("/f/")) history.replaceState(null,"","/account");
 }
 function profLevelCode(){ return dispPref==="USD"?"USD":"EUR"; }
 // groups: 3 at a time, status, delete (host, for everyone) or remove (member, from my list only)
@@ -1970,8 +1976,8 @@ function route(keepScroll){
       renderAccount(); $("#acctH1").textContent=t("resetTitle"); $("#acctP").textContent="";
       $("#gsiBtn").hidden=true; $("#orLine").hidden=true; $("#loginForm").hidden=true; $("#signupForm").hidden=true; $("#forgotForm").hidden=true; $("#resetForm").hidden=false; $("#pwMsg").textContent=""; $("#rsPw").focus(); }
     else if(special==="friend"){ const code=c0; acctApi({action:"peek",code}).then(d=>{ if(d.error){ $("#acctMsg").textContent=t("inviteBad"); history.replaceState(null,"","/account"); renderAccount(); return; }
-      invite=d.nick; if(acct) addFriendCode(code).then(renderAccount); else { pendingCode=code; renderAccount(); } }); }
-    else renderAccount(); }
+      invite=d.nick; if(acct) addFriendCode(code).then(renderAccount); else { keepCode(code); renderAccount(); } }); }
+    else { renderAccount(); if(acct&&!refreshingAcct){ refreshingAcct=true; loadAcct().finally(()=>refreshingAcct=false); } } }
   else if(view==="terms"){ opened=""; $("#termsText").innerHTML=TERMS[lang].replaceAll("{email}",`<a href="mailto:${CONTACT_EMAIL}">${CONTACT_EMAIL}</a>`); document.title="Tournée, "+t("terms"); }
   else if(view==="privacy"){ opened=""; renderPrivacy(); document.title="Tournée, "+t("privacy"); }
   else if(view==="home"){ opened=""; outing=null; renderCities(keepScroll!==true); document.title="Tournée, "+t(M().label).toLowerCase(); }
