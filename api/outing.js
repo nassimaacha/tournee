@@ -87,6 +87,11 @@ module.exports = async (req, res) => {
       const id = clean(req.query?.id, 12);
       const o = id && await load(id);
       if (!o) return res.status(404).json({ error: "not_found" });
+      // replaced by a newer group with the same people and city: send visitors there
+      if (o.meta.replacedBy) {
+        const [alive] = await kv([["EXISTS", `o:${o.meta.replacedBy}`]]);
+        if (alive) return res.status(410).json({ error: "moved", to: o.meta.replacedBy });
+      }
       return res.status(200).json({ outing: publicView(id, o) });
     }
     if (req.method !== "POST") return res.status(405).json({ error: "method" });
@@ -108,8 +113,11 @@ module.exports = async (req, res) => {
         metro: body.metro === true,
         created: Date.now(),
       };
+      // the signed in creator owns the group: it shows in their account and they can delete it
+      const owner = await sessionUid(req);
+      if (owner) meta.owner = owner;
       const k = keys(id);
-      await kv([["SET", k.meta, JSON.stringify(meta), "EX", TTL]]);
+      await kv([["SET", k.meta, JSON.stringify(meta), "EX", TTL], ...(owner ? [["SADD", `g:${owner}`, id], ["EXPIRE", `g:${owner}`, TTL]] : [])]);
       const o = await load(id);
       return res.status(200).json({ adminToken: admin, outing: publicView(id, o) });
     }
@@ -120,6 +128,15 @@ module.exports = async (req, res) => {
     const k = keys(id);
     const isAdmin = same(body.adminToken, o.meta.admin);
     const me = await sessionUid(req);
+
+    // host only: delete the group for everyone
+    if (action === "delete") {
+      const hostUid = Object.values(o.members).find(m => m.host && m.uid)?.uid;
+      if (!isAdmin && !(me && (o.meta.owner === me || hostUid === me))) return res.status(403).json({ error: "forbidden" });
+      const uids = new Set([o.meta.owner, ...Object.values(o.members).map(m => m.uid)].filter(Boolean));
+      await kv([["DEL", k.meta, k.members, k.plan], ...[...uids].map(u => ["SREM", `g:${u}`, id])]);
+      return res.status(200).json({ ok: true });
+    }
 
     if (action === "join") {
       if (Object.keys(o.members).length >= MAX_MEMBERS) return res.status(409).json({ error: "full" });

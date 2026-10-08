@@ -93,15 +93,32 @@ async function groupsOf(uid) {
   const metas = await kv(ids.map(id => ["GET", `o:${id}`]));
   const lens = await kv(ids.map(id => ["HLEN", `o:${id}:m`]));
   const mems = await kv(ids.map(id => ["HVALS", `o:${id}:m`]));
+  const plans = await kv(ids.map(id => ["EXISTS", `o:${id}:p`]));
   const out = [], dead = [];
   ids.forEach((id, i) => {
     if (!metas[i]) { dead.push(id); return; }
     const m = JSON.parse(metas[i]);
-    const uids = (mems[i] || []).map(x => { try { return JSON.parse(x).uid || null; } catch { return null; } }).filter(Boolean);
-    out.push({ id, city: m.city, mode: m.mode, created: m.created || 0, count: lens[i] || 0, uids });
+    if (m.replacedBy) { dead.push(id); return; }
+    const rows = (mems[i] || []).map(x => { try { return JSON.parse(x); } catch { return null; } }).filter(Boolean);
+    const uids = rows.map(x => x.uid).filter(Boolean);
+    const host = m.owner === uid || rows.some(x => x.host && x.uid === uid);
+    // same people (account, or first name for guests) + same city + same mode = same group
+    const sig = rows.length >= 2 ? [m.mode, m.city, ...rows.map(x => x.uid || "n:" + String(x.nick || "").toLowerCase()).sort()].join("|") : null;
+    out.push({ id, city: m.city, mode: m.mode, created: m.created || 0, count: lens[i] || 0, uids, status: plans[i] ? "ready" : "waiting", host, sig, meta: m });
   });
-  if (dead.length) await kv([["SREM", `g:${uid}`, ...dead]]);
-  return out.sort((a, b) => b.created - a.created);
+  // a newer group with the same people and city replaces the older ones (their link redirects to it)
+  out.sort((a, b) => b.created - a.created);
+  const newest = {}, cmds = [];
+  const keep = out.filter(g => {
+    if (!g.sig) return true;
+    if (!newest[g.sig]) { newest[g.sig] = g.id; return true; }
+    dead.push(g.id);
+    cmds.push(["SET", `o:${g.id}`, JSON.stringify({ ...g.meta, replacedBy: newest[g.sig] }), "EX", 60 * 60 * 24 * 30]);
+    return false;
+  });
+  if (dead.length) cmds.push(["SREM", `g:${uid}`, ...dead]);
+  if (cmds.length) await kv(cmds);
+  return keep.map(({ sig, meta, ...g }) => g);
 }
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
@@ -240,6 +257,12 @@ module.exports = async (req, res) => {
       if (!u.admin) return res.status(403).json({ error: "forbidden" });
       await kv([["SET", body.what === "cities" ? "adm:seenCity" : "adm:seenReview", Date.now()]]);
       return res.status(200).json({ ok: true });
+    }
+
+    // remove a group from my list only (the group itself stays for the others)
+    if (action === "leaveGroup") {
+      await kv([["SREM", `g:${u.uid}`, clean(body.id, 12)]]);
+      return res.status(200).json({ groups: await groupsOf(u.uid) });
     }
 
     if (action === "me") return res.status(200).json({ me: meView(u), friends: await friendsOf(u.uid), history: await historyOf(u.uid), archive: await archiveOf(u.uid), groups: await groupsOf(u.uid), ...(await notifsOf(u.uid)) });
