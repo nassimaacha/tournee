@@ -1,0 +1,15 @@
+{
+  "name": "Tournée",
+  "short_name": "Tournée",
+  "description": "Plan a night or a day out that fits everyone's budget.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#271A47",
+  "theme_color": "#271A47",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
