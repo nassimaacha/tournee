@@ -3,6 +3,7 @@
 // GET  /api/review                                        -> approved reviews with 4 or 5 stars (homepage)
 // GET  /api/review?key=ADMIN_KEY                          -> owner page to approve, reject or remove
 // POST /api/review {action:"approve"|"reject"|"remove", key, rid}
+// Limit: one review per person (per connection) per week. Extra ones still get "thanks" but are not saved.
 
 const crypto = require("crypto");
 const KV_URL = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
@@ -103,7 +104,7 @@ module.exports = async (req, res) => {
     if (!(stars >= 1 && stars <= 5)) return res.status(400).json({ error: "stars" });
     const ip = String(req.headers["x-forwarded-for"] || "").split(",")[0].trim() || "?";
     const voter = crypto.createHash("sha256").update("rv|" + ip).digest("hex").slice(0, 24);
-    const [fresh] = await kv([["SET", `rv:v:${voter}`, "1", "NX", "EX", 86400]]);
+    const [fresh] = await kv([["SET", `rv:v:${voter}`, "1", "NX", "EX", 604800]]); // one review per person per week; extras are silently ignored
     if (fresh) {
       const r = { rid: crypto.randomBytes(6).toString("hex"), stars, text: clean(body.text, 280), name: clean(body.name, 20), city: clean(body.city, 30), lang: clean(body.lang, 5), at: Date.now() };
       await kv([["LPUSH", "rv:pending", JSON.stringify(r)], ["LTRIM", "rv:pending", 0, 199]]);
