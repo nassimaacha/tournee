@@ -4,5 +4,6 @@ Disallow: /api/
 Disallow: /account
 Disallow: /o/
 Disallow: /f/
+Disallow: /reset/
 
 Sitemap: https://tournee.site/sitemap.xml
