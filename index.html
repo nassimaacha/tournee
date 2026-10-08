@@ -1772,7 +1772,7 @@ function renderGroups(){
   $("#gList").innerHTML=g.length?g.map(x=>{ const c=CITIES.find(y=>y.id===x.city);
     return `<li><span class="hmeta">${x.created?esc(df.format(new Date(x.created)))+" · ":""}${esc(t(MODES[x.mode]?.label||"pickNight"))}</span>
       <span class="htitle">${esc(c?cityName(c):x.city)}</span>
-      <span class="hpeople">${x.count} ${t(x.count===1?"person1":"people")}</span>
+      <span class="hpeople">${(x.names||[]).length?x.names.map(esc).join(", "):x.count?`${x.count} ${t(x.count===1?"person1":"people")}`:t("groupEmpty")}</span>
       <span class="hact"><a class="remove" href="/o/${esc(x.id)}" data-open="${esc(x.id)}" style="text-decoration:none">${t("open")}</a>${creds(x.id).admin?`<button class="remove" type="button" data-inv="${esc(x.id)}">${t("inviteFriends")}</button>`:""}${x.host||creds(x.id).admin?`<button class="remove" type="button" data-gdel="${esc(x.id)}">${t("del")}</button>`:`<button class="remove" type="button" data-gleave="${esc(x.id)}">${t("groupLeave")}</button>`}</span>
       <div class="inv-box" id="inv-${esc(x.id)}" hidden></div></li>`; }).join("")
     +(all.length>groupsShown?`<li class="hmore"><button class="suggest-link" type="button" data-gmore>${t(groupsShown===3?"seeAll":"seeMore")}</button></li>`:"")
