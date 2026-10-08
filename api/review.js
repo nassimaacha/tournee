@@ -21,6 +21,16 @@ async function kv(cmds) {
 const clean = (s, n) => String(s ?? "").replace(/[\r\n\t<>`]/g, " ").replace(/\s+/g, " ").trim().slice(0, n);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const same = (a, b) => typeof a === "string" && typeof b === "string" && a.length === b.length && crypto.timingSafeEqual(Buffer.from(a), Buffer.from(b));
+// email of the signed in reviewer, if any (owner page only, never shown publicly)
+async function reviewerEmail(req) {
+  const h = String(req.headers?.authorization || "");
+  const token = h.startsWith("Bearer ") ? h.slice(7).trim() : "";
+  if (!/^[a-f0-9]{48}$/.test(token)) return "";
+  const [uid] = await kv([["GET", `s:${token}`]]);
+  if (!uid) return "";
+  const [raw] = await kv([["GET", `u:${uid}`]]);
+  try { return clean(JSON.parse(raw)?.email, 120); } catch { return ""; }
+}
 const parse = rows => (rows || []).map(r => { try { return JSON.parse(r); } catch { return null; } }).filter(Boolean);
 
 async function rewrite(key, list) {
@@ -33,6 +43,7 @@ function page(pending, approved, key) {
   const row = (r, actions) => `<li><div class="st">${"★".repeat(r.stars)}${"☆".repeat(5 - r.stars)}</div>
     <p class="tx">${esc(r.text) || "<em>(no comment)</em>"}</p>
     <p class="who">${esc(r.name || "?")}${r.city ? " · " + esc(r.city) : ""} · ${esc(new Date(r.at).toISOString().slice(0, 10))}</p>
+    ${r.email ? `<p class="who"><a href="mailto:${esc(r.email)}">${esc(r.email)}</a></p>` : ""}
     <div class="act">${actions.map(([a, label]) => `<button data-a="${a}" data-id="${esc(r.rid)}">${label}</button>`).join("")}</div></li>`;
   return `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Tournée, reviews</title>
 <style>
@@ -45,6 +56,7 @@ ul{list-style:none;margin:0;padding:0}li{padding:16px 0;border-top:1px solid #43
 button{background:none;border:1px solid #DBC9FF;border-radius:30px;color:#DBC9FF;padding:6px 14px;font:inherit;font-size:12px;cursor:pointer}
 button[data-a=approve]{background:#DBC9FF;color:#271A47}
 .empty{color:#B7A6DE}
+.who a{color:#BC994E}
 </style>
 <h1>Reviews</h1>
 <h2>Waiting for approval (${pending.length})</h2>
@@ -106,7 +118,8 @@ module.exports = async (req, res) => {
     const voter = crypto.createHash("sha256").update("rv|" + ip).digest("hex").slice(0, 24);
     const [fresh] = await kv([["SET", `rv:v:${voter}`, "1", "NX", "EX", 604800]]); // one review per person per week; extras are silently ignored
     if (fresh) {
-      const r = { rid: crypto.randomBytes(6).toString("hex"), stars, text: clean(body.text, 280), name: clean(body.name, 20), city: clean(body.city, 30), lang: clean(body.lang, 5), at: Date.now() };
+      const email = await reviewerEmail(req);
+      const r = { rid: crypto.randomBytes(6).toString("hex"), stars, ...(email ? { email } : {}), text: clean(body.text, 280), name: clean(body.name, 20), city: clean(body.city, 30), lang: clean(body.lang, 5), at: Date.now() };
       await kv([["LPUSH", "rv:pending", JSON.stringify(r)], ["LTRIM", "rv:pending", 0, 199], ["SET", "adm:newReview", Date.now()]]);
     }
     return res.status(200).json({ ok: true });
