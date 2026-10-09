@@ -41,11 +41,25 @@ async function account(req) {
   try { return raw ? { uid, u: JSON.parse(raw) } : null; } catch { return null; }
 }
 
-// what the page shows: plans left today, stored extra plans, Tournée+
+// one time gift of 5 plans when someone first runs out, tied to the email (or the account if no email)
+const GIFT = 5;
+const giftKey = (uid, u) => u.email ? `gift:${hash(String(u.email).trim().toLowerCase())}` : `gift:u:${uid}`;
+
+// what the page shows: plans left today, stored extra plans, Tournée+, gift still available
 async function status(uid, u) {
   if (isAdmin(u) || isPro(u)) return { unlimited: true, pro: isPro(u), admin: isAdmin(u), proUntil: isPro(u) ? Number(u.pro.until) : null, groupMax: GROUP_PRO, daily: FREE_DAILY };
-  const [used, credits] = await kv([["GET", `q:${uid}:${day()}`], ["GET", `cr:${uid}`]]);
-  return { unlimited: false, pro: false, left: Math.max(0, FREE_DAILY - (Number(used) || 0)), credits: Math.max(0, Number(credits) || 0), groupMax: GROUP_FREE, daily: FREE_DAILY };
+  const [used, credits, gift] = await kv([["GET", `q:${uid}:${day()}`], ["GET", `cr:${uid}`], ["EXISTS", giftKey(uid, u)]]);
+  return { unlimited: false, pro: false, left: Math.max(0, FREE_DAILY - (Number(used) || 0)), credits: Math.max(0, Number(credits) || 0), groupMax: GROUP_FREE, daily: FREE_DAILY, giftAvailable: !gift && !u.giftUsed };
+}
+// only when everything is used up, once per email
+async function claimGift(uid, u) {
+  const st = await status(uid, u);
+  if (st.unlimited || st.left > 0 || st.credits > 0) return { error: "not_now" };
+  const [ok] = await kv([["SET", giftKey(uid, u), uid, "NX"]]);
+  if (!ok || u.giftUsed) return { error: "gift_used" };
+  u.giftUsed = true;
+  await kv([["INCRBY", `cr:${uid}`, GIFT], ["SET", `u:${uid}`, JSON.stringify(u)]]);
+  return { ok: true, status: await status(uid, u) };
 }
 
 // take one plan from the right bucket. Returns { ok, refund(), status } or { error }.
@@ -88,4 +102,4 @@ async function consume(req, body) {
   return { error: "quota", status: await st() };
 }
 
-module.exports = { ready, kv, account, status, consume, groupMax, isPro, FREE_DAILY, GROUP_FREE, GROUP_PRO };
+module.exports = { ready, kv, account, status, consume, claimGift, groupMax, isPro, FREE_DAILY, GROUP_FREE, GROUP_PRO };

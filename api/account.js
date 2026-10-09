@@ -36,7 +36,7 @@ const isAdminEmail = e => !!process.env.ADMIN_EMAIL && !!e && String(e).trim().t
 // a username can be changed, then not again for 3 months (the automatic one doesn't count)
 const HANDLE_WAIT = 90 * 24 * 60 * 60 * 1000;
 const handleNext = u => u.handleChangedAt && Date.now() - u.handleChangedAt < HANDLE_WAIT ? u.handleChangedAt + HANDLE_WAIT : null;
-const meView = u => ({ ...publicView(u), code: u.code, admin: !!u.admin, mail: u.profile.mail !== false, handleNext: handleNext(u) });
+const meView = u => ({ ...publicView(u), code: u.code, admin: !!u.admin, mail: u.profile.mail !== false, handleNext: handleNext(u), needHandle: !u.handle });
 
 /* ---- @usernames: unique, lowercase, 3 to 20 letters, digits, "_" or "." ---- */
 const HANDLE_RE = /^[a-z0-9_](?:[a-z0-9_.]{1,18})[a-z0-9_]$/;
@@ -55,7 +55,7 @@ async function claimHandle(u, h) {
 }
 // everyone gets a @username (from their first name) so they can be found; they can change it later
 async function ensureHandle(u) {
-  if (u.handle) return u;
+  if (u.handle || u.needHandle) return u; // new accounts pick theirs (needHandle); only older accounts get an automatic one
   let base = slugOf(u.profile?.nick); if (base.length < 3) base = (base + "tournee").slice(0, 7);
   for (let i = 0; i < 8; i++) {
     const h = i === 0 ? base : base + Math.floor(10 + Math.random() * (i < 4 ? 90 : 9990));
@@ -226,6 +226,10 @@ module.exports = async (req, res) => {
       if (action === "register") {
         const first = clean(body.first, 30), last = clean(body.last, 40);
         if (!first || !last) return res.status(400).json({ error: "missing" });
+        const wantHandle = normHandle(body.handle);
+        if (!HANDLE_RE.test(wantHandle) || RESERVED.has(wantHandle)) return res.status(400).json({ error: "handle_invalid" });
+        const [handleOwner] = await kv([["GET", `un:${wantHandle}`]]);
+        if (handleOwner) return res.status(409).json({ error: "handle_taken" });
         if (password.length < 8 || password.length > 200) return res.status(400).json({ error: "weak" });
         const [exists] = await kv([["GET", emKey]]);
         if (exists) return res.status(409).json({ error: "exists" });
@@ -235,6 +239,7 @@ module.exports = async (req, res) => {
         const [ok] = await kv([["SET", emKey, uid, "NX"]]);
         if (!ok) return res.status(409).json({ error: "exists" });
         await kv([["SET", `u:${uid}`, JSON.stringify(u)], ["SET", `fc:${code}`, uid]]);
+        if (!(await claimHandle(u, wantHandle))) { u.needHandle = true; await kv([["SET", `u:${uid}`, JSON.stringify(u)]]); } // taken in the meantime: they pick another after
         return res.status(200).json(await openSession(u));
       }
 
@@ -303,7 +308,7 @@ module.exports = async (req, res) => {
       if (!u) {
         uid = rid(12);
         const code = rid(8);
-        u = { uid, code, sk: subKey, created: Date.now(), profile: cleanProfile({ nick: g.name || "Moi" }, {}) };
+        u = { uid, code, sk: subKey, created: Date.now(), needHandle: true, profile: cleanProfile({ nick: g.name || "Moi" }, {}) };
         await kv([["SET", `u:${uid}`, JSON.stringify(u)], ["SET", subKey, uid], ["SET", `fc:${code}`, uid]]);
       }
       const lg = LANG_OK.includes(body.lang) ? body.lang : u.lang;
@@ -356,6 +361,10 @@ module.exports = async (req, res) => {
     }
 
     if (action === "quota") return res.status(200).json({ quota: await quota.status(u.uid, u) });
+    if (action === "claimGift") {
+      const r = await quota.claimGift(u.uid, u);
+      return r.error ? res.status(409).json({ error: r.error, quota: await quota.status(u.uid, u) }) : res.status(200).json({ quota: r.status });
+    }
 
     /* ---- @usernames and friend search ---- */
     if (action === "checkHandle") {
@@ -369,7 +378,9 @@ module.exports = async (req, res) => {
       if (h === u.handle) return res.status(200).json({ me: meView(u) });
       if (handleNext(u) && !u.admin) return res.status(429).json({ error: "handle_wait", next: handleNext(u) });
       if (!HANDLE_RE.test(h) || RESERVED.has(h)) return res.status(400).json({ error: "handle_invalid" });
-      u.handleChangedAt = Date.now();
+      const first = !u.handle; // the first username is free to pick, only later changes start the wait
+      if (!first) u.handleChangedAt = Date.now();
+      delete u.needHandle;
       if (!(await claimHandle(u, h))) return res.status(409).json({ error: "handle_taken" });
       return res.status(200).json({ me: meView(u) });
     }
