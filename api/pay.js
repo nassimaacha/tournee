@@ -83,9 +83,14 @@ async function onEvent(ev) {
   }
 }
 
+// with Stripe TEST keys (sk_test_...), only the owner's admin account can pay (fake cards), nobody else sees it
+const testMode = () => String(process.env.STRIPE_SECRET_KEY || "").startsWith("sk_test_");
 module.exports = async (req, res) => {
-  const enabled = !!process.env.STRIPE_SECRET_KEY;
-  if (req.method === "GET") return res.status(200).json({ enabled });
+  let enabled = !!process.env.STRIPE_SECRET_KEY;
+  if (req.method === "GET") {
+    if (enabled && testMode() && quota.ready()) { const who = await quota.account(req).catch(() => null); enabled = !!(who && who.u.admin); }
+    return res.status(200).json({ enabled, test: enabled && testMode() });
+  }
   if (req.method !== "POST") return res.status(405).json({ error: "method" });
   if (!quota.ready()) return res.status(500).json({ error: "no_store" });
 
@@ -106,6 +111,7 @@ module.exports = async (req, res) => {
   const who = await quota.account(req);
   if (!who) return res.status(401).json({ error: "signed_out" });
   const { uid, u } = who;
+  if (testMode() && !u.admin) return res.status(503).json({ error: "soon" });
   const lang = ["fr", "en", "es"].includes(body.lang) ? body.lang : (u.lang || "fr");
 
   try {
