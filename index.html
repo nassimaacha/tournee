@@ -664,7 +664,6 @@ footer{color:var(--muted);font-size:12px;padding:28px 0 44px;border-top:1px soli
         <p class="check" style="margin-top:8px"><input type="checkbox" id="pStudent"><label for="pStudent" data-i18n="flagDay"></label></p>
         <p class="check" style="margin-top:8px"><input type="checkbox" id="pMinor"><label for="pMinor" data-i18n="minorL"></label><button class="info-i" type="button" id="minorInfoBtn" aria-expanded="false" aria-controls="minorInfo">i</button></p>
         <p class="info-txt" id="minorInfo" data-i18n="minorInfo" hidden></p>
-        <p class="check" style="margin-top:8px"><input type="checkbox" id="pMail"><label for="pMail" data-i18n="mailL"></label></p>
         <p class="note" id="pSaved" aria-live="polite" style="text-align:left;margin:10px 0 0"></p>
       </section>
       <section class="panel" id="plusPanel" hidden>
@@ -1732,7 +1731,7 @@ fr:`<p>Dernière mise à jour : octobre 2026.</p>
 <h2>Qui sommes-nous</h2><p>Tournée est un service indépendant. Contact : {email}.</p>
 <h2>Ce que nous collectons</h2>
 <p><b>Compte.</b> Si vous vous connectez avec Google, nous gardons un identifiant Google chiffré, votre prénom et votre profil (budget habituel, envies, étudiant, sans alcool, moins de 18 ans, indiqué à côté de votre prénom dans vos groupes), ainsi que votre liste d'amis. Avec Google, nous gardons aussi votre e-mail, mais pas votre photo. Si vous créez un compte avec un e-mail, nous gardons votre prénom, votre nom, votre e-mail et votre mot de passe sous forme chiffrée (jamais en clair).</p>
-<p><b>E-mails.</b> Votre e-mail sert uniquement à vous prévenir quand quelqu'un vous invite à une sortie ou vous ajoute en ami, et à réinitialiser votre mot de passe. Rien d'autre, pas de publicité. Vous pouvez désactiver les e-mails d'invitation et d'amis dans « Mon compte ». Ils sont envoyés via Resend.</p>
+<p><b>E-mails.</b> Votre e-mail sert uniquement à vous prévenir quand quelqu'un vous invite à une sortie ou vous ajoute en ami, et à réinitialiser votre mot de passe. Rien d'autre, pas de publicité. Ils sont envoyés via Resend.</p>
 <p><b>Nom d'utilisateur.</b> Votre @nom d'utilisateur et votre prénom sont visibles par les personnes qui vous recherchent. Une demande d'ami doit être acceptée avant de partager quoi que ce soit.</p>
 <p><b>Paiements.</b> Ils sont traités par Stripe : Tournée ne voit et ne garde jamais vos données de carte. Nous gardons seulement votre identifiant client Stripe, l'état de votre abonnement et vos plans en réserve.</p>
 <p><b>Plan d'essai.</b> Pour limiter l'essai sans compte à un plan, un identifiant aléatoire est gardé dans votre navigateur et une empreinte chiffrée de cet identifiant est gardée sur notre serveur.</p>
@@ -1749,7 +1748,7 @@ en:`<p>Last updated: October 2026.</p>
 <h2>Who we are</h2><p>Tournée is an independent service. Contact: {email}.</p>
 <h2>What we collect</h2>
 <p><b>Account.</b> If you sign in with Google, we keep an encrypted Google identifier, your first name and your profile (usual budget, vibes, student, no alcohol, under 18, shown next to your name in your groups), plus your friend list. With Google, we also keep your email, but not your photo. If you create an account with an email, we keep your first name, last name, email and your password in hashed form (never in plain text).</p>
-<p><b>Emails.</b> Your email is only used to let you know when someone invites you to a party or adds you as a friend, and to reset your password. Nothing else, no ads. You can turn off the invite and friend emails in "My account". They're sent through Resend.</p>
+<p><b>Emails.</b> Your email is only used to let you know when someone invites you to a party or adds you as a friend, and to reset your password. Nothing else, no ads. They're sent through Resend.</p>
 <p><b>Username.</b> Your @username and first name are visible to people who search for you. A friend request has to be accepted before anything is shared.</p>
 <p><b>Payments.</b> They're handled by Stripe: Tournée never sees or keeps your card details. We only keep your Stripe customer ID, your subscription status and your saved plans.</p>
 <p><b>Free try.</b> To limit the no-account try to one plan, a random ID is kept in your browser and a hashed fingerprint of that ID is kept on our server.</p>
@@ -1765,7 +1764,7 @@ en:`<p>Last updated: October 2026.</p>
 es:`<p>Última actualización: octubre de 2026.</p>
 <h2>Quiénes somos</h2><p>Tournée es un servicio independiente. Contacto: {email}.</p>
 <h2>Qué recogemos</h2>
-<p><b>Correos.</b> Tu correo solo sirve para avisarte cuando alguien te invita a una salida o te añade como amigo, y para restablecer tu contraseña. Nada más, sin publicidad. Puedes desactivar los correos de invitaciones y amigos en "Mi cuenta". Se envían a través de Resend.</p>
+<p><b>Correos.</b> Tu correo solo sirve para avisarte cuando alguien te invita a una salida o te añade como amigo, y para restablecer tu contraseña. Nada más, sin publicidad. Se envían a través de Resend.</p>
 <p><b>Cuenta.</b> Si inicias sesión con Google, guardamos un identificador de Google cifrado, tu nombre y tu perfil (presupuesto habitual, gustos, estudiante, sin alcohol, menor de 18, indicado junto a tu nombre en tus grupos), además de tu lista de amigos. Con Google, también guardamos tu correo, pero no tu foto. Si creas una cuenta con correo, guardamos tu nombre, tu apellido, tu correo y tu contraseña cifrada (nunca en texto claro).</p>
 <p><b>Nombre de usuario.</b> Tu @usuario y tu nombre son visibles para quien te busque. Una solicitud de amistad tiene que aceptarse antes de compartir nada.</p>
 <p><b>Pagos.</b> Los gestiona Stripe: Tournée nunca ve ni guarda los datos de tu tarjeta. Solo guardamos tu identificador de cliente de Stripe, el estado de tu suscripción y tus planes de reserva.</p>
@@ -2038,7 +2037,7 @@ function renderAccount(){
   $("#pLvls").innerHTML=LEVELS.map((_,j)=>`<button type="button" class="lvl" data-lvl="${j}" aria-pressed="${p.level===j}">${compact(budgetIn(j,code))}${j===LEVELS.length-1?"+":""}</button>`).join("");
   const opts=(list,v)=>`<option value="">${t("choose")}</option>`+list.map(x=>`<option value="${x}"${x===v?" selected":""}>${VIBE_T[x][lang]}</option>`).join("");
   $("#pVN").innerHTML=opts(MODES.night.vibes,p.vibeNight); $("#pVD").innerHTML=opts(MODES.day.vibes,p.vibeDay);
-  $("#pSober").checked=!!p.sober; $("#pStudent").checked=!!p.student; $("#pMinor").checked=!!p.minor; $("#pMail").checked=p.mail!==false;
+  $("#pSober").checked=!!p.sober; $("#pStudent").checked=!!p.student; $("#pMinor").checked=!!p.minor;
   $("#fLink").value=location.origin+"/f/"+p.code;
   renderPlus();
   renderHistory(); renderGroups(); renderAdmin();
@@ -2201,12 +2200,12 @@ function saveProfile(){
   clearTimeout(profTimer);
   profTimer=setTimeout(async()=>{
     const lv=$("#pLvls").querySelector('[aria-pressed="true"]');
-    const d=await acctApi({action:"profile",profile:{nick:$("#pNick").value.trim(),level:lv?+lv.dataset.lvl:null,vibeNight:$("#pVN").value,vibeDay:$("#pVD").value,sober:$("#pSober").checked,minor:$("#pMinor").checked,student:$("#pStudent").checked,mail:$("#pMail").checked}});
+    const d=await acctApi({action:"profile",profile:{nick:$("#pNick").value.trim(),level:lv?+lv.dataset.lvl:null,vibeNight:$("#pVN").value,vibeDay:$("#pVD").value,sober:$("#pSober").checked,minor:$("#pMinor").checked,student:$("#pStudent").checked}});
     if(!d.error){ acct.me=d.me; updateAcctBtn(); $("#pSaved").textContent=t("saved"); setTimeout(()=>$("#pSaved").textContent="",1500); }
   },500);
 }
 $("#pNick").addEventListener("input",saveProfile);
-["#pVN","#pVD","#pSober","#pStudent","#pMinor","#pMail"].forEach(x=>$(x).addEventListener("change",saveProfile));
+["#pVN","#pVD","#pSober","#pStudent","#pMinor"].forEach(x=>$(x).addEventListener("change",saveProfile));
 $("#minorInfoBtn").onclick=()=>{ const open=$("#minorInfo").hidden; $("#minorInfo").hidden=!open; $("#minorInfoBtn").setAttribute("aria-expanded",String(open)); };
 $("#pLvls").addEventListener("click",e=>{ const b=e.target.closest(".lvl"); if(!b) return;
   $("#pLvls").querySelectorAll(".lvl").forEach(x=>{ x.setAttribute("aria-pressed",String(x===b)); x.classList.remove("pop"); }); void b.offsetWidth; b.classList.add("pop"); saveProfile(); });
