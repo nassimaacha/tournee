@@ -5,5 +5,6 @@ Disallow: /account
 Disallow: /o/
 Disallow: /f/
 Disallow: /reset/
+Disallow: /friends
 
 Sitemap: https://tournee.site/sitemap.xml
