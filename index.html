@@ -319,7 +319,16 @@ footer{display:flex;justify-content:space-between;align-items:center;gap:12px 24
 .quota-note{margin:12px 0 0;font-weight:600;letter-spacing:.02em}
 .group-max{margin:10px 0 0}
 .handle-row{align-items:center}
-.handle-row .at{font-size:20px;color:var(--muted);margin-right:-4px}
+.field .at-field,.share-row .at-field,.at-field{font-family:var(--sans,inherit);font-size:16px!important;font-weight:400!important;text-transform:none!important;letter-spacing:.036em!important;margin:0!important;color:var(--ink)}
+.at-field{display:flex;align-items:center;flex:1 1 180px;min-width:0;background:var(--field);border:1px solid var(--line);border-radius:30px;padding:0 18px;cursor:text}
+.at-field:focus-within{outline:1px solid var(--accent);outline-offset:3px}
+.at-prefix{color:var(--muted);font-size:16px;margin-right:2px;user-select:none}
+.at-field input,.at-field input[type=search],.at-field input[type=text]{border:0!important;background:transparent!important;padding:10px 0!important;border-radius:0!important;outline:none;flex:1;min-width:0;width:auto}
+.at-field input:focus-visible{outline:none}
+.at-field input{font:inherit;font-size:16px;letter-spacing:.036em;color:var(--ink)}
+.at-field .at-prefix{font-size:16px;font-weight:400}
+input[type=search]::-webkit-search-cancel-button,input[type=search]::-webkit-search-decoration{-webkit-appearance:none;display:none}
+.at-field input:disabled{opacity:.7}
 input[type=search]{font:inherit;letter-spacing:.036em;color:var(--ink);background:var(--field);border:1px solid var(--line);border-radius:30px;padding:10px 18px;width:100%;-webkit-appearance:none;appearance:none}
 .paywall{display:flex;flex-direction:column;gap:14px;padding:8px 0}
 .paywall h2{font-family:var(--serif);font-weight:400;font-size:clamp(2rem,6vw,2.6rem);line-height:1.05;margin:0}
@@ -687,13 +696,13 @@ footer{color:var(--muted);font-size:12px;padding:28px 0 44px;border-top:1px soli
     <section class="hero"><h1 data-i18n="friendsTab"></h1></section>
     <section class="panel">
       <h2 data-i18n="myHandleT"></h2>
-      <div class="share-row handle-row"><span class="at" aria-hidden="true">@</span><input type="text" id="hHandle" maxlength="20" autocomplete="off" autocapitalize="none" spellcheck="false" aria-labelledby="hHandleL"><button class="btn" id="hSave" type="button" data-i18n="resetBtn"></button></div>
+      <div class="share-row handle-row"><label class="at-field"><span class="at-prefix" aria-hidden="true">@</span><input type="text" id="hHandle" maxlength="20" autocomplete="off" autocapitalize="none" spellcheck="false" aria-labelledby="hHandleL"></label><button class="btn" id="hSave" type="button" data-i18n="resetBtn"></button></div>
       <span id="hHandleL" class="sr-only" data-i18n="myHandleT" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)"></span>
       <p class="note" id="hMsg" aria-live="polite" style="text-align:left;margin:10px 0 0"></p>
     </section>
     <section class="panel">
       <h2 data-i18n="searchT"></h2>
-      <div class="field"><input type="search" id="uSearch" autocomplete="off" autocapitalize="none" spellcheck="false" aria-labelledby="uSearchL"><span id="uSearchL" data-i18n="searchT" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)"></span></div>
+      <div class="field"><label class="at-field"><span class="at-prefix" aria-hidden="true">@</span><input type="search" id="uSearch" autocomplete="off" autocapitalize="none" spellcheck="false" aria-labelledby="uSearchL"></label><span id="uSearchL" data-i18n="searchT" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)"></span></div>
       <ul class="flist" id="uResults"></ul>
     </section>
     <section class="panel">
@@ -2178,7 +2187,8 @@ function renderSearch(users,q){
   $("#uResults").innerHTML=users.length?users.map(u=>`<li><span><span class="fn">${esc(u.nick)}</span><span class="fm">@${esc(u.handle)}</span></span>${u.friend?`<span class="fm">${t("isFriend")}</span>`:u.pending?`<span class="fm">${t("reqSent")}</span>`:`<button class="remove" type="button" data-req="${esc(u.handle)}">${t("addReq")}</button>`}</li>`).join("")
     :(q&&q.length>=2?`<li><span class="fm">${t("noUsers")}</span></li>`:"");
 }
-$("#uSearch").placeholder="@";
+// the @ is fixed inside the field (like a phone country code); typed @ are removed
+$("#uSearch").addEventListener("input",()=>{ const el=$("#uSearch"), v=el.value.replace(/^@+/,"").replace(/\s+/g,"").toLowerCase(); if(v!==el.value) el.value=v; });
 $("#uSearch").addEventListener("input",()=>{ clearTimeout(searchTimer); const q=$("#uSearch").value.trim().replace(/^@+/,"");
   if(q.length<2){ renderSearch([],q); return; }
   searchTimer=setTimeout(async()=>{ const seq=++searchSeq; const d=await acctApi({action:"searchUsers",q}); if(seq===searchSeq&&!d.error) renderSearch(d.users||[],q); },250); });
