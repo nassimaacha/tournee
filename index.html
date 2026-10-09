@@ -1781,6 +1781,15 @@ es:`<p>Última actualización: octubre de 2026.</p>
 };
 
 let acct=null, acctCfg=null, gsiLoaded=null, pendingCode=null, invite=null;
+// links from friend request emails (?notifs=1) open the bell on the home page, after sign in if needed
+let openNotifsSoon=(()=>{ try{ const q=new URLSearchParams(location.search); if(q.get("notifs")!=="1") return false; q.delete("notifs"); history.replaceState(null,"",location.pathname+(q.toString()?"?"+q:"")); return true; }catch{ return false; } })();
+function maybeOpenNotifs(){
+  if(!openNotifsSoon) return;
+  if(!acct){ if(!session()&&location.pathname!=="/account") go("account"); return; }
+  openNotifsSoon=false;
+  if(location.pathname!=="/") go("");
+  setTimeout(()=>{ if($("#notifPanel").hidden) $("#bellBtn").click(); },150);
+}
 // a friend link opened while signed out is remembered for a day, so it still works after a reload or a detour
 const FCODE="tournee-fcode";
 try{ const f=JSON.parse(localStorage.getItem(FCODE)||"null"); if(f&&Date.now()-f.at<864e5) pendingCode=f.code; else localStorage.removeItem(FCODE); }catch{}
@@ -1860,6 +1869,7 @@ setInterval(async()=>{ if(!acct||document.hidden) return; const d=await acctApi(
 function resetPwForms(){ $("#gsiBtn").hidden=false; $("#loginForm").hidden=false; $("#signupForm").hidden=true; $("#forgotForm").hidden=true; $("#resetForm").hidden=true; $("#pwMsg").textContent=""; }
 function updateAcctBtn(){
   if(typeof renderBell==="function") renderBell();
+  if(typeof maybeOpenNotifs==="function") setTimeout(maybeOpenNotifs,0);
   $("#friendsBtn").hidden=!acct; $("#friendsBtn").setAttribute("aria-label",t("friendsTab")); if(!acct) quotaSt=null; renderQuota();
   renderBackGroup();
   const b=$("#acctBtn");
