@@ -2114,7 +2114,7 @@ function renderQuota(){
   else { txt=quotaSt.left>0?(quotaSt.left===1?t("qLeft1"):t("qLeft",{n:quotaSt.left})):t("qNone"); if(quotaSt.credits>0) txt+=" · "+t("qCredits",{n:quotaSt.credits}); }
   el.textContent=txt; el.hidden=!txt;
 }
-async function payReady(){ if(payEnabled===null){ try{ payEnabled=!!(await fetch("/api/pay").then(r=>r.json())).enabled; }catch{ payEnabled=false; } } return payEnabled; }
+async function payReady(){ if(payEnabled===null){ try{ payEnabled=!!(await fetch("/api/pay",{headers:session()?{Authorization:"Bearer "+session()}:{}}).then(r=>r.json())).enabled; }catch{ payEnabled=false; } } return payEnabled; }
 async function buy(product,btn){
   if(!acct){ go("account"); return; }
   if(!(await payReady())) return;
