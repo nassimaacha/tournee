@@ -269,9 +269,9 @@ module.exports = async (req, res) => {
       if (pwUid) {
         const token = crypto.randomBytes(32).toString("hex");
         await kv([["SET", "pr:" + crypto.createHash("sha256").update(token).digest("hex"), pwUid, "EX", 1800]]);
-        await sendResetMail({ to: email, lang: lg, token });
+        await sendResetMail({ to: email, lang: lg, token, toName: (await getUser(pwUid))?.profile?.nick });
       } else if (gUid) {
-        await sendResetMail({ to: email, lang: lg, google: true });
+        await sendResetMail({ to: email, lang: lg, google: true, toName: (await getUser(gUid))?.profile?.nick });
       }
       return res.status(200).json({ ok: true });
     }
@@ -392,7 +392,7 @@ module.exports = async (req, res) => {
         const f = await getUser(fid);
         const note = { nid: rid(10), type: "freq", from: u.profile.nick, fromUid: u.uid, handle: u.handle || "", at: Date.now() };
         await kv([["SET", `frq:${u.uid}:${fid}`, "1", "EX", INVITE_TTL], ["LPUSH", `n:${fid}`, JSON.stringify(note)], ["LTRIM", `n:${fid}`, 0, 49]]);
-        if (f && f.email && f.profile?.mail !== false) await sendPartyMail({ to: f.email, lang: f.lang, kind: "freq", from: u.profile.nick + (u.handle ? ` (@${u.handle})` : "") });
+        if (f && f.email) await sendPartyMail({ to: f.email, toName: f.profile?.nick, sender: u.profile.nick, lang: f.lang, kind: "freq", from: u.profile.nick + (u.handle ? ` (@${u.handle})` : "") });
       }
       return res.status(200).json({ ok: true, pending: true });
     }
@@ -463,8 +463,8 @@ module.exports = async (req, res) => {
         await kv([["LPUSH", `n:${u.uid}`, JSON.stringify(note)], ["LTRIM", `n:${u.uid}`, 0, 49]]);
         // email each invited friend who has an email and didn't turn invite emails off
         await Promise.allSettled(invited.map(f => {
-          if (!f.email || f.profile?.mail === false) return null;
-          return sendPartyMail({ to: f.email, lang: f.lang, kind: "invite", from: u.profile.nick, city: meta.city, mode: meta.mode, outing: oid });
+          if (!f.email) return null;
+          return sendPartyMail({ to: f.email, toName: f.profile?.nick, sender: u.profile.nick, lang: f.lang, kind: "invite", from: u.profile.nick, city: meta.city, mode: meta.mode, outing: oid });
         }));
       }
       return res.status(200).json({ sent });
@@ -535,7 +535,7 @@ module.exports = async (req, res) => {
       const [isNew] = await kv([["SADD", `fr:${u.uid}`, fid], ["SADD", `fr:${fid}`, u.uid]]);
       const f = await getUser(fid);
       // tell the link's owner by email that someone added them (only for a new friendship)
-      if (isNew && f && f.email && f.profile?.mail !== false) await sendPartyMail({ to: f.email, lang: f.lang, kind: "friend", from: u.profile.nick });
+      if (isNew && f && f.email) await sendPartyMail({ to: f.email, toName: f.profile?.nick, sender: u.profile.nick, lang: f.lang, kind: "friend", from: u.profile.nick });
       return res.status(200).json({ added: f ? f.profile.nick : "", friends: await friendsOf(u.uid) });
     }
 

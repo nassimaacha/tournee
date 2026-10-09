@@ -173,7 +173,7 @@ module.exports = async (req, res) => {
         const [hostRaw, friendRaw] = await kv([["GET", `u:${me}`], ["GET", `u:${m.uid}`]]);
         const from = hostRaw ? (JSON.parse(hostRaw).profile?.nick || "") : "";
         const f = friendRaw ? JSON.parse(friendRaw) : null;
-        if (f && f.email && f.profile?.mail !== false) mailFriend = { to: f.email, lang: f.lang, kind: "added", from, city: o.meta.city, mode: o.meta.mode, outing: id };
+        if (f && f.email) mailFriend = { to: f.email, toName: f.profile?.nick, sender: from, lang: f.lang, kind: "added", from, city: o.meta.city, mode: o.meta.mode, outing: id };
         const note = { nid: newId(), type: "added", from, outing: id, city: o.meta.city, mode: o.meta.mode, at: Date.now() };
         extra.push(["LPUSH", `n:${m.uid}`, JSON.stringify(note)], ["LTRIM", `n:${m.uid}`, 0, 49]);
       }
