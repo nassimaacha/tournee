@@ -6,6 +6,7 @@
 
 const crypto = require("crypto");
 const { sendPartyMail, sendResetMail } = require("./_mail");
+const quota = require("./_quota");
 const LANG_OK = ["fr", "en", "es"];
 const KV_URL = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
 const KV_TOKEN = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
@@ -32,8 +33,38 @@ async function kv(cmds) {
 // the owner's account: whoever signs in with the email set in ADMIN_EMAIL (Vercel) gets admin rights.
 // The email itself is only compared at sign in, never stored for Google accounts.
 const isAdminEmail = e => !!process.env.ADMIN_EMAIL && !!e && String(e).trim().toLowerCase() === process.env.ADMIN_EMAIL.trim().toLowerCase();
-const meView = u => ({ ...publicView(u), code: u.code, admin: !!u.admin, mail: u.profile.mail !== false });
-const publicView = u => ({ uid: u.uid, nick: u.profile.nick, level: u.profile.level, vibeNight: u.profile.vibeNight, vibeDay: u.profile.vibeDay, sober: u.profile.sober, student: u.profile.student, minor: !!u.profile.minor });
+// a username can be changed, then not again for 3 months (the automatic one doesn't count)
+const HANDLE_WAIT = 90 * 24 * 60 * 60 * 1000;
+const handleNext = u => u.handleChangedAt && Date.now() - u.handleChangedAt < HANDLE_WAIT ? u.handleChangedAt + HANDLE_WAIT : null;
+const meView = u => ({ ...publicView(u), code: u.code, admin: !!u.admin, mail: u.profile.mail !== false, handleNext: handleNext(u) });
+
+/* ---- @usernames: unique, lowercase, 3 to 20 letters, digits, "_" or "." ---- */
+const HANDLE_RE = /^[a-z0-9_](?:[a-z0-9_.]{1,18})[a-z0-9_]$/;
+const RESERVED = new Set(["admin", "tournee", "support", "help", "contact", "moderator", "staff", "root", "system"]);
+const normHandle = h => String(h || "").trim().replace(/^@+/, "").toLowerCase();
+const slugOf = s => String(s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9_]/g, "").slice(0, 14);
+async function claimHandle(u, h) {
+  const [ok] = await kv([["SET", `un:${h}`, u.uid, "NX"]]);
+  if (!ok) { const [owner] = await kv([["GET", `un:${h}`]]); if (owner !== u.uid) return false; }
+  const cmds = [["ZADD", "handles", 0, h]];
+  if (u.handle && u.handle !== h) cmds.push(["DEL", `un:${u.handle}`], ["ZREM", "handles", u.handle]);
+  u.handle = h;
+  cmds.push(["SET", `u:${u.uid}`, JSON.stringify(u)]);
+  await kv(cmds);
+  return true;
+}
+// everyone gets a @username (from their first name) so they can be found; they can change it later
+async function ensureHandle(u) {
+  if (u.handle) return u;
+  let base = slugOf(u.profile?.nick); if (base.length < 3) base = (base + "tournee").slice(0, 7);
+  for (let i = 0; i < 8; i++) {
+    const h = i === 0 ? base : base + Math.floor(10 + Math.random() * (i < 4 ? 90 : 9990));
+    if (!RESERVED.has(h) && HANDLE_RE.test(h) && await claimHandle(u, h)) return u;
+  }
+  return u;
+}
+const meFull = async u => ({ me: meView(await ensureHandle(u)), quota: await quota.status(u.uid, u).catch(() => null) });
+const publicView = u => ({ uid: u.uid, handle: u.handle || null, nick: u.profile.nick, level: u.profile.level, vibeNight: u.profile.vibeNight, vibeDay: u.profile.vibeDay, sober: u.profile.sober, student: u.profile.student, minor: !!u.profile.minor });
 
 function cleanProfile(p, prev) {
   const lv = Number.isInteger(p?.level) && p.level >= 0 && p.level <= 4 ? p.level : (p?.level === null ? null : prev.level ?? null);
@@ -135,7 +166,7 @@ const scrypt = (pw, salt) => new Promise((ok, ko) => crypto.scrypt(pw, salt, 64,
 async function openSession(u) {
   const token = crypto.randomBytes(24).toString("hex");
   await kv([["SET", `s:${token}`, u.uid, "EX", SESSION_TTL], ["SADD", `us:${u.uid}`, token]]);
-  return { token, me: meView(u), friends: await friendsOf(u.uid), history: await historyOf(u.uid), archive: await archiveOf(u.uid), groups: await groupsOf(u.uid), ...(await notifsOf(u.uid)) };
+  return { token, ...(await meFull(u)), friends: await friendsOf(u.uid), history: await historyOf(u.uid), archive: await archiveOf(u.uid), groups: await groupsOf(u.uid), ...(await notifsOf(u.uid)) };
 }
 
 const INVITE_TTL = 60 * 60 * 24 * 30;
@@ -283,7 +314,7 @@ module.exports = async (req, res) => {
       }
       const token = crypto.randomBytes(24).toString("hex");
       await kv([["SET", `s:${token}`, uid, "EX", SESSION_TTL], ["SADD", `us:${uid}`, token]]);
-      return res.status(200).json({ token, me: meView(u), friends: await friendsOf(uid), history: await historyOf(uid), archive: await archiveOf(uid), groups: await groupsOf(uid), ...(await notifsOf(uid)) });
+      return res.status(200).json({ token, ...(await meFull(u)), friends: await friendsOf(uid), history: await historyOf(uid), archive: await archiveOf(uid), groups: await groupsOf(uid), ...(await notifsOf(uid)) });
     }
 
     if (action === "peek") {
@@ -313,13 +344,78 @@ module.exports = async (req, res) => {
       return res.status(200).json({ ok: true });
     }
 
+    if (action === "quota") return res.status(200).json({ quota: await quota.status(u.uid, u) });
+
+    /* ---- @usernames and friend search ---- */
+    if (action === "checkHandle") {
+      const h = normHandle(body.handle);
+      if (!HANDLE_RE.test(h) || RESERVED.has(h)) return res.status(200).json({ ok: false, reason: "invalid" });
+      const [owner] = await kv([["GET", `un:${h}`]]);
+      return res.status(200).json({ ok: !owner || owner === u.uid, reason: owner && owner !== u.uid ? "taken" : null });
+    }
+    if (action === "setHandle") {
+      const h = normHandle(body.handle);
+      if (h === u.handle) return res.status(200).json({ me: meView(u) });
+      if (handleNext(u) && !u.admin) return res.status(429).json({ error: "handle_wait", next: handleNext(u) });
+      if (!HANDLE_RE.test(h) || RESERVED.has(h)) return res.status(400).json({ error: "handle_invalid" });
+      u.handleChangedAt = Date.now();
+      if (!(await claimHandle(u, h))) return res.status(409).json({ error: "handle_taken" });
+      return res.status(200).json({ me: meView(u) });
+    }
+    if (action === "searchUsers") {
+      const q = normHandle(body.q).replace(/[^a-z0-9_.]/g, "").slice(0, 20);
+      if (q.length < 2) return res.status(200).json({ users: [] });
+      const [hs] = await kv([["ZRANGEBYLEX", "handles", "[" + q, "[" + q + "\xff", "LIMIT", 0, 12]]);
+      const list = (hs || []).filter(Boolean);
+      if (!list.length) return res.status(200).json({ users: [] });
+      const uids = await kv(list.map(h => ["GET", `un:${h}`]));
+      const [mine] = await kv([["SMEMBERS", `fr:${u.uid}`]]);
+      const raws = await kv(uids.map(x => ["GET", `u:${x}`]));
+      const pend = await kv(uids.map(x => ["EXISTS", `frq:${u.uid}:${x}`]));
+      const users = [];
+      raws.forEach((raw, i) => { if (!raw || uids[i] === u.uid) return; try { const f = JSON.parse(raw); if (f.handle !== list[i]) return;
+        users.push({ uid: f.uid, handle: f.handle, nick: f.profile?.nick || "", friend: (mine || []).includes(f.uid), pending: !!pend[i] }); } catch {} });
+      return res.status(200).json({ users: users.slice(0, 8) });
+    }
+    // friend request by @username: the other person accepts it from their notifications
+    if (action === "requestFriend") {
+      const [fid] = await kv([["GET", `un:${normHandle(body.handle)}`]]);
+      if (!fid) return res.status(404).json({ error: "not_found" });
+      if (fid === u.uid) return res.status(400).json({ error: "self" });
+      const [already, sent, theyAsked] = await kv([["SISMEMBER", `fr:${u.uid}`, fid], ["EXISTS", `frq:${u.uid}:${fid}`], ["EXISTS", `frq:${fid}:${u.uid}`]]);
+      if (already) return res.status(200).json({ ok: true, friend: true });
+      if (theyAsked) { // they already asked me: just become friends
+        await kv([["SADD", `fr:${u.uid}`, fid], ["SADD", `fr:${fid}`, u.uid], ["DEL", `frq:${fid}:${u.uid}`]]);
+        return res.status(200).json({ ok: true, friend: true, friends: await friendsOf(u.uid) });
+      }
+      if (!sent) {
+        const f = await getUser(fid);
+        const note = { nid: rid(10), type: "freq", from: u.profile.nick, fromUid: u.uid, handle: u.handle || "", at: Date.now() };
+        await kv([["SET", `frq:${u.uid}:${fid}`, "1", "EX", INVITE_TTL], ["LPUSH", `n:${fid}`, JSON.stringify(note)], ["LTRIM", `n:${fid}`, 0, 49]]);
+        if (f && f.email && f.profile?.mail !== false) await sendPartyMail({ to: f.email, lang: f.lang, kind: "freq", from: u.profile.nick + (u.handle ? ` (@${u.handle})` : "") });
+      }
+      return res.status(200).json({ ok: true, pending: true });
+    }
+    if (action === "answerFriend") {
+      const { found, notifs } = await dropNotif(u.uid, clean(body.nid, 12));
+      if (!found || found.type !== "freq") return res.status(404).json({ error: "gone", notifs });
+      const fid = found.fromUid;
+      const [asked] = await kv([["EXISTS", `frq:${fid}:${u.uid}`]]);
+      await kv([["DEL", `frq:${fid}:${u.uid}`]]);
+      if (body.accept && asked) {
+        const note = { nid: rid(10), type: "faccepted", from: u.profile.nick, handle: u.handle || "", at: Date.now() };
+        await kv([["SADD", `fr:${u.uid}`, fid], ["SADD", `fr:${fid}`, u.uid], ["LPUSH", `n:${fid}`, JSON.stringify(note)], ["LTRIM", `n:${fid}`, 0, 49]]);
+      }
+      return res.status(200).json({ notifs, friends: await friendsOf(u.uid) });
+    }
+
     // remove a group from my list only (the group itself stays for the others)
     if (action === "leaveGroup") {
       await kv([["SREM", `g:${u.uid}`, clean(body.id, 12)]]);
       return res.status(200).json({ groups: await groupsOf(u.uid) });
     }
 
-    if (action === "me") return res.status(200).json({ me: meView(u), friends: await friendsOf(u.uid), history: await historyOf(u.uid), archive: await archiveOf(u.uid), groups: await groupsOf(u.uid), ...(await notifsOf(u.uid)) });
+    if (action === "me") return res.status(200).json({ ...(await meFull(u)), friends: await friendsOf(u.uid), history: await historyOf(u.uid), archive: await archiveOf(u.uid), groups: await groupsOf(u.uid), ...(await notifsOf(u.uid)) });
 
     if (action === "saveOuting") {
       const e = cleanEntry(body);
@@ -390,7 +486,7 @@ module.exports = async (req, res) => {
       const meta = JSON.parse(metaRaw);
       const list = (members || []).map(x => { try { return JSON.parse(x); } catch { return {}; } });
       if (!list.some(m => m.uid === u.uid)) {
-        if (list.length >= 8) return res.status(409).json({ error: "full", notifs });
+        if (list.length >= (meta.max || 8)) return res.status(409).json({ error: "full", notifs });
         const p = u.profile;
         const m = { nick: p.nick, level: p.level ?? null, vibe: (meta.mode === "day" ? p.vibeDay : p.vibeNight) || "", flag: !!(meta.mode === "day" ? p.student : p.sober), minor: !!p.minor, budget: null, uid: u.uid, token: crypto.randomBytes(24).toString("hex"), t: Date.now(), host: false };
         await kv([["HSET", `o:${oid}:m`, rid(8), JSON.stringify(m)], ["SADD", `g:${u.uid}`, oid], ["EXPIRE", `g:${u.uid}`, INVITE_TTL]]);
@@ -458,6 +554,7 @@ module.exports = async (req, res) => {
       const [friendIds, tokens] = await kv([["SMEMBERS", `fr:${u.uid}`], ["SMEMBERS", `us:${u.uid}`]]);
       const cmds = (friendIds || []).map(f => ["SREM", `fr:${f}`, u.uid]);
       (tokens || []).forEach(t => cmds.push(["DEL", `s:${t}`]));
+      if (u.handle) cmds.push(["DEL", `un:${u.handle}`], ["ZREM", "handles", u.handle]);
       if (u.email && !u.pw) cmds.push(["DEL", "ge:" + crypto.createHash("sha256").update(u.email.trim().toLowerCase()).digest("hex")]);
       cmds.push(["DEL", `u:${u.uid}`, `fr:${u.uid}`, `us:${u.uid}`, `fc:${u.code}`, `h:${u.uid}`, `ha:${u.uid}`, `g:${u.uid}`, `n:${u.uid}`, `nseen:${u.uid}`]);
       if (u.sk) cmds.push(["DEL", u.sk]);

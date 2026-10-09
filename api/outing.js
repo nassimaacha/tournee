@@ -4,6 +4,7 @@
 
 const crypto = require("crypto");
 const { sendPartyMail } = require("./_mail");
+const quota = require("./_quota");
 
 const KV_URL = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
 const KV_TOKEN = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
@@ -118,6 +119,9 @@ module.exports = async (req, res) => {
       // the signed in creator owns the group: it shows in their account and they can delete it
       const owner = await sessionUid(req);
       if (owner) meta.owner = owner;
+      // group size follows the host: you + 3 friends free, you + 10 with Tournée+
+      let ownerU = null; if (owner) { const [raw] = await kv([["GET", `u:${owner}`]]); try { ownerU = JSON.parse(raw); } catch {} }
+      meta.max = quota.groupMax(ownerU);
       const k = keys(id);
       await kv([["SET", k.meta, JSON.stringify(meta), "EX", TTL], ...(owner ? [["SADD", `g:${owner}`, id], ["EXPIRE", `g:${owner}`, TTL]] : [])]);
       const o = await load(id);
@@ -150,7 +154,7 @@ module.exports = async (req, res) => {
     }
 
     if (action === "join") {
-      if (Object.keys(o.members).length >= MAX_MEMBERS) return res.status(409).json({ error: "full" });
+      if (Object.keys(o.members).length >= (o.meta.max || MAX_MEMBERS)) return res.status(409).json({ error: "full", max: o.meta.max || MAX_MEMBERS });
       const mid = newId(), token = newToken();
       const m = { ...member(body.member, o.meta), token, t: Date.now(), host: isAdmin && body.self === true };
       // link the row to a Tournée account: yourself, or (as host) one of your friends

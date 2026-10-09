@@ -337,6 +337,7 @@ async function addTravelTimes(plan, c, lang, area, metro) {
 }
 
 /* ---------- handler ---------- */
+const quota = require("./_quota");
 module.exports = async (req, res) => {
   if (req.method !== "POST") return res.status(405).json({ error: "method" });
   const key = process.env.ANTHROPIC_API_KEY;
@@ -348,7 +349,7 @@ module.exports = async (req, res) => {
   const c = CITIES[body.city] || CITIES.paris;
   const mode = body.mode === "culture" ? "culture" : "night";
   const lang = LANGS[body.lang] ? body.lang : "fr";
-  const friends = (Array.isArray(body.friends) ? body.friends : []).slice(0, 8).map(f => {
+  const friends = (Array.isArray(body.friends) ? body.friends : []).slice(0, 11).map(f => {
     const b = Number(f?.budget);
     return {
       nick: clean(f?.nick, 20) || "Quelqu'un",
@@ -362,6 +363,15 @@ module.exports = async (req, res) => {
     };
   });
   if (friends.length < 1) return res.status(400).json({ error: "group" });
+
+  // plan limits: 5 a day free, extra packs, unlimited with Tournée+; guests get one try
+  let q = null;
+  if (quota.ready()) {
+    q = await quota.consume(req, body).catch(e => { console.error("quota", e); return null; });
+    if (q && q.error === "signup") return res.status(401).json({ error: "signup" });
+    if (q && q.error === "quota") return res.status(402).json({ error: "quota", quota: q.status });
+    if (q && friends.length > q.groupMax) { await q.refund(); return res.status(403).json({ error: "group_max", max: q.groupMax }); }
+  }
 
   const input = {
     c, mode, lang,
@@ -427,8 +437,9 @@ module.exports = async (req, res) => {
     trimStops(plan, input.stops, need);
     (plan.etapes || []).forEach(s => { delete s._why; delete s._ok; s.billet = s.billet === true; if (!input.end) s.heure = ""; });
     plan.excluded = excluded;
-    return res.status(200).json({ plan });
+    return res.status(200).json({ plan, quota: q ? await q.status() : null });
   } catch (e) {
+    if (q && q.refund) await q.refund(); // the plan failed: give the try back
     if (e && e.code) return res.status(e.code === "rate_limited" ? 429 : 502).json({ error: e.code });
     console.error(e);
     return res.status(500).json({ error: "server" });

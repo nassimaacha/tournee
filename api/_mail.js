@@ -40,9 +40,9 @@ const CITY_T = {
 };
 
 const T = {
-  fr: { night: "une soirée", day: "une journée", invite: "{n} vous invite à {m} à {c}", added: "{n} vous a ajouté à {m} à {c}", friend: "{n} vous a ajouté en ami sur Tournée", friendBody: "Vous pouvez maintenant vous inviter à vos sorties en un clic.", friendCta: "Voir mes amis", body: "Ajoutez votre budget et vos envies, Tournée s'occupe du plan.", cta: "Voir la sortie", foot: "Vous recevez cet e-mail parce que vous avez un compte Tournée. Pour ne plus les recevoir, décochez l'option dans votre compte." },
-  en: { night: "a night out", day: "a day out", invite: "{n} invited you to {m} in {c}", added: "{n} added you to {m} in {c}", friend: "{n} added you as a friend on Tournée", friendBody: "You can now invite each other to parties in one click.", friendCta: "See my friends", body: "Add your budget and what you're into, Tournée takes care of the plan.", cta: "See the party", foot: "You're getting this email because you have a Tournée account. To stop these emails, untick the option in your account." },
-  es: { night: "una noche", day: "un día", invite: "{n} te invita a {m} en {c}", added: "{n} te ha añadido a {m} en {c}", friend: "{n} te ha añadido como amigo en Tournée", friendBody: "Ahora podéis invitaros a vuestros planes con un clic.", friendCta: "Ver mis amigos", body: "Añade tu presupuesto y lo que te apetece, Tournée se encarga del plan.", cta: "Ver el plan", foot: "Recibes este correo porque tienes una cuenta en Tournée. Para no recibir más, desmarca la opción en tu cuenta." },
+  fr: { night: "une soirée", day: "une journée", invite: "{n} vous invite à {m} à {c}", added: "{n} vous a ajouté à {m} à {c}", friend: "{n} vous a ajouté en ami sur Tournée", friendBody: "Vous pouvez maintenant vous inviter à vos sorties en un clic.", friendCta: "Voir mes amis", freq: "{n} veut vous ajouter en ami sur Tournée", freqBody: "Acceptez ou refusez la demande depuis vos notifications.", freqCta: "Voir la demande", body: "Ajoutez votre budget et vos envies, Tournée s'occupe du plan.", cta: "Voir la sortie", foot: "Vous recevez cet e-mail parce que vous avez un compte Tournée. Pour ne plus les recevoir, décochez l'option dans votre compte." },
+  en: { night: "a night out", day: "a day out", invite: "{n} invited you to {m} in {c}", added: "{n} added you to {m} in {c}", friend: "{n} added you as a friend on Tournée", friendBody: "You can now invite each other to parties in one click.", friendCta: "See my friends", freq: "{n} wants to be your friend on Tournée", freqBody: "Accept or decline the request from your notifications.", freqCta: "See the request", body: "Add your budget and what you're into, Tournée takes care of the plan.", cta: "See the party", foot: "You're getting this email because you have a Tournée account. To stop these emails, untick the option in your account." },
+  es: { night: "una noche", day: "un día", invite: "{n} te invita a {m} en {c}", added: "{n} te ha añadido a {m} en {c}", friend: "{n} te ha añadido como amigo en Tournée", friendBody: "Ahora podéis invitaros a vuestros planes con un clic.", friendCta: "Ver mis amigos", freq: "{n} quiere ser tu amigo en Tournée", freqBody: "Acepta o rechaza la solicitud desde tus notificaciones.", freqCta: "Ver la solicitud", body: "Añade tu presupuesto y lo que te apetece, Tournée se encarga del plan.", cta: "Ver el plan", foot: "Recibes este correo porque tienes una cuenta en Tournée. Para no recibir más, desmarca la opción en tu cuenta." },
 };
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const fill = (s, v) => s.replace(/\{(\w)\}/g, (_, k) => v[k] ?? "");
@@ -53,10 +53,10 @@ async function sendPartyMail({ to, lang, kind, from, city, mode, outing }) {
   if (!key || !to) return false;
   const L = T[lang] ? lang : "fr", t = T[L];
   const cityName = CITY_T[city]?.[L] || CITY_T[city]?.en || city;
-  const isFriend = kind === "friend";
-  const subject = fill(isFriend ? t.friend : kind === "added" ? t.added : t.invite, { n: from || "Tournée", m: mode === "day" ? t.day : t.night, c: cityName });
-  const link = isFriend ? "https://tournee.site/account" : `https://tournee.site/o/${encodeURIComponent(outing)}`;
-  const bodyText = isFriend ? t.friendBody : t.body, ctaText = isFriend ? t.friendCta : t.cta;
+  const isFriend = kind === "friend" || kind === "freq", isReq = kind === "freq";
+  const subject = fill(isReq ? t.freq : isFriend ? t.friend : kind === "added" ? t.added : t.invite, { n: from || "Tournée", m: mode === "day" ? t.day : t.night, c: cityName });
+  const link = isFriend ? "https://tournee.site/friends" : `https://tournee.site/o/${encodeURIComponent(outing)}`;
+  const bodyText = isReq ? t.freqBody : isFriend ? t.friendBody : t.body, ctaText = isReq ? t.freqCta : isFriend ? t.friendCta : t.cta;
   const html = `<!doctype html><html lang="${L}"><body style="margin:0;background:#DBC9FF;font-family:Inter,Arial,sans-serif;color:#271A47">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#DBC9FF;padding:32px 16px"><tr><td align="center">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;background:#271A47;border-radius:24px;color:#DBC9FF">
