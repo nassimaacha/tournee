@@ -338,6 +338,17 @@ module.exports = async (req, res) => {
       return res.status(200).json({ pending: pending || 0, cities: cities || 0, newReviews: Number(nr) > (Number(sr) || 0), newCities: Number(nc) > (Number(sc) || 0), reviewsUrl: key ? "/api/review?key=" + encodeURIComponent(key) : null, citiesUrl: key ? "/api/suggest?key=" + encodeURIComponent(key) : null });
     }
 
+    // admin only: offer extra plans to someone by @username (they get a notification)
+    if (action === "grantPlans") {
+      if (!u.admin) return res.status(403).json({ error: "forbidden" });
+      const n = Math.min(100, Math.max(1, parseInt(body.n, 10) || 0));
+      const [fid] = await kv([["GET", `un:${normHandle(body.handle)}`]]);
+      if (!fid) return res.status(404).json({ error: "not_found" });
+      const note = { nid: rid(10), type: "gift", n, at: Date.now() };
+      const [total] = await kv([["INCRBY", `cr:${fid}`, n], ["LPUSH", `n:${fid}`, JSON.stringify(note)], ["LTRIM", `n:${fid}`, 0, 49]]);
+      return res.status(200).json({ ok: true, handle: normHandle(body.handle), n, total });
+    }
+
     if (action === "adminSeen") {
       if (!u.admin) return res.status(403).json({ error: "forbidden" });
       await kv([["SET", body.what === "cities" ? "adm:seenCity" : "adm:seenReview", Date.now()]]);

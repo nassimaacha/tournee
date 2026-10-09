@@ -61,7 +61,8 @@ async function sendPartyMail({ to, toName, sender, lang, kind, from, city, mode,
   const cityName = CITY_T[city]?.[L] || CITY_T[city]?.en || city;
   const isFriend = kind === "friend" || kind === "freq", isReq = kind === "freq";
   const subject = fill(isReq ? t.freq : isFriend ? t.friend : kind === "added" ? t.added : t.invite, { n: from || "Tournée", m: mode === "day" ? t.day : t.night, c: cityName });
-  const link = isFriend ? "https://tournee.site/friends" : `https://tournee.site/o/${encodeURIComponent(outing)}`;
+  // friend request: home page with the bell open; new friend: the Friends page; parties: the party itself
+  const link = isReq ? "https://tournee.site/?notifs=1" : isFriend ? "https://tournee.site/friends" : `https://tournee.site/o/${encodeURIComponent(outing)}`;
   const bodyText = isReq ? t.freqBody : isFriend ? t.friendBody : t.body, ctaText = isReq ? t.freqCta : isFriend ? t.friendCta : t.cta;
   const html = `<!doctype html><html lang="${L}"><body style="margin:0;background:#DBC9FF;font-family:Inter,Arial,sans-serif;color:#271A47">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#DBC9FF;padding:32px 16px"><tr><td align="center">
