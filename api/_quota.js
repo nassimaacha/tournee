@@ -76,6 +76,7 @@ async function consume(req, body) {
     return { ok: true, guest: true, groupMax: GROUP_FREE, refund: () => kv([["DECR", dk], ["DECR", nk]]).catch(() => {}), status: () => ({ guest: true, left: 0 }) };
   }
   const { uid, u } = who;
+  if (u.banned && (!u.banned.until || u.banned.until > Date.now())) return { error: "signup" };
   const st = () => status(uid, u);
   if (isAdmin(u) || isPro(u)) return { ok: true, uid, groupMax: GROUP_PRO, refund: async () => {}, status: st };
 

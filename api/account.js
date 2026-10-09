@@ -184,6 +184,11 @@ async function dropNotif(uid, nid) {
   return { found: notifs.find(n => n.nid === nid) || null, notifs: keep };
 }
 
+// banned accounts: signed out everywhere, can't sign in again, and the email is blocked for new accounts
+const banKey = email => "ban:" + crypto.createHash("sha256").update(String(email || "").trim().toLowerCase()).digest("hex");
+// a ban is permanent, or temporary with an end date (e.g. 3 days)
+const isBanned = u => !!(u && u.banned && (!u.banned.until || u.banned.until > Date.now()));
+async function emailBanned(email) { if (!email) return false; const [b] = await kv([["EXISTS", banKey(email)]]); return !!b; }
 async function auth(req) {
   const h = String(req.headers.authorization || "");
   const token = h.startsWith("Bearer ") ? h.slice(7).trim() : "";
@@ -191,6 +196,7 @@ async function auth(req) {
   const [uid] = await kv([["GET", `s:${token}`]]);
   if (!uid) return null;
   const u = await getUser(uid);
+  if (isBanned(u)) return null;
   return u ? { u, token } : null;
 }
 async function verifyGoogle(credential) {
@@ -233,6 +239,7 @@ module.exports = async (req, res) => {
         if (password.length < 8 || password.length > 200) return res.status(400).json({ error: "weak" });
         const [exists] = await kv([["GET", emKey]]);
         if (exists) return res.status(409).json({ error: "exists" });
+        if (await emailBanned(email)) return res.status(403).json({ error: "banned" });
         const uid = rid(12), code = rid(8), salt = crypto.randomBytes(16).toString("hex");
         const hash = (await scrypt(password, salt)).toString("hex");
         const u = { uid, code, sk: emKey, email, last, lang: LANG_OK.includes(body.lang) ? body.lang : "fr", pw: { salt, hash }, created: Date.now(), profile: cleanProfile({ nick: first.split(" ")[0] }, {}) };
@@ -256,6 +263,7 @@ module.exports = async (req, res) => {
         return res.status(401).json({ error: "creds" });
       }
       await kv([["DEL", rlKey]]);
+      if (isBanned(u)) return res.status(403).json({ error: "banned", until: u.banned.until || null });
       if (!!u.admin !== isAdminEmail(u.email)) { u.admin = isAdminEmail(u.email); await kv([["SET", `u:${u.uid}`, JSON.stringify(u)]]); }
       return res.status(200).json(await openSession(u));
     }
@@ -305,6 +313,7 @@ module.exports = async (req, res) => {
       const subKey = "gsub:" + crypto.createHash("sha256").update(g.sub).digest("hex");
       let [uid] = await kv([["GET", subKey]]);
       let u = uid ? await getUser(uid) : null;
+      if (isBanned(u) || (!u && await emailBanned(g.email))) return res.status(403).json({ error: "banned", until: u?.banned?.until || null });
       if (!u) {
         uid = rid(12);
         const code = rid(8);
@@ -341,6 +350,35 @@ module.exports = async (req, res) => {
       const [pending, cities, nr, nc, sr, sc] = await kv([["LLEN", "rv:pending"], ["ZCARD", "sg:count"], ["GET", "adm:newReview"], ["GET", "adm:newCity"], ["GET", "adm:seenReview"], ["GET", "adm:seenCity"]]);
       // "new" = something arrived since the owner last opened that page; the account page makes the button blink
       return res.status(200).json({ pending: pending || 0, cities: cities || 0, newReviews: Number(nr) > (Number(sr) || 0), newCities: Number(nc) > (Number(sc) || 0), reviewsUrl: key ? "/api/review?key=" + encodeURIComponent(key) : null, citiesUrl: key ? "/api/suggest?key=" + encodeURIComponent(key) : null });
+    }
+
+    // admin only: look someone up, remove their saved plans, ban or unban them
+    if (action === "adminUser" || action === "removePlans" || action === "ban") {
+      if (!u.admin) return res.status(403).json({ error: "forbidden" });
+      const h = normHandle(body.handle);
+      const [fid] = await kv([["GET", `un:${h}`]]);
+      const f = fid ? await getUser(fid) : null;
+      if (!f) return res.status(404).json({ error: "not_found" });
+      if (action === "removePlans") {
+        const [cur] = await kv([["GET", `cr:${fid}`]]);
+        const left = body.all ? 0 : Math.max(0, (Number(cur) || 0) - Math.max(1, parseInt(body.n, 10) || 0));
+        await kv([["SET", `cr:${fid}`, left]]);
+      }
+      if (action === "ban") {
+        if (f.admin || fid === u.uid) return res.status(400).json({ error: "self" });
+        if (body.ban) {
+          const days = Math.min(365, Math.max(0, parseInt(body.days, 10) || 0)); // 0 = permanent
+          f.banned = { at: Date.now(), ...(days ? { until: Date.now() + days * 864e5 } : {}) };
+          const [tokens] = await kv([["SMEMBERS", `us:${fid}`]]);
+          const emailBan = f.email ? [days ? ["SET", banKey(f.email), fid, "EX", days * 86400] : ["SET", banKey(f.email), fid]] : [];
+          await kv([["SET", `u:${fid}`, JSON.stringify(f)], ...(tokens || []).map(t => ["DEL", `s:${t}`]), ["DEL", `us:${fid}`], ...emailBan]);
+        } else {
+          delete f.banned;
+          await kv([["SET", `u:${fid}`, JSON.stringify(f)], ...(f.email ? [["DEL", banKey(f.email)]] : [])]);
+        }
+      }
+      const st = await quota.status(fid, f);
+      return res.status(200).json({ user: { handle: f.handle, nick: f.profile?.nick || "", credits: st.credits || 0, left: st.left, pro: !!st.pro, banned: isBanned(f), bannedUntil: isBanned(f) ? (f.banned.until || null) : null, admin: !!f.admin } });
     }
 
     // admin only: offer extra plans to someone by @username (they get a notification)
@@ -395,7 +433,7 @@ module.exports = async (req, res) => {
       const raws = await kv(uids.map(x => ["GET", `u:${x}`]));
       const pend = await kv(uids.map(x => ["EXISTS", `frq:${u.uid}:${x}`]));
       const users = [];
-      raws.forEach((raw, i) => { if (!raw || uids[i] === u.uid) return; try { const f = JSON.parse(raw); if (f.handle !== list[i]) return;
+      raws.forEach((raw, i) => { if (!raw || uids[i] === u.uid) return; try { const f = JSON.parse(raw); if (f.handle !== list[i] || isBanned(f)) return;
         users.push({ uid: f.uid, handle: f.handle, nick: f.profile?.nick || "", friend: (mine || []).includes(f.uid), pending: !!pend[i] }); } catch {} });
       return res.status(200).json({ users: users.slice(0, 8) });
     }
