@@ -6,7 +6,7 @@
 //
 // GET  /api/pay                          -> { enabled }
 // POST /api/pay {action:"checkout", product:"pack3"|"pack5"|"plus"|"plusYear"}  (signed in) -> { url } to Stripe Checkout
-// Tournée+ (monthly or yearly) starts with 14 free days, once per email (Stripe asks for the card, charges on day 15).
+// Tournée+ (monthly or yearly) starts with 2 free months, once per email (Stripe asks for the card, charges when the trial ends).
 // POST /api/pay {action:"portal"}        (signed in, Tournée+) -> { url } to manage or cancel the subscription
 // POST /api/pay?hook=1                   Stripe webhook: adds extra plans or turns Tournée+ on and off
 
@@ -21,7 +21,7 @@ const PRODUCTS = {
   plus: { mode: "subscription", interval: "month", amount: 799, name: { fr: "Tournée+ (plans illimités)", en: "Tournée+ (unlimited plans)", es: "Tournée+ (planes ilimitados)" } },
   plusYear: { mode: "subscription", interval: "year", amount: 8790, name: { fr: "Tournée+ annuel (plans illimités)", en: "Tournée+ yearly (unlimited plans)", es: "Tournée+ anual (planes ilimitados)" } },
 };
-const TRIAL_DAYS = 14;
+const TRIAL_DAYS = 60; // 2 months free, once per email
 const trialKey = (uid, u) => u.email ? `trial:${crypto.createHash("sha256").update(String(u.email).trim().toLowerCase()).digest("hex").slice(0, 32)}` : `trial:u:${uid}`;
 // the free trial is for people who never had Tournée+ and never used a trial with this email
 async function trialOk(uid, u) { if (u.pro || u.trialUsed) return false; const [used] = await kv([["EXISTS", trialKey(uid, u)]]); return !used; }

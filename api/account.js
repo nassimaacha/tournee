@@ -68,7 +68,7 @@ async function ensureHandle(u) {
   return u;
 }
 const meFull = async u => ({ me: meView(await ensureHandle(u)), quota: await quota.status(u.uid, u).catch(() => null) });
-const publicView = u => ({ uid: u.uid, handle: u.handle || null, nick: u.profile.nick, level: u.profile.level, vibeNight: u.profile.vibeNight, vibeDay: u.profile.vibeDay, sober: u.profile.sober, student: u.profile.student, minor: !!u.profile.minor, likes: u.profile.likes || [] });
+const publicView = u => ({ uid: u.uid, handle: u.handle || null, nick: u.profile.nick, level: u.profile.level, vibeNight: u.profile.vibeNight, vibeDay: u.profile.vibeDay, sober: u.profile.sober, student: u.profile.student, minor: !!u.profile.minor, likes: u.profile.likes || [], av: u.av || null });
 
 function cleanProfile(p, prev) {
   const lv = Number.isInteger(p?.level) && p.level >= 0 && p.level <= 4 ? p.level : (p?.level === null ? null : prev.level ?? null);
@@ -465,7 +465,7 @@ module.exports = async (req, res) => {
       const pend = await kv(uids.map(x => ["EXISTS", `frq:${u.uid}:${x}`]));
       const users = [];
       raws.forEach((raw, i) => { if (!raw || uids[i] === u.uid) return; try { const f = JSON.parse(raw); if (f.handle !== list[i] || isBanned(f)) return;
-        users.push({ uid: f.uid, handle: f.handle, nick: f.profile?.nick || "", friend: (mine || []).includes(f.uid), pending: !!pend[i] }); } catch {} });
+        users.push({ uid: f.uid, handle: f.handle, nick: f.profile?.nick || "", av: f.av || null, friend: (mine || []).includes(f.uid), pending: !!pend[i] }); } catch {} });
       return res.status(200).json({ users: users.slice(0, 8) });
     }
     // friend request by @username: the other person accepts it from their notifications
@@ -633,6 +633,21 @@ module.exports = async (req, res) => {
       return res.status(200).json({ history, archive: rest });
     }
 
+    // profile picture: a small square JPEG made in the browser (320 px), shown at /api/story?av=UID
+    if (action === "setAvatar") {
+      const img = String(body.image || "");
+      const m = /^data:image\/jpeg;base64,([A-Za-z0-9+/=]+)$/.exec(img);
+      if (!m || Buffer.byteLength(m[1], "base64") > 120 * 1024) return res.status(400).json({ error: "image" });
+      u.av = Date.now();
+      await kv([["SET", `av:${u.uid}`, img], ["SET", `u:${u.uid}`, JSON.stringify(u)]]);
+      return res.status(200).json({ me: meView(u) });
+    }
+    if (action === "removeAvatar") {
+      delete u.av;
+      await kv([["DEL", `av:${u.uid}`], ["SET", `u:${u.uid}`, JSON.stringify(u)]]);
+      return res.status(200).json({ me: meView(u) });
+    }
+
     if (action === "profile") {
       u.profile = cleanProfile(body.profile || {}, u.profile);
       await kv([["SET", `u:${u.uid}`, JSON.stringify(u)]]);
@@ -670,7 +685,7 @@ module.exports = async (req, res) => {
       (tokens || []).forEach(t => cmds.push(["DEL", `s:${t}`]));
       if (u.handle) cmds.push(["DEL", `un:${u.handle}`], ["ZREM", "handles", u.handle]);
       if (u.email && !u.pw) cmds.push(["DEL", "ge:" + crypto.createHash("sha256").update(u.email.trim().toLowerCase()).digest("hex")]);
-      cmds.push(["DEL", `u:${u.uid}`, `fr:${u.uid}`, `us:${u.uid}`, `fc:${u.code}`, `h:${u.uid}`, `ha:${u.uid}`, `g:${u.uid}`, `n:${u.uid}`, `nseen:${u.uid}`, `pc:${u.uid}`, `rn:${u.uid}`, `st:${u.uid}`, `sts:${u.uid}`]);
+      cmds.push(["DEL", `u:${u.uid}`, `fr:${u.uid}`, `us:${u.uid}`, `fc:${u.code}`, `h:${u.uid}`, `ha:${u.uid}`, `g:${u.uid}`, `n:${u.uid}`, `nseen:${u.uid}`, `pc:${u.uid}`, `rn:${u.uid}`, `st:${u.uid}`, `sts:${u.uid}`, `av:${u.uid}`]);
       if (u.sk) cmds.push(["DEL", u.sk]);
       await kv(cmds);
       return res.status(200).json({ ok: true });

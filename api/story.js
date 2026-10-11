@@ -41,7 +41,7 @@ async function withLikes(list, uid) {
 }
 // public index entries -> viewer groups (one story per group, newest first unless sorted otherwise)
 const asGroups = (entries, uid, seen) => entries.map(e => ({
-  uid: e.uid, me: e.uid === uid, nick: e.nick || "?", handle: e.handle || "", pub: true,
+  uid: e.uid, me: e.uid === uid, nick: e.nick || "?", handle: e.handle || "", av: e.av || null, pub: true,
   stories: [{ ...e.s, url: urlFor(e.s.id, e.s.at), seen: e.uid === uid || seen.has(e.s.id), likes: e.s.likes, liked: e.s.liked }],
   unseen: e.uid !== uid && !seen.has(e.s.id), last: e.s.at,
 }));
@@ -69,7 +69,7 @@ module.exports = async (req, res) => {
         await kv([["INCR", `ad:c:${id}`]]);
         res.setHeader("Location", ad.link); return res.status(302).send("");
       }
-      const key = q.adimg ? `ad:img:${clean(q.adimg, 20)}` : null;
+      const key = q.adimg ? `ad:img:${clean(q.adimg, 20)}` : q.av ? `av:${clean(q.av, 20)}` : null;
       if (!key) {
         const id = String(q.img || ""), e = Number(q.e), s = String(q.s || "");
         const want = sign(id, e);
@@ -111,7 +111,7 @@ module.exports = async (req, res) => {
       const s = { id: rid(), at: Date.now(), caption, tags: tagsOf(caption), pub: body.pub === true, ...link };
       const cmds = [["SET", `st:img:${s.id}`, img, "EX", DAY], ["LPUSH", `st:${uid}`, JSON.stringify(s)], ["LTRIM", `st:${uid}`, 0, 19], ["EXPIRE", `st:${uid}`, DAY]];
       if (s.pub) {
-        const entry = JSON.stringify({ uid, nick, handle, s });
+        const entry = JSON.stringify({ uid, nick, handle, av: u.av || null, s });
         cmds.push(["LPUSH", "stpub", entry], ["LTRIM", "stpub", 0, 999], ["EXPIRE", "stpub", DAY]);
         s.tags.forEach(t => cmds.push(["LPUSH", `sth:${t}`, entry], ["LTRIM", `sth:${t}`, 0, 199], ["EXPIRE", `sth:${t}`, DAY]));
       }
@@ -130,7 +130,7 @@ module.exports = async (req, res) => {
         let f = null; try { f = JSON.parse(users[i]); } catch {}
         if (!f || (id !== uid && banned(f))) return null;
         const stories = l.sort((a, b) => a.at - b.at).map(s => ({ ...s, url: urlFor(s.id, s.at), seen: id === uid || seen.has(s.id) }));
-        return { uid: id, me: id === uid, nick: f.profile?.nick || "?", handle: f.handle || "", stories, unseen: stories.some(s => !s.seen), last: stories[stories.length - 1].at };
+        return { uid: id, me: id === uid, nick: f.profile?.nick || "?", handle: f.handle || "", av: f.av || null, stories, unseen: stories.some(s => !s.seen), last: stories[stories.length - 1].at };
       }).filter(Boolean).sort((a, b) => (b.me - a.me) || (b.unseen - a.unseen) || (b.last - a.last));
       const flat = await withLikes(groups.flatMap(g => g.stories), uid);
       let k = 0; groups = groups.map(g => ({ ...g, stories: g.stories.map(() => flat[k++]) }));
@@ -178,7 +178,7 @@ module.exports = async (req, res) => {
         const friend = !!rows[i * 3 + 2] || id === uid;
         const stories = parse(rows[i * 3 + 1]).filter(s => fresh(s) && (friend || s.pub)).sort((a, b) => a.at - b.at)
           .map(s => ({ ...s, url: urlFor(s.id, s.at), seen: id === uid || seen.has(s.id) }));
-        return stories.length ? { uid: id, me: id === uid, nick: f.profile?.nick || "?", handle: hd, stories, unseen: stories.some(s => !s.seen), last: stories[stories.length - 1].at } : null;
+        return stories.length ? { uid: id, me: id === uid, nick: f.profile?.nick || "?", handle: hd, av: f.av || null, stories, unseen: stories.some(s => !s.seen), last: stories[stories.length - 1].at } : null;
       }).filter(Boolean);
       const flat = await withLikes(groups.flatMap(g => g.stories), uid);
       let k = 0; groups = groups.map(g => ({ ...g, stories: g.stories.map(() => flat[k++]) }));
