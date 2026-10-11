@@ -135,7 +135,7 @@ const MODES_OK = ["night", "day"];
 function cleanEntry(b) {
   const plan = b.plan || {};
   const stops = (Array.isArray(plan.etapes) ? plan.etapes : []).slice(0, 6).map(s => ({
-    lieu: clean(s.lieu, 80), type: clean(s.type, 40), area: clean(s.adresse || s.quartier, 80), billet: s.billet === true,
+    lieu: clean(s.lieu, 80), type: clean(s.type, 40), area: clean(s.adresse || s.quartier, 80), billet: s.billet === true, pour: (Array.isArray(s.pour) ? s.pour : []).slice(0, 11).map(x => clean(x, 20)).filter(Boolean),
   })).filter(s => s.lieu);
   if (!stops.length) return null;
   return {
@@ -379,7 +379,7 @@ module.exports = async (req, res) => {
       // "new" = something arrived since the owner last opened that page; the account page makes the button blink
       return res.status(200).json({ pending: pending || 0, cities: cities || 0, ratings: ratings || 0, biz: biz || 0,
         newReviews: Number(nr) > (Number(sr) || 0), newCities: Number(nc) > (Number(sc) || 0), newRatings: Number(nt) > (Number(st) || 0), newBiz: Number(nb) > (Number(sb) || 0),
-        reviewsUrl: k ? "/api/review?key=" + k : null, citiesUrl: k ? "/api/suggest?key=" + k : null, ratingsUrl: k ? "/api/review?view=ratings&key=" + k : null, bizUrl: k ? "/api/business?key=" + k : null });
+        reviewsUrl: k ? "/api/review?key=" + k : null, citiesUrl: k ? "/api/suggest?key=" + k : null, ratingsUrl: k ? "/api/review?view=ratings&key=" + k : null, bizUrl: k ? "/api/business?key=" + k : null, adsUrl: k ? "/api/business?view=ads&key=" + k : null });
     }
 
     // admin only: look someone up, remove their saved plans, ban or unban them
@@ -670,7 +670,7 @@ module.exports = async (req, res) => {
       (tokens || []).forEach(t => cmds.push(["DEL", `s:${t}`]));
       if (u.handle) cmds.push(["DEL", `un:${u.handle}`], ["ZREM", "handles", u.handle]);
       if (u.email && !u.pw) cmds.push(["DEL", "ge:" + crypto.createHash("sha256").update(u.email.trim().toLowerCase()).digest("hex")]);
-      cmds.push(["DEL", `u:${u.uid}`, `fr:${u.uid}`, `us:${u.uid}`, `fc:${u.code}`, `h:${u.uid}`, `ha:${u.uid}`, `g:${u.uid}`, `n:${u.uid}`, `nseen:${u.uid}`, `pc:${u.uid}`, `rn:${u.uid}`]);
+      cmds.push(["DEL", `u:${u.uid}`, `fr:${u.uid}`, `us:${u.uid}`, `fc:${u.code}`, `h:${u.uid}`, `ha:${u.uid}`, `g:${u.uid}`, `n:${u.uid}`, `nseen:${u.uid}`, `pc:${u.uid}`, `rn:${u.uid}`, `st:${u.uid}`, `sts:${u.uid}`]);
       if (u.sk) cmds.push(["DEL", u.sk]);
       await kv(cmds);
       return res.status(200).json({ ok: true });

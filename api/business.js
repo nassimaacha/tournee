@@ -3,6 +3,8 @@
 // GET  /api/business?key=ADMIN_KEY                      -> owner page with the requests
 // POST /api/business {action:"delete", key, id}         -> owner removes a request
 // Limit: 3 requests per connection per day.
+// GET  /api/business?view=ads&key=ADMIN_KEY             -> owner page to manage the ads shown between stories
+// POST /api/business {action:"addAd"|"toggleAd"|"deleteAd", key, ...}
 
 const crypto = require("crypto");
 const KV_URL = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
@@ -62,6 +64,56 @@ document.addEventListener("click",async e=>{ const b=e.target.closest("button[da
 </script>`;
 }
 
+// ads shown between stories (never to Tournée+): picture, title, short text, button, link
+function adsPage(ads, stats, key) {
+  const row = (a, i) => `<li><img src="/api/story?adimg=${esc(a.id)}" alt=""><div><p class="nm">${esc(a.title)} <span>· ${a.on ? "ON" : "OFF"}</span></p>
+    <p class="tx">${esc(a.text)}</p><p class="who"><a href="${esc(a.link)}" target="_blank" rel="noopener">${esc(a.link)}</a></p>
+    <p class="who">${stats[i * 2] || 0} views · ${stats[i * 2 + 1] || 0} clicks</p>
+    <div class="act"><button data-a="toggleAd" data-id="${esc(a.id)}">${a.on ? "Pause" : "Turn on"}</button><button data-a="deleteAd" data-id="${esc(a.id)}">Delete</button></div></div></li>`;
+  return `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Tournée, ads</title>
+<style>
+body{font:15px/1.5 Inter,system-ui,sans-serif;background:#271A47;color:#DBC9FF;margin:0;padding:32px 20px;max-width:620px}
+h1{font-family:"Cormorant Garamond",Georgia,serif;font-weight:400;font-size:40px;margin:0 0 8px}
+h2{font-size:12px;text-transform:uppercase;letter-spacing:.111em;color:#BC994E;margin:28px 0 10px}
+ul{list-style:none;margin:0;padding:0}li{display:flex;gap:14px;padding:16px 0;border-top:1px solid #43346C}
+li img{width:72px;height:128px;object-fit:cover;border-radius:10px;background:#000;flex:none}
+.nm{margin:0;font-weight:600}.nm span{font-weight:400;color:#B7A6DE}.tx{margin:4px 0}.who{margin:2px 0 0;font-size:12px;color:#B7A6DE}.who a{color:#BC994E;word-break:break-all}
+.act{display:flex;gap:8px;margin-top:8px}
+button{background:none;border:1px solid #DBC9FF;border-radius:30px;color:#DBC9FF;padding:6px 14px;font:inherit;font-size:12px;cursor:pointer}
+form{display:flex;flex-direction:column;gap:10px}
+input,textarea{font:inherit;background:#33255A;border:1px solid #43346C;border-radius:12px;color:#DBC9FF;padding:10px 12px}
+.go{background:#DBC9FF;color:#271A47;align-self:flex-start;padding:10px 20px}
+.empty{color:#B7A6DE}.msg{color:#BC994E;font-size:13px}
+</style>
+<h1>Story ads</h1>
+<p class="empty" style="font-size:13px">Shown every 3 stories to free accounts, labeled "Sponsored". Tournée+ never sees them.</p>
+<h2>New ad</h2>
+<form id="f">
+  <input name="title" maxlength="40" placeholder="Business name" required>
+  <textarea name="text" maxlength="120" rows="2" placeholder="Short text (optional)"></textarea>
+  <input name="cta" maxlength="20" placeholder="Button text (optional, e.g. Book a table)">
+  <input name="link" type="url" placeholder="https://..." required>
+  <input name="image" type="file" accept="image/*" required>
+  <button class="go" type="submit">Add the ad</button>
+  <p class="msg" id="msg"></p>
+</form>
+<h2>Ads (${ads.length})</h2>
+<ul>${ads.map(row).join("") || '<li class="empty">No ads yet.</li>'}</ul>
+<script>
+const key=${JSON.stringify(key)};
+const post=b=>fetch("/api/business",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({...b,key})}).then(r=>r.json());
+function shrink(file){ return new Promise((ok,ko)=>{ const u=URL.createObjectURL(file), img=new Image(); img.onload=()=>{ const k=Math.min(1,1080/Math.max(img.width,img.height)), c=document.createElement("canvas"); c.width=Math.round(img.width*k); c.height=Math.round(img.height*k); c.getContext("2d").drawImage(img,0,0,c.width,c.height); ok(c.toDataURL("image/jpeg",.8)); }; img.onerror=ko; img.src=u; }); }
+document.getElementById("f").addEventListener("submit",async e=>{ e.preventDefault(); const f=e.target, m=document.getElementById("msg");
+  if(!f.link.value.startsWith("https://")){ m.textContent="The link must start with https://"; return; }
+  m.textContent="Uploading…"; const image=await shrink(f.image.files[0]).catch(()=>null); if(!image){ m.textContent="Can't read this picture."; return; }
+  const d=await post({action:"addAd",title:f.title.value,text:f.text.value,cta:f.cta.value,link:f.link.value,image});
+  if(d.ok) location.reload(); else m.textContent="Error: "+(d.error||"?"); });
+document.addEventListener("click",async e=>{ const b=e.target.closest("button[data-a]"); if(!b) return;
+  if(b.dataset.a==="deleteAd"&&!confirm("Delete this ad?")) return; b.disabled=true; await post({action:b.dataset.a,id:b.dataset.id}); location.reload(); });
+</script>`;
+}
+async function getAds() { const [raw] = await kv([["GET", "ads:list"]]); try { return JSON.parse(raw) || []; } catch { return []; } }
+
 module.exports = async (req, res) => {
   if (!KV_URL || !KV_TOKEN) return res.status(500).json({ error: "no_store" });
   const admin = process.env.ADMIN_KEY;
@@ -69,13 +121,37 @@ module.exports = async (req, res) => {
     if (req.method === "GET") {
       const key = String(req.query?.key || "");
       if (!admin || !same(key, admin)) { res.setHeader("Content-Type", "text/plain; charset=utf-8"); return res.status(403).send("Forbidden"); }
-      const [rows] = await kv([["LRANGE", "biz:list", 0, 199]]);
       res.setHeader("Content-Type", "text/html; charset=utf-8"); res.setHeader("Cache-Control", "no-store");
+      if (req.query?.view === "ads") {
+        const ads = await getAds();
+        const stats = ads.length ? await kv(ads.flatMap(a => [["GET", `ad:v:${a.id}`], ["GET", `ad:c:${a.id}`]])) : [];
+        return res.status(200).send(adsPage(ads, stats, key));
+      }
+      const [rows] = await kv([["LRANGE", "biz:list", 0, 199]]);
       return res.status(200).send(page(parse(rows), key));
     }
     if (req.method !== "POST") return res.status(405).json({ error: "method" });
     let body = req.body || {};
     if (typeof body === "string") { try { body = JSON.parse(body); } catch { body = {}; } }
+
+    if (["addAd", "toggleAd", "deleteAd"].includes(body.action)) {
+      if (!admin || !same(String(body.key || ""), admin)) return res.status(403).json({ error: "forbidden" });
+      const ads = await getAds();
+      if (body.action === "addAd") {
+        const image = String(body.image || "");
+        if (!/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(image) || image.length > 900 * 1024) return res.status(400).json({ error: "image" });
+        const link = clean(body.link, 300);
+        if (!/^https:\/\/[^\s]+$/.test(link)) return res.status(400).json({ error: "link" });
+        const a = { id: crypto.randomBytes(6).toString("hex"), title: clean(body.title, 40), text: clean(body.text, 120), cta: clean(body.cta, 20), link, on: true, at: Date.now() };
+        if (!a.title) return res.status(400).json({ error: "title" });
+        await kv([["SET", `ad:img:${a.id}`, image], ["SET", "ads:list", JSON.stringify([a, ...ads].slice(0, 50))]]);
+        return res.status(200).json({ ok: true });
+      }
+      const id = String(body.id || "");
+      const next = body.action === "deleteAd" ? ads.filter(a => a.id !== id) : ads.map(a => a.id === id ? { ...a, on: !a.on } : a);
+      await kv([["SET", "ads:list", JSON.stringify(next)], ...(body.action === "deleteAd" ? [["DEL", `ad:img:${id}`, `ad:v:${id}`, `ad:c:${id}`]] : [])]);
+      return res.status(200).json({ ok: true });
+    }
 
     if (body.action === "delete") {
       if (!admin || !same(String(body.key || ""), admin)) return res.status(403).json({ error: "forbidden" });

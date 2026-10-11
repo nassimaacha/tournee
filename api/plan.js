@@ -179,7 +179,7 @@ const timing = (start, end) => !isTime(start)
   ? `Horaires : rendez vous à ${start}, fin au plus tard à ${end}. Tout le plan, trajets compris, doit tenir dans ce créneau. Donne l'heure de début de chaque étape dans le champ "heure" (format HH:MM).`
   : `Horaires : rendez vous à ${start}, pas d'heure de fin. Ne donne PAS d'horaires : mets "" dans le champ "heure" de chaque étape, les étapes s'enchaînent simplement dans l'ordre.`;
 const JSON_SHAPE = `Réponds UNIQUEMENT avec un objet JSON valide, sans texte autour, de cette forme :
-{"titre":"nom accrocheur (5 mots max)","resume":"une phrase","compromis":"une ou deux phrases qui expliquent comment le plan respecte chaque personne, en citant les pseudos","etapes":[{"heure":"","type":"type d'étape","lieu":"nom exact du lieu","quartier":"quartier ou rue","pourquoi":"une phrase","prix_pp":10,"billet":false,"trajet":"comment venir de l'étape précédente","lat":48.8534,"lng":2.3711}],"total_pp":28,"retour":"comment rentrer","retour_station":"nom de l'arrêt ou de la station","retour_lat":48.8532,"retour_lng":2.3692}`;
+{"titre":"nom accrocheur (5 mots max)","resume":"une phrase","compromis":"une ou deux phrases qui expliquent comment le plan respecte chaque personne, en citant les pseudos","etapes":[{"heure":"","type":"type d'étape","lieu":"nom exact du lieu","quartier":"quartier ou rue","pourquoi":"une phrase","prix_pp":10,"billet":false,"pour":["pseudos dont l'envie est servie par cette étape"],"trajet":"comment venir de l'étape précédente","lat":48.8534,"lng":2.3711}],"total_pp":28,"retour":"comment rentrer","retour_station":"nom de l'arrêt ou de la station","retour_lat":48.8532,"retour_lng":2.3692}`;
 
 // No ticketed stop is ever forced: plans follow the group's vibes, and a "Book" button only shows
 // when a stop really sells tickets. (Forcing tickets used to slip museums into food or coffee plans.)
@@ -248,6 +248,7 @@ ${friends.some(f => f.minor) ? "- IMPORTANT : au moins une personne du groupe a 
 ${rules}
 - Prix réalistes en ${c.curName} : prix_pp et total_pp sont des nombres dans cette monnaie.
 ${accuracy}
+- Dans chaque étape, "pour" liste les pseudos exacts des personnes dont l'envie est servie par cette étape ([] si personne en particulier).
 - Donne pour chaque lieu ses coordonnées GPS (lat, lng, 4 décimales), et celles de l'arrêt de transport du retour (retour_station).
 ${avoidRule(avoid)}${style(lang)}
 
@@ -496,7 +497,7 @@ module.exports = async (req, res) => {
     }
 
     trimStops(plan, input.stops, need);
-    (plan.etapes || []).forEach(s => { delete s._why; delete s._ok; delete s._unverified; s.billet = s.billet === true; if (!input.end) s.heure = ""; });
+    (plan.etapes || []).forEach(s => { delete s._why; delete s._ok; delete s._unverified; s.pour = (Array.isArray(s.pour) ? s.pour : []).map(x => clean(x, 20)).filter(Boolean).slice(0, 11); s.billet = s.billet === true; if (!input.end) s.heure = ""; });
     plan.excluded = excluded;
     return res.status(200).json({ plan, quota: q ? await q.status() : null });
   } catch (e) {
