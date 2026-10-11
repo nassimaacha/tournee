@@ -76,10 +76,14 @@ async function sessionUid(req) {
   return uid || null;
 }
 
+// green dot "in": the host, people who joined themselves, friends who confirmed.
+// yellow dot "pending": a friend the host added, who hasn't answered yet. No dot: a name the host typed in.
+const rsvpOf = m => m.pending ? "pending" : (m.host || m.via === "self" || m.uid) ? "in" : null;
+
 function publicView(id, o) {
   const { admin, ...meta } = o.meta;
   const members = Object.entries(o.members)
-    .map(([mid, m]) => ({ mid, uid: m.uid || null, minor: !!m.minor, nick: m.nick, level: m.level ?? null, vibe: m.vibe, flag: m.flag, likes: m.likes || [], host: !!m.host, t: m.t }))
+    .map(([mid, m]) => ({ mid, uid: m.uid || null, minor: !!m.minor, nick: m.nick, level: m.level ?? null, vibe: m.vibe, flag: m.flag, likes: m.likes || [], host: !!m.host, status: rsvpOf(m), t: m.t }))
     .sort((a, b) => a.t - b.t);
   return { id, ...meta, members, plan: o.plan };
 }
@@ -158,7 +162,7 @@ module.exports = async (req, res) => {
     if (action === "join") {
       if (Object.keys(o.members).length >= (o.meta.max || MAX_MEMBERS)) return res.status(409).json({ error: "full", max: o.meta.max || MAX_MEMBERS });
       const mid = newId(), token = newToken();
-      const m = { ...member(body.member, o.meta), token, t: Date.now(), host: isAdmin && body.self === true };
+      const m = { ...member(body.member, o.meta), token, t: Date.now(), host: isAdmin && body.self === true, via: isAdmin && body.self !== true ? "host" : "self" };
       // link the row to a Tournée account: yourself, or (as host) one of your friends
       const wanted = clean(body.member?.uid, 20);
       if (me && (body.self === true || !isAdmin) && (!wanted || wanted === me)) m.uid = me;
@@ -167,6 +171,7 @@ module.exports = async (req, res) => {
         if (isFriend) m.uid = wanted;
       }
       if (m.uid && Object.values(o.members).some(x => x.uid === m.uid)) return res.status(409).json({ error: "already" });
+      if (m.via === "host" && m.uid && m.uid !== me) m.pending = true; // added by the host: waits for their answer
       if (!isAdmin && !clean(body.member?.nick, 20)) return res.status(400).json({ error: "name" });
       const extra = m.uid ? [["SADD", `g:${m.uid}`, id], ["EXPIRE", `g:${m.uid}`, TTL]] : [];
       // a friend added by the host gets a notification (bell) in their account
@@ -190,9 +195,29 @@ module.exports = async (req, res) => {
       if (!prev) return res.status(404).json({ error: "not_found" });
       if (!isAdmin && !same(body.token, prev.token) && !(me && prev.uid === me)) return res.status(403).json({ error: "forbidden" });
       const m = member(body.member, o.meta, prev);
+      if (me && prev.uid === me) m.pending = false; // editing your own details counts as "I'm in"
       await kv([["HSET", k.members, body.mid, JSON.stringify(m)], ...touch(id)]);
       o.members[body.mid] = m;
       return res.status(200).json({ outing: publicView(id, o) });
+    }
+
+    // a friend the host added answers: "I'm in" (green dot) or "can't make it" (removed from the party).
+    // The host gets a notification either way.
+    if (action === "rsvp") {
+      if (!me) return res.status(401).json({ error: "signed_out" });
+      const mid = Object.keys(o.members).find(x => o.members[x].uid === me);
+      if (!mid) return res.status(404).json({ error: "not_found" });
+      const m = o.members[mid], going = body.going !== false;
+      const cmds = [];
+      if (going) { m.pending = false; cmds.push(["HSET", k.members, mid, JSON.stringify(m)], ...touch(id)); }
+      else { cmds.push(["HDEL", k.members, mid], ["SREM", `g:${me}`, id], ...touch(id)); delete o.members[mid]; }
+      const host = o.meta.owner || Object.values(o.members).find(x => x.host && x.uid)?.uid;
+      if (host && host !== me) {
+        const note = { nid: newId(), type: "rsvp", going, from: m.nick || "?", outing: id, city: o.meta.city, mode: o.meta.mode, at: Date.now() };
+        cmds.push(["LPUSH", `n:${host}`, JSON.stringify(note)], ["LTRIM", `n:${host}`, 0, 49]);
+      }
+      await kv(cmds);
+      return res.status(200).json({ ok: true, going, outing: publicView(id, o) });
     }
 
     if (action === "remove") {
