@@ -36,7 +36,8 @@ const CITY_T = {
  "melbourne":{fr:"Melbourne",en:"Melbourne",es:"Melbourne"},
  "toronto":{fr:"Toronto",en:"Toronto",es:"Toronto"},
  "sharm-el-sheikh":{fr:"Charm el-Cheikh",en:"Sharm El Sheikh",es:"Sharm el-Sheij"},
- "vienna":{fr:"Vienne",en:"Vienna",es:"Viena"}
+ "vienna":{fr:"Vienne",en:"Vienna",es:"Viena"},
+ "manama":{fr:"Manama",en:"Manama",es:"Manama"}
 };
 
 const T = {

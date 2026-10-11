@@ -2,6 +2,7 @@
 // POST /api/review {stars,text,name,city,lang}           -> stored as pending
 // GET  /api/review                                        -> approved reviews with 4 or 5 stars (homepage)
 // GET  /api/review?key=ADMIN_KEY                          -> owner page to approve, reject or remove
+// GET  /api/review?view=ratings&key=ADMIN_KEY             -> owner page with the outing ratings (asked in the app every ~10 plans)
 // POST /api/review {action:"approve"|"reject"|"remove", key, rid}
 // Limit: one review per person (per connection) per week. Extra ones still get "thanks" but are not saved.
 
@@ -74,6 +75,34 @@ document.addEventListener("click",async e=>{ const b=e.target.closest("button[da
 </script>`;
 }
 
+// outing ratings: private, owner only
+function ratingsPage(list) {
+  const avg = list.length ? (list.reduce((n, r) => n + r.stars, 0) / list.length).toFixed(1) : "–";
+  const byCity = {};
+  list.forEach(r => { (byCity[r.city] ||= []).push(r.stars); });
+  const cities = Object.entries(byCity).sort((a, b) => b[1].length - a[1].length)
+    .map(([c, a]) => `<span class="pill">${esc(c)} ${(a.reduce((n, x) => n + x, 0) / a.length).toFixed(1)}★ (${a.length})</span>`).join("");
+  const row = r => `<li><div class="st">${"★".repeat(r.stars)}${"☆".repeat(5 - r.stars)}</div>
+    <p class="tt">${esc(r.title || "")}</p>
+    <p class="who">${esc(r.city)} · ${r.mode === "day" ? "Day" : "Night"} · ${esc(r.date || "")} · ${r.people || 1} pers.</p>
+    <p class="who">${(r.stops || []).map(esc).join(" → ")}</p>
+    ${r.text ? `<p class="tx">${esc(r.text)}</p>` : ""}
+    <p class="who">${r.handle ? "@" + esc(r.handle) : esc(r.nick || "?")}${r.email ? ` · <a href="mailto:${esc(r.email)}">${esc(r.email)}</a>` : ""}</p></li>`;
+  return `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Tournée, outing ratings</title>
+<style>
+body{font:15px/1.5 Inter,system-ui,sans-serif;background:#271A47;color:#DBC9FF;margin:0;padding:32px 20px;max-width:620px}
+h1{font-family:"Cormorant Garamond",Georgia,serif;font-weight:400;font-size:40px;margin:0 0 8px}
+ul{list-style:none;margin:0;padding:0}li{padding:16px 0;border-top:1px solid #43346C}
+.st{color:#BC994E;letter-spacing:2px}.tt{margin:6px 0 2px;font-weight:600}.tx{margin:8px 0}.who{margin:0;font-size:12px;color:#B7A6DE}
+.who a{color:#BC994E}.big{font-size:22px;margin:0 0 12px}.pill{display:inline-block;border:1px solid #43346C;border-radius:30px;padding:3px 10px;margin:0 6px 6px 0;font-size:12px}
+.empty{color:#B7A6DE}
+</style>
+<h1>Outing ratings</h1>
+<p class="big">${avg}★ average · ${list.length} ratings</p>
+<div>${cities}</div>
+<ul style="margin-top:16px">${list.map(row).join("") || '<li class="empty">No ratings yet.</li>'}</ul>`;
+}
+
 module.exports = async (req, res) => {
   if (!KV_URL || !KV_TOKEN) return res.status(500).json({ error: "no_store" });
   const admin = process.env.ADMIN_KEY;
@@ -82,8 +111,9 @@ module.exports = async (req, res) => {
       const key = String(req.query?.key || "");
       if (key) {
         if (!admin || !same(key, admin)) { res.setHeader("Content-Type", "text/plain; charset=utf-8"); return res.status(403).send("Forbidden"); }
-        const [p, a] = await kv([["LRANGE", "rv:pending", 0, 199], ["LRANGE", "rv:approved", 0, 199]]);
         res.setHeader("Content-Type", "text/html; charset=utf-8"); res.setHeader("Cache-Control", "no-store");
+        if (req.query?.view === "ratings") { const [r] = await kv([["LRANGE", "rt:all", 0, 499]]); return res.status(200).send(ratingsPage(parse(r))); }
+        const [p, a] = await kv([["LRANGE", "rv:pending", 0, 199], ["LRANGE", "rv:approved", 0, 199]]);
         return res.status(200).send(page(parse(p), parse(a), key));
       }
       const [a] = await kv([["LRANGE", "rv:approved", 0, 99]]);

@@ -14,9 +14,11 @@ const CLIENT_ID = process.env.GOOGLE_CLIENT_ID || "";
 const SESSION_TTL = 60 * 60 * 24 * 60; // 60 days
 
 const VIBES = {
-  night: ["chill", "cocktails", "dance", "club", "karaoke", "food", "cheap", "music", "rooftop"],
-  day: ["museums", "contemporary", "galleries", "streetart", "architecture", "parks", "markets", "views", "conceptcafe"],
+  night: ["chill", "cocktails", "dance", "club", "karaoke", "food", "cheap", "music", "rooftop", "games", "match"],
+  day: ["museums", "contemporary", "galleries", "streetart", "architecture", "parks", "markets", "views", "conceptcafe", "sport"],
 };
+// "what I like" from the signup survey (optional, several allowed)
+const LIKES = ["food", "music", "sport", "art", "nature", "games", "shopping", "history"];
 const clean = (s, n) => String(s ?? "").replace(/[\r\n<>"`]/g, " ").replace(/\s+/g, " ").trim().slice(0, n);
 const rid = n => { const abc = "abcdefghjkmnpqrstuvwxyz23456789"; return [...crypto.randomBytes(n)].map(b => abc[b % abc.length]).join(""); };
 
@@ -36,7 +38,9 @@ const isAdminEmail = e => !!process.env.ADMIN_EMAIL && !!e && String(e).trim().t
 // a username can be changed, then not again for 3 months (the automatic one doesn't count)
 const HANDLE_WAIT = 90 * 24 * 60 * 60 * 1000;
 const handleNext = u => u.handleChangedAt && Date.now() - u.handleChangedAt < HANDLE_WAIT ? u.handleChangedAt + HANDLE_WAIT : null;
-const meView = u => ({ ...publicView(u), code: u.code, admin: !!u.admin, mail: u.profile.mail !== false, handleNext: handleNext(u), needHandle: !u.handle });
+// the short survey shows once after signup, unless the profile is already filled in
+const needSurvey = u => !u.profile.surveyAt && !(u.profile.vibeNight && u.profile.vibeDay && Number.isInteger(u.profile.level));
+const meView = u => ({ ...publicView(u), code: u.code, admin: !!u.admin, mail: u.profile.mail !== false, handleNext: handleNext(u), needHandle: !u.handle, needSurvey: needSurvey(u) });
 
 /* ---- @usernames: unique, lowercase, 3 to 20 letters, digits, "_" or "." ---- */
 const HANDLE_RE = /^[a-z0-9_](?:[a-z0-9_.]{1,18})[a-z0-9_]$/;
@@ -64,7 +68,7 @@ async function ensureHandle(u) {
   return u;
 }
 const meFull = async u => ({ me: meView(await ensureHandle(u)), quota: await quota.status(u.uid, u).catch(() => null) });
-const publicView = u => ({ uid: u.uid, handle: u.handle || null, nick: u.profile.nick, level: u.profile.level, vibeNight: u.profile.vibeNight, vibeDay: u.profile.vibeDay, sober: u.profile.sober, student: u.profile.student, minor: !!u.profile.minor });
+const publicView = u => ({ uid: u.uid, handle: u.handle || null, nick: u.profile.nick, level: u.profile.level, vibeNight: u.profile.vibeNight, vibeDay: u.profile.vibeDay, sober: u.profile.sober, student: u.profile.student, minor: !!u.profile.minor, likes: u.profile.likes || [] });
 
 function cleanProfile(p, prev) {
   const lv = Number.isInteger(p?.level) && p.level >= 0 && p.level <= 4 ? p.level : (p?.level === null ? null : prev.level ?? null);
@@ -77,6 +81,8 @@ function cleanProfile(p, prev) {
     student: p?.student === undefined ? !!prev.student : !!p.student,
     minor: p?.minor === undefined ? !!prev.minor : !!p.minor,
     mail: p?.mail === undefined ? prev.mail !== false : !!p.mail,
+    likes: Array.isArray(p?.likes) ? [...new Set(p.likes.filter(x => LIKES.includes(x)))] : (prev.likes || []),
+    ...(p?.survey || prev.surveyAt ? { surveyAt: prev.surveyAt || Date.now() } : {}),
   };
 }
 
@@ -90,6 +96,26 @@ async function friendsOf(uid) {
 async function historyOf(uid) {
   const [rows] = await kv([["LRANGE", `h:${uid}`, 0, 49]]);
   return (rows || []).map(r => { try { return JSON.parse(r); } catch { return null; } }).filter(Boolean);
+}
+// Rating an outing: around every 10th plan (8 to 12, random), the person is asked about ONE past outing
+// they most likely really went on: its date has passed, it isn't too old, and longer outings
+// (more stops, with friends, with an end time) come first. They can say they didn't go.
+const RATE_MIN = 8, RATE_SPREAD = 5, RATE_MAX_AGE = 21 * 864e5;
+const rateGap = () => RATE_MIN + Math.floor(Math.random() * RATE_SPREAD);
+const outingDay = e => e.settings?.date || new Date(e.at).toISOString().slice(0, 10);
+// a night out is over the next morning, a day out the same evening (UTC, a few hours off is fine)
+const outingOver = e => Date.parse(outingDay(e) + "T00:00:00Z") + (e.mode === "day" ? 22 : 30) * 36e5;
+async function rateAsk(uid, history) {
+  const [cnt, next] = await kv([["GET", `pc:${uid}`], ["GET", `rn:${uid}`]]);
+  let nx = Number(next);
+  if (!nx) { nx = rateGap(); await kv([["SET", `rn:${uid}`, nx]]); }
+  if ((Number(cnt) || 0) < nx) return null;
+  const now = Date.now();
+  const ok = history.filter(e => !e.rating && !e.rateSkip && outingOver(e) < now && now - outingOver(e) < RATE_MAX_AGE);
+  if (!ok.length) return null;
+  const score = e => (e.stops?.length || 0) * 2 + ((e.people?.length || 0) > 1 ? 3 : 0) + (e.settings?.end ? 1 : 0);
+  const e = ok.sort((a, b) => score(b) - score(a) || b.at - a.at)[0];
+  return { id: e.id, city: e.city, mode: e.mode, title: e.title, date: outingDay(e), stops: e.stops.map(s => s.lieu) };
 }
 // deleted outings go to an archive for 3 days, then they are gone for good
 const ARCHIVE_MS = 3 * 24 * 60 * 60 * 1000;
@@ -347,9 +373,13 @@ module.exports = async (req, res) => {
     if (action === "admin") {
       if (!u.admin) return res.status(403).json({ error: "forbidden" });
       const key = process.env.ADMIN_KEY || "";
-      const [pending, cities, nr, nc, sr, sc] = await kv([["LLEN", "rv:pending"], ["ZCARD", "sg:count"], ["GET", "adm:newReview"], ["GET", "adm:newCity"], ["GET", "adm:seenReview"], ["GET", "adm:seenCity"]]);
+      const [pending, cities, nr, nc, sr, sc, ratings, nt, st, biz, nb, sb] = await kv([["LLEN", "rv:pending"], ["ZCARD", "sg:count"], ["GET", "adm:newReview"], ["GET", "adm:newCity"], ["GET", "adm:seenReview"], ["GET", "adm:seenCity"],
+        ["LLEN", "rt:all"], ["GET", "adm:newRating"], ["GET", "adm:seenRating"], ["LLEN", "biz:list"], ["GET", "adm:newBiz"], ["GET", "adm:seenBiz"]]);
+      const k = key ? encodeURIComponent(key) : "";
       // "new" = something arrived since the owner last opened that page; the account page makes the button blink
-      return res.status(200).json({ pending: pending || 0, cities: cities || 0, newReviews: Number(nr) > (Number(sr) || 0), newCities: Number(nc) > (Number(sc) || 0), reviewsUrl: key ? "/api/review?key=" + encodeURIComponent(key) : null, citiesUrl: key ? "/api/suggest?key=" + encodeURIComponent(key) : null });
+      return res.status(200).json({ pending: pending || 0, cities: cities || 0, ratings: ratings || 0, biz: biz || 0,
+        newReviews: Number(nr) > (Number(sr) || 0), newCities: Number(nc) > (Number(sc) || 0), newRatings: Number(nt) > (Number(st) || 0), newBiz: Number(nb) > (Number(sb) || 0),
+        reviewsUrl: k ? "/api/review?key=" + k : null, citiesUrl: k ? "/api/suggest?key=" + k : null, ratingsUrl: k ? "/api/review?view=ratings&key=" + k : null, bizUrl: k ? "/api/business?key=" + k : null });
     }
 
     // admin only: look someone up, remove their saved plans, ban or unban them
@@ -394,7 +424,8 @@ module.exports = async (req, res) => {
 
     if (action === "adminSeen") {
       if (!u.admin) return res.status(403).json({ error: "forbidden" });
-      await kv([["SET", body.what === "cities" ? "adm:seenCity" : "adm:seenReview", Date.now()]]);
+      const SEEN = { cities: "adm:seenCity", reviews: "adm:seenReview", ratings: "adm:seenRating", biz: "adm:seenBiz" };
+      await kv([["SET", SEEN[body.what] || "adm:seenReview", Date.now()]]);
       return res.status(200).json({ ok: true });
     }
 
@@ -475,7 +506,7 @@ module.exports = async (req, res) => {
       return res.status(200).json({ groups: await groupsOf(u.uid) });
     }
 
-    if (action === "me") return res.status(200).json({ ...(await meFull(u)), friends: await friendsOf(u.uid), history: await historyOf(u.uid), archive: await archiveOf(u.uid), groups: await groupsOf(u.uid), ...(await notifsOf(u.uid)) });
+    if (action === "me") { const history = await historyOf(u.uid); return res.status(200).json({ ...(await meFull(u)), rateAsk: await rateAsk(u.uid, history).catch(() => null), friends: await friendsOf(u.uid), history, archive: await archiveOf(u.uid), groups: await groupsOf(u.uid), ...(await notifsOf(u.uid)) }); }
 
     if (action === "saveOuting") {
       const e = cleanEntry(body);
@@ -485,11 +516,34 @@ module.exports = async (req, res) => {
       const owners = new Set([u.uid, ...e.people.map(p => p.uid).filter(id => id && (mine || []).includes(id))]);
       const cmds = [];
       owners.forEach(id => { cmds.push(["LPUSH", `h:${id}`, JSON.stringify(e)], ["LTRIM", `h:${id}`, 0, 49]); });
+      cmds.push(["INCR", `pc:${u.uid}`]); // plans made, for the "rate your outing" question
       await kv(cmds);
       return res.status(200).json({ entry: e });
     }
 
     if (action === "notifs") return res.status(200).json(await notifsOf(u.uid));
+
+    // answer to "how was your outing?": went (stars 1 to 5, optional comment), didn't go, or later.
+    // Whatever the answer, the next question comes 8 to 12 plans later.
+    if (action === "rateOuting") {
+      const id = clean(body.id, 12);
+      const [rows, cnt] = await kv([["LRANGE", `h:${u.uid}`, 0, 49], ["GET", `pc:${u.uid}`]]);
+      const list = (rows || []).map(r => { try { return JSON.parse(r); } catch { return null; } });
+      const i = list.findIndex(x => x && x.id === id);
+      const stars = parseInt(body.stars, 10);
+      const cmds = [["SET", `rn:${u.uid}`, (Number(cnt) || 0) + rateGap()]];
+      if (i >= 0 && body.went === true && stars >= 1 && stars <= 5) {
+        const e = list[i];
+        e.rating = { stars, text: clean(body.text, 300), at: Date.now() };
+        const r = { rid: rid(8), uid: u.uid, handle: u.handle || "", nick: u.profile.nick, email: u.email || "", city: e.city, mode: e.mode, title: e.title, date: outingDay(e), stops: e.stops.map(s => s.lieu), people: (e.people || []).length, stars, text: e.rating.text, at: Date.now() };
+        cmds.push(["LSET", `h:${u.uid}`, i, JSON.stringify(e)], ["LPUSH", "rt:all", JSON.stringify(r)], ["LTRIM", "rt:all", 0, 499], ["SET", "adm:newRating", Date.now()]);
+      } else if (i >= 0 && body.went === false) {
+        list[i].rateSkip = true;
+        cmds.push(["LSET", `h:${u.uid}`, i, JSON.stringify(list[i])]);
+      }
+      await kv(cmds);
+      return res.status(200).json({ ok: true, history: await historyOf(u.uid) });
+    }
 
     if (action === "seenNotifs") {
       await kv([["SET", `nseen:${u.uid}`, String(Date.now())]]);
@@ -616,7 +670,7 @@ module.exports = async (req, res) => {
       (tokens || []).forEach(t => cmds.push(["DEL", `s:${t}`]));
       if (u.handle) cmds.push(["DEL", `un:${u.handle}`], ["ZREM", "handles", u.handle]);
       if (u.email && !u.pw) cmds.push(["DEL", "ge:" + crypto.createHash("sha256").update(u.email.trim().toLowerCase()).digest("hex")]);
-      cmds.push(["DEL", `u:${u.uid}`, `fr:${u.uid}`, `us:${u.uid}`, `fc:${u.code}`, `h:${u.uid}`, `ha:${u.uid}`, `g:${u.uid}`, `n:${u.uid}`, `nseen:${u.uid}`]);
+      cmds.push(["DEL", `u:${u.uid}`, `fr:${u.uid}`, `us:${u.uid}`, `fc:${u.code}`, `h:${u.uid}`, `ha:${u.uid}`, `g:${u.uid}`, `n:${u.uid}`, `nseen:${u.uid}`, `pc:${u.uid}`, `rn:${u.uid}`]);
       if (u.sk) cmds.push(["DEL", u.sk]);
       await kv(cmds);
       return res.status(200).json({ ok: true });

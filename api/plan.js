@@ -4,14 +4,23 @@
 // Keys live in Vercel environment variables: ANTHROPIC_API_KEY and GOOGLE_SERVER_KEY.
 
 const VIBES = {
-  night: { chill: "Chill, on discute", cocktails: "Bar à cocktails", dance: "Danser", club: "Club / boîte de nuit", karaoke: "Karaoké", food: "Bien manger", cheap: "Bar pas cher", music: "Concert ou DJ set", rooftop: "Rooftop" },
-  culture: { museums: "Musées", contemporary: "Art contemporain", galleries: "Expos et galeries", streetart: "Street art", architecture: "Architecture", parks: "Parcs et jardins", markets: "Marchés", views: "Balade et points de vue", conceptcafe: "Cafés concept (café à chats, jeux de société, livres, mangas, thèmes originaux)" },
+  night: { chill: "Chill, on discute", cocktails: "Cocktails ou mocktails (bar avec de vrais cocktails sans alcool)", dance: "Danser", club: "Club / boîte de nuit", karaoke: "Karaoké", food: "Bien manger", cheap: "Sortie pas chère (lieux abordables)", music: "Concert ou DJ set", rooftop: "Rooftop", games: "Jeux : bowling, billard, fléchettes, escape game, arcade ou bar à jeux de société", match: "Voir un match (bar ou café qui diffuse le sport)" },
+  culture: { museums: "Musées", contemporary: "Art contemporain", galleries: "Expos et galeries", streetart: "Street art", architecture: "Architecture", parks: "Parcs et jardins", markets: "Marchés", views: "Balade et points de vue", conceptcafe: "Cafés concept (café à chats, jeux de société, livres, mangas, thèmes originaux)", sport: "Sport et activités : padel, escalade, karting, foot five, laser game, visite de stade" },
 };
+const LIKES = { food: "la bonne cuisine", music: "la musique", sport: "le sport", art: "l'art et la culture", nature: "la nature", games: "les jeux", shopping: "le shopping", history: "l'histoire" };
+// sports: Tournée has no live fixtures, so the AI must never name a match, a team or a kick-off time
+const SPORT_VIBES = new Set(["match", "sport"]);
+const sportRule = friends => friends.some(f => SPORT_VIBES.has(f.vibeKey))
+  ? `- SPORT : tu n'as PAS accès au calendrier sportif en direct. N'invente JAMAIS un match, une équipe adverse, une compétition, une heure de coup d'envoi ni un événement sportif à une date précise. Propose seulement des lieux permanents : bar ou café connu pour diffuser le sport (dans "pourquoi", dis de vérifier qu'un match est diffusé ce jour-là, sans en citer aucun), visite de stade, ou activité sportive (bowling, padel, escalade, karting, foot five, laser game). Une visite de stade ou une activité payante peut avoir "billet": true.`
+  : "";
 const LANGS = { fr: "français", en: "anglais", es: "espagnol" };
 const CITIES = {
   "khobar": { dry: true, tz: "Asia/Riyadh", cultureNotes: "Corniche de Khobar, quartier de la Water Tower, plages de Half Moon Bay, Ithra (centre culturel du roi Abdulaziz, à Dhahran tout proche). Il fait très chaud : intérieur l'après midi, Corniche en fin de journée. Tenue correcte exigée.", name: "Khobar", cur: "SAR", curName: "riyals saoudiens (SAR)", min: 0, max: 600,
     transit: "à pied : il n'y a pas de métro, garde des étapes très proches les unes des autres",
     notes: "L'alcool est totalement interdit en Arabie saoudite : AUCUN bar ni alcool, jamais. Propose des cafés de spécialité, lounges, restaurants, desserts, balades sur la Corniche, Ajdan Walk, bowling, karaoké et événements. Tenue correcte et règles locales à respecter." },
+  "manama": { tz: "Asia/Bahrain", cultureNotes: "Bab Al Bahrain et le souk de Manama, Musée national de Bahreïn, Qal'at al-Bahrain (fort classé UNESCO), Grande mosquée Al Fateh (visites gratuites, tenue couvrante prêtée), Muharraq et le Chemin de la perle (UNESCO), Bahrain Bay. Il fait très chaud une grande partie de l'année : intérieur l'après midi, extérieur en fin de journée. Tenue correcte.", name: "Manama", cur: "BHD", curName: "dinars bahreïniens (BHD)", min: 0, max: 250,
+    transit: "en taxi ou VTC (Careem, Uber) : il n'y a pas de métro, garde des étapes proches les unes des autres",
+    notes: "L'alcool est légal à Bahreïn mais servi seulement dans des lieux licenciés, surtout dans les hôtels, à partir de 21 ans : prévois aussi des étapes sans alcool accessibles à tous. Quartiers animés : Adliya (Block 338), Juffair, Seef, Bahrain Bay. Respecte les règles locales de tenue et de comportement." },
   "istanbul": { tz: "Europe/Istanbul", cultureNotes: "Mosquée bleue, Grand Bazar, bazar aux épices, tour de Galata, quartier de Balat et ferry sur le Bosphore au prix d'un ticket de transport. Sainte-Sophie, Topkapı et Istanbul Modern sont payants pour les visiteurs étrangers, avec parfois des tarifs étudiants. Tenue couvrante dans les mosquées, visites hors des heures de prière.", name: "Istanbul", cur: "₺", curName: "livres turques (TRY)", min: 0, max: 28000,
     transit: "en métro, tramway ou ferry, qui roulent jusque vers minuit (certaines lignes de métro toute la nuit le week-end), sinon en taxi",
     notes: "Âge légal pour l'alcool : 18 ans. Quartiers animés : Beyoğlu (Asmalımescit, Cihangir), Karaköy et Galata côté européen ; Kadıköy et Moda côté asiatique, plus étudiants et moins chers. Les magasins ne vendent pas d'alcool entre 22 h et 6 h, mais les bars restent ouverts." },
@@ -164,7 +173,8 @@ function groupText(friends, c, mode) {
     const want = f.vibe ? `${mode === "culture" ? "aime" : "envie"} "${f.vibe}"` : "pas de préférence particulière";
     const extra = f.flag ? (mode === "culture" ? ", est étudiant (tarif étudiant)" : ", ne boit pas d'alcool") : "";
     const budget = f.plus ? `budget de ${f.budget} ${c.cur} ou plus` : `budget max ${f.budget} ${c.cur}`;
-    return `- ${f.nick} : ${budget}, ${want}${extra}`;
+    const likes = f.likes.length ? `, aime aussi ${f.likes.map(k => LIKES[k]).join(", ")}` : "";
+    return `- ${f.nick} : ${budget}, ${want}${extra}${likes}`;
   }).join("\n");
 }
 
@@ -205,6 +215,8 @@ Règles :
 - Le coût total par personne ne doit pas dépasser ${friends.every(f => f.plus) ? `environ ${minB} ${c.cur} (tout le monde a un gros budget, tu peux aller un peu au delà)` : `${minB} ${c.cur} (le plus petit budget du groupe)`}. Personne ne doit se sentir exclu.
 ${ticketRule(input0(stops, friends), mode)}
 - Chaque envie exprimée dans le groupe doit être servie au moins une fois. Les personnes sans préférence suivent le groupe.
+- Ce que chacun "aime aussi" sert seulement à départager ou affiner tes choix, jamais à remplacer une envie.
+${sportRule(friends)}
 ${friends.some(f => f.minor) ? "- IMPORTANT : au moins une personne du groupe a moins de 18 ans. Propose UNIQUEMENT des lieux ouverts à tous les âges et sans alcool : aucun bar, club, rooftop bar, pub, bar à cocktails, karaoké réservé aux adultes ni lieu interdit aux mineurs. Les envies liées à l'alcool deviennent des équivalents sans alcool (café, salon de thé, glacier, bowling, jeux, concert tout public)." : ""}
 ${rules}
 - Prix réalistes en ${c.curName} : prix_pp et total_pp sont des nombres dans cette monnaie.
@@ -360,6 +372,7 @@ module.exports = async (req, res) => {
       vibe: VIBES[mode][f?.vibe] || null,
       vibeKey: VIBES[mode][f?.vibe] ? f.vibe : null,
       flag: !!(f?.flag ?? f?.sober),
+      likes: (Array.isArray(f?.likes) ? f.likes : []).filter(k => LIKES[k]).slice(0, 8),
     };
   });
   if (friends.length < 1) return res.status(400).json({ error: "group" });

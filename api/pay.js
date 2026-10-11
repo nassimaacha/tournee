@@ -5,7 +5,8 @@
 // customer.subscription.created, customer.subscription.updated, customer.subscription.deleted).
 //
 // GET  /api/pay                          -> { enabled }
-// POST /api/pay {action:"checkout", product:"pack3"|"pack5"|"plus"}  (signed in) -> { url } to Stripe Checkout
+// POST /api/pay {action:"checkout", product:"pack3"|"pack5"|"plus"|"plusYear"}  (signed in) -> { url } to Stripe Checkout
+// Tournée+ (monthly or yearly) starts with 14 free days, once per email (Stripe asks for the card, charges on day 15).
 // POST /api/pay {action:"portal"}        (signed in, Tournée+) -> { url } to manage or cancel the subscription
 // POST /api/pay?hook=1                   Stripe webhook: adds extra plans or turns Tournée+ on and off
 
@@ -17,8 +18,13 @@ const SITE = "https://tournee.site";
 const PRODUCTS = {
   pack3: { mode: "payment", amount: 50, plans: 3, name: { fr: "3 plans Tournée", en: "3 Tournée plans", es: "3 planes Tournée" } },
   pack5: { mode: "payment", amount: 100, plans: 5, name: { fr: "5 plans Tournée", en: "5 Tournée plans", es: "5 planes Tournée" } },
-  plus: { mode: "subscription", amount: 999, name: { fr: "Tournée+ (plans illimités)", en: "Tournée+ (unlimited plans)", es: "Tournée+ (planes ilimitados)" } },
+  plus: { mode: "subscription", interval: "month", amount: 799, name: { fr: "Tournée+ (plans illimités)", en: "Tournée+ (unlimited plans)", es: "Tournée+ (planes ilimitados)" } },
+  plusYear: { mode: "subscription", interval: "year", amount: 8790, name: { fr: "Tournée+ annuel (plans illimités)", en: "Tournée+ yearly (unlimited plans)", es: "Tournée+ anual (planes ilimitados)" } },
 };
+const TRIAL_DAYS = 14;
+const trialKey = (uid, u) => u.email ? `trial:${crypto.createHash("sha256").update(String(u.email).trim().toLowerCase()).digest("hex").slice(0, 32)}` : `trial:u:${uid}`;
+// the free trial is for people who never had Tournée+ and never used a trial with this email
+async function trialOk(uid, u) { if (u.pro || u.trialUsed) return false; const [used] = await kv([["EXISTS", trialKey(uid, u)]]); return !used; }
 
 // Stripe expects form encoding with bracket keys
 function form(obj, prefix, out = []) {
@@ -67,9 +73,10 @@ async function onEvent(ev) {
     const u = uid && await getUser(uid); if (!u) return;
     if (o.customer && u.stripeCustomer !== o.customer) { u.stripeCustomer = o.customer; await saveUser(u); }
     if (PRODUCTS[product]?.plans && o.payment_status === "paid") await kv([["INCRBY", `cr:${uid}`, PRODUCTS[product].plans]]);
-    if (product === "plus" && o.subscription) {
+    if (PRODUCTS[product]?.mode === "subscription" && o.subscription) {
       const sub = await stripe("subscriptions/" + o.subscription, null, "GET").catch(() => null);
-      u.pro = { sub: o.subscription, until: sub ? periodEnd(sub) : Date.now() + 32 * 864e5 };
+      u.pro = { sub: o.subscription, until: sub ? periodEnd(sub) : Date.now() + (product === "plusYear" ? 367 : 32) * 864e5 };
+      if (sub?.trial_end) { u.trialUsed = true; await kv([["SET", trialKey(uid, u), uid]]); }
       await saveUser(u);
     }
     return;
@@ -89,7 +96,9 @@ module.exports = async (req, res) => {
   let enabled = !!process.env.STRIPE_SECRET_KEY;
   if (req.method === "GET") {
     if (enabled && testMode() && quota.ready()) { const who = await quota.account(req).catch(() => null); enabled = !!(who && who.u.admin); }
-    return res.status(200).json({ enabled, test: enabled && testMode() });
+    let trial = true;
+    if (quota.ready()) { const who = await quota.account(req).catch(() => null); if (who) trial = await trialOk(who.uid, who.u).catch(() => false); }
+    return res.status(200).json({ enabled, test: enabled && testMode(), trial, trialDays: TRIAL_DAYS });
   }
   if (req.method !== "POST") return res.status(405).json({ error: "method" });
   if (!quota.ready()) return res.status(500).json({ error: "no_store" });
@@ -118,15 +127,16 @@ module.exports = async (req, res) => {
     if (body.action === "checkout") {
       const p = PRODUCTS[body.product];
       if (!p) return res.status(400).json({ error: "product" });
-      if (body.product === "plus" && quota.isPro(u)) return res.status(409).json({ error: "already" });
-      const price = { currency: "eur", unit_amount: p.amount, product_data: { name: p.name[lang] }, ...(p.mode === "subscription" ? { recurring: { interval: "month" } } : {}) };
+      if (p.mode === "subscription" && quota.isPro(u)) return res.status(409).json({ error: "already" });
+      const price = { currency: "eur", unit_amount: p.amount, product_data: { name: p.name[lang] }, ...(p.mode === "subscription" ? { recurring: { interval: p.interval } } : {}) };
+      const trial = p.mode === "subscription" && await trialOk(uid, u);
       const params = {
         mode: p.mode, locale: lang, client_reference_id: uid,
         line_items: { 0: { price_data: price, quantity: 1 } },
         metadata: { uid, product: body.product },
         success_url: `${SITE}/account?paid=${body.product}`, cancel_url: `${SITE}/account?paid=0`,
         ...(u.stripeCustomer ? { customer: u.stripeCustomer } : u.email ? { customer_email: u.email } : {}),
-        ...(p.mode === "subscription" ? { subscription_data: { metadata: { uid } } } : { customer_creation: u.stripeCustomer ? undefined : "always" }),
+        ...(p.mode === "subscription" ? { subscription_data: { metadata: { uid }, ...(trial ? { trial_period_days: TRIAL_DAYS } : {}) } } : { customer_creation: u.stripeCustomer ? undefined : "always" }),
       };
       const s = await stripe("checkout/sessions", params);
       return res.status(200).json({ url: s.url });

@@ -11,11 +11,12 @@ const KV_TOKEN = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST
 const TTL = 60 * 60 * 24 * 30; // outings expire after 30 days
 const MAX_MEMBERS = 8;
 
-const BUDGETS = { "khobar": [0, 600], "prague": [0, 5000], "istanbul": [0, 28000], "riyadh": [0, 600], "vienna": [0, 500], "toronto": [0, 800], "sharm-el-sheikh": [0, 28000], "barcelona": [0, 500], "berlin": [0, 500], "amsterdam": [0, 500], "lisbon": [0, 500], "rome": [0, 500], "miami": [0, 600], "houston": [0, 600], "mexico-city": [0, 10600], "montreal": [0, 800], "tokyo": [0, 85000], "seoul": [0, 800000], "bangkok": [0, 18900], "singapore": [0, 700], "marrakech": [0, 5400], "cape-town": [0, 10300], "buenos-aires": [0, 600], "rio": [0, 3200], "sao-paulo": [0, 3200], "sydney": [0, 900], "melbourne": [0, 900], "paris": [0, 500], "london": [0, 400], "dubai": [0, 2100], "madrid": [0, 500], "new-york": [0, 600], "los-angeles": [0, 600], "casablanca": [0, 5400] };
+const BUDGETS = { "manama": [0, 250], "khobar": [0, 600], "prague": [0, 5000], "istanbul": [0, 28000], "riyadh": [0, 600], "vienna": [0, 500], "toronto": [0, 800], "sharm-el-sheikh": [0, 28000], "barcelona": [0, 500], "berlin": [0, 500], "amsterdam": [0, 500], "lisbon": [0, 500], "rome": [0, 500], "miami": [0, 600], "houston": [0, 600], "mexico-city": [0, 10600], "montreal": [0, 800], "tokyo": [0, 85000], "seoul": [0, 800000], "bangkok": [0, 18900], "singapore": [0, 700], "marrakech": [0, 5400], "cape-town": [0, 10300], "buenos-aires": [0, 600], "rio": [0, 3200], "sao-paulo": [0, 3200], "sydney": [0, 900], "melbourne": [0, 900], "paris": [0, 500], "london": [0, 400], "dubai": [0, 2100], "madrid": [0, 500], "new-york": [0, 600], "los-angeles": [0, 600], "casablanca": [0, 5400] };
 const VIBES = {
-  night: ["chill", "cocktails", "dance", "club", "karaoke", "food", "cheap", "music", "rooftop"],
-  day: ["museums", "contemporary", "galleries", "streetart", "architecture", "parks", "markets", "views", "conceptcafe"],
+  night: ["chill", "cocktails", "dance", "club", "karaoke", "food", "cheap", "music", "rooftop", "games", "match"],
+  day: ["museums", "contemporary", "galleries", "streetart", "architecture", "parks", "markets", "views", "conceptcafe", "sport"],
 };
+const LIKES = ["food", "music", "sport", "art", "nature", "games", "shopping", "history"];
 
 const clean = (s, n) => String(s ?? "").replace(/[\r\n"`<>]/g, " ").slice(0, n).trim();
 const newId = () => {
@@ -53,6 +54,7 @@ function member(raw, meta, prev = {}) {
     flag: raw?.flag === undefined ? !!prev.flag : !!raw.flag,
     level: Number.isInteger(raw?.level) && raw.level >= 0 && raw.level <= 4 ? raw.level : (prev.level ?? null),
     minor: raw?.minor === undefined ? !!prev.minor : !!raw.minor,
+    likes: Array.isArray(raw?.likes) ? [...new Set(raw.likes.filter(x => LIKES.includes(x)))] : (prev.likes || []),
   };
 }
 
@@ -77,7 +79,7 @@ async function sessionUid(req) {
 function publicView(id, o) {
   const { admin, ...meta } = o.meta;
   const members = Object.entries(o.members)
-    .map(([mid, m]) => ({ mid, uid: m.uid || null, minor: !!m.minor, nick: m.nick, level: m.level ?? null, vibe: m.vibe, flag: m.flag, host: !!m.host, t: m.t }))
+    .map(([mid, m]) => ({ mid, uid: m.uid || null, minor: !!m.minor, nick: m.nick, level: m.level ?? null, vibe: m.vibe, flag: m.flag, likes: m.likes || [], host: !!m.host, t: m.t }))
     .sort((a, b) => a.t - b.t);
   return { id, ...meta, members, plan: o.plan };
 }
