@@ -47,6 +47,18 @@ const asGroups = (entries, uid, seen) => entries.map(e => ({
   unseen: e.uid !== uid && !seen.has(e.s.id), last: e.s.at,
 }));
 
+// photos shown on a plan: update the outing in the history of everyone in the group (same outing id for all)
+async function updatePlanPhotos(uid, oid, change) {
+  const [mine] = await kv([["LRANGE", `h:${uid}`, 0, 49]]);
+  const e = parse(mine).find(x => x.id === oid);
+  const owners = [...new Set([uid, ...((e && e.people) || []).map(p => p.uid).filter(Boolean)])].slice(0, 12);
+  const lists = await kv(owners.map(o => ["LRANGE", `h:${o}`, 0, 49]));
+  const sets = [];
+  owners.forEach((o, i) => (lists[i] || []).forEach((raw, k) => { let x; try { x = JSON.parse(raw); } catch { return; }
+    if (x.id !== oid) return; x.photos = change(x.photos || []); sets.push(["LSET", `h:${o}`, k, JSON.stringify(x)]); }));
+  if (sets.length) await kv(sets);
+}
+
 // take a story out of the public lists (search, today's best)
 async function unindex(id, tags) {
   const keys = ["stpub", ...(tags || []).map(t => `sth:${t}`)];
@@ -128,17 +140,8 @@ module.exports = async (req, res) => {
       await kv(cmds);
       // the photo also lands on the plan itself, on the stop it shows (for everyone in the group who has that outing)
       if (link.oid) {
-        const [mine] = await kv([["LRANGE", `h:${uid}`, 0, 49]]);
-        const e = parse(mine).find(x => x.id === link.oid);
-        const owners = [...new Set([uid, ...((e && e.people) || []).map(p => p.uid).filter(Boolean)])].slice(0, 12);
-        const lists = await kv(owners.map(o => ["LRANGE", `h:${o}`, 0, 49]));
         const photo = { sid: s.id, uid, nick, stop: link.mission || "", at: s.at, url: urlFor(s.id, s.at) };
-        const sets = [];
-        owners.forEach((o, i) => { const rows = lists[i] || []; rows.forEach((raw, k) => { let x; try { x = JSON.parse(raw); } catch { return; }
-          if (x.id !== link.oid) return;
-          x.photos = [...(x.photos || []).filter(p => p.uid !== uid && Date.now() - p.at < DAY * 1000), photo].slice(-12);
-          sets.push(["LSET", `h:${o}`, k, JSON.stringify(x)]); }); });
-        if (sets.length) await kv(sets);
+        await updatePlanPhotos(uid, link.oid, list => [...list.filter(p => p.uid !== uid && Date.now() - p.at < DAY * 1000), photo].slice(-12));
       }
       return res.status(200).json({ ok: true, story: { ...s, url: urlFor(s.id, s.at), likes: 0, liked: false } });
     }
@@ -252,6 +255,8 @@ module.exports = async (req, res) => {
       const [rows, pub] = await kv([["LRANGE", `st:${owner}`, 0, 19], ["LRANGE", "stpub", 0, 999]]);
       const mine = parse(rows), gone = mine.find(s => s.id === id), keep = mine.filter(s => s.id !== id);
       const cmds = [["DEL", `st:${owner}`, `st:img:${id}`, `stl:${id}`]];
+      // deleting today's photo lets you post another one today
+      if (gone && owner === uid && new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Paris" }).format(new Date(gone.at)) === parisDay()) cmds.push(["DECR", `st:n:${uid}:${parisDay()}`]);
       if (keep.length) cmds.push(["RPUSH", `st:${owner}`, ...keep.map(s => JSON.stringify(s))], ["EXPIRE", `st:${owner}`, DAY]);
       if (gone && gone.pub) {
         const rest = parse(pub).filter(e => e.s?.id !== id);
@@ -260,6 +265,7 @@ module.exports = async (req, res) => {
         (gone.tags || []).forEach((t, i) => { const r = parse(tagRows[i]).filter(e => e.s?.id !== id); cmds.push(["DEL", `sth:${t}`], ...(r.length ? [["RPUSH", `sth:${t}`, ...r.map(e => JSON.stringify(e))], ["EXPIRE", `sth:${t}`, DAY]] : [])); });
       }
       await kv(cmds);
+      if (gone && gone.oid) await updatePlanPhotos(owner, gone.oid, list => list.filter(p => p.sid !== id));
       return res.status(200).json({ ok: true });
     }
 
