@@ -14,8 +14,8 @@ const CLIENT_ID = process.env.GOOGLE_CLIENT_ID || "";
 const SESSION_TTL = 60 * 60 * 24 * 60; // 60 days
 
 const VIBES = {
-  night: ["chill", "cocktails", "dance", "club", "karaoke", "food", "cheap", "music", "rooftop", "games", "match"],
-  day: ["museums", "contemporary", "galleries", "streetart", "architecture", "parks", "markets", "views", "conceptcafe", "sport", "themepark"],
+  night: ["chill", "cocktails", "dance", "club", "karaoke", "food", "cheap", "music", "rooftop", "games", "match", "streetfood"],
+  day: ["museums", "contemporary", "galleries", "streetart", "architecture", "parks", "markets", "food", "streetfood", "views", "conceptcafe", "sport", "themepark"],
 };
 // "what I like" from the signup survey (optional, several allowed)
 const LIKES = ["food", "music", "sport", "art", "nature", "games", "shopping", "history"];
