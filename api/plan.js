@@ -5,9 +5,35 @@
 
 const VIBES = {
   night: { chill: "Chill, on discute", cocktails: "Cocktails ou mocktails (bar avec de vrais cocktails sans alcool)", dance: "Danser", club: "Club / boîte de nuit", karaoke: "Karaoké", food: "Bien manger", cheap: "Sortie pas chère (lieux abordables)", music: "Concert ou DJ set", rooftop: "Rooftop", games: "Jeux : bowling, billard, fléchettes, escape game, arcade ou bar à jeux de société", match: "Voir un match (bar ou café qui diffuse le sport)" },
-  culture: { museums: "Musées", contemporary: "Art contemporain", galleries: "Expos et galeries", streetart: "Street art", architecture: "Architecture", parks: "Parcs et jardins", markets: "Marchés", views: "Balade et points de vue", conceptcafe: "Cafés concept (café à chats, jeux de société, livres, mangas, thèmes originaux)", sport: "Sport et activités : padel, escalade, karting, foot five, laser game, visite de stade" },
+  culture: { museums: "Musées", contemporary: "Art contemporain", galleries: "Expos et galeries", streetart: "Street art", architecture: "Architecture", parks: "Parcs et jardins", markets: "Marchés", views: "Balade et points de vue", conceptcafe: "Cafés concept (café à chats, jeux de société, livres, mangas, thèmes originaux)", sport: "Sport et activités : padel, escalade, karting, foot five, laser game, visite de stade", themepark: "Parc d'attractions ou grande attraction (journée entière, même hors de la ville)" },
 };
 const LIKES = { food: "la bonne cuisine", music: "la musique", sport: "le sport", art: "l'art et la culture", nature: "la nature", games: "les jeux", shopping: "le shopping", history: "l'histoire" };
+// theme parks: a whole day, often outside the city, so the "stops close to each other" rule doesn't apply.
+// Known examples per city steer the AI towards real parks (it still has to check they're open that day).
+const THEMEPARKS = {
+  paris: "Disneyland Paris et Walt Disney Studios (Marne-la-Vallée, RER A), Parc Astérix (navette depuis l'aéroport Charles de Gaulle)",
+  london: "Warner Bros. Studio Tour London, The Making of Harry Potter (train jusqu'à Watford Junction puis navette), Thorpe Park, Chessington World of Adventures",
+  barcelona: "PortAventura World (Salou, en train), parc d'attractions du Tibidabo",
+  madrid: "Parque Warner Madrid, Parque de Atracciones de Madrid",
+  rome: "Cinecittà World, Rainbow MagicLand",
+  dubai: "IMG Worlds of Adventure, Dubai Parks and Resorts (Motiongate, Legoland Dubai), Ferrari World Abu Dhabi",
+  "los-angeles": "Universal Studios Hollywood, Disneyland Resort (Anaheim), Six Flags Magic Mountain",
+  houston: "Space Center Houston",
+  tokyo: "Tokyo Disneyland, Tokyo DisneySea",
+  seoul: "Lotte World, Everland",
+  singapore: "Universal Studios Singapore (Sentosa)",
+  bangkok: "Dream World, Safari World",
+  sydney: "Luna Park Sydney",
+  melbourne: "Luna Park Melbourne",
+  toronto: "Canada's Wonderland",
+  montreal: "La Ronde",
+  istanbul: "Isfanbul (ex Vialand)",
+  "mexico-city": "Six Flags México",
+  vienna: "Prater (Wurstelprater)",
+};
+const themeRule = (friends, cityId) => friends.some(f => f.vibeKey === "themepark")
+  ? `- PARC D'ATTRACTIONS : quelqu'un a choisi un parc d'attractions ou une grande sortie. La première étape est UN grand parc d'attractions ou une grande attraction connue, joignable depuis la ville (jusqu'à 1 h 30 de trajet environ), qui occupe l'essentiel de la journée. Pour cette sortie, la règle "étapes proches les unes des autres" ne s'applique PAS à cette étape. Dans son champ "trajet", donne le moyen précis d'y aller depuis le point de départ (ligne de RER, train, navette). S'il y a d'autres étapes, elles sont sur place ou juste à côté (ex : Disney Village), et les autres envies du groupe y sont servies si possible, sinon explique-le dans "compromis". Le billet est réservable en ligne : "billet": true. Respecte le budget : si le billet dépasse le plus petit budget, choisis une grande sortie moins chère et dis-le dans "compromis". Vérifie que le parc est ouvert ce jour-là (beaucoup ferment en hiver ou certains jours).${THEMEPARKS[cityId] ? ` Exemples connus pour cette ville : ${THEMEPARKS[cityId]}.` : ""}`
+  : "";
 // sports: Tournée has no live fixtures, so the AI must never name a match, a team or a kick-off time
 const SPORT_VIBES = new Set(["match", "sport"]);
 const sportRule = friends => friends.some(f => SPORT_VIBES.has(f.vibeKey))
@@ -178,7 +204,7 @@ function groupText(friends, c, mode) {
   }).join("\n");
 }
 
-function buildPrompt({ c, mode, lang, avoid, stops, friends, area, start, end, metro, date }) {
+function buildPrompt({ c, cityId, mode, lang, avoid, stops, friends, area, start, end, metro, date }) {
   const minB = Math.min(...friends.map(f => f.budget));
   const intro = mode === "culture"
     ? `Tu es Tournée, une IA qui organise des sorties culturelles à ${c.name} pour des groupes d'étudiants de 18 à 25 ans.
@@ -217,6 +243,7 @@ ${ticketRule(input0(stops, friends), mode)}
 - Chaque envie exprimée dans le groupe doit être servie au moins une fois. Les personnes sans préférence suivent le groupe.
 - Ce que chacun "aime aussi" sert seulement à départager ou affiner tes choix, jamais à remplacer une envie.
 ${sportRule(friends)}
+${themeRule(friends, cityId)}
 ${friends.some(f => f.minor) ? "- IMPORTANT : au moins une personne du groupe a moins de 18 ans. Propose UNIQUEMENT des lieux ouverts à tous les âges et sans alcool : aucun bar, club, rooftop bar, pub, bar à cocktails, karaoké réservé aux adultes ni lieu interdit aux mineurs. Les envies liées à l'alcool deviennent des équivalents sans alcool (café, salon de thé, glacier, bowling, jeux, concert tout public)." : ""}
 ${rules}
 - Prix réalistes en ${c.curName} : prix_pp et total_pp sont des nombres dans cette monnaie.
@@ -387,7 +414,7 @@ module.exports = async (req, res) => {
   }
 
   const input = {
-    c, mode, lang,
+    c, cityId: CITIES[body.city] ? body.city : "paris", mode, lang,
     avoid: (Array.isArray(body.avoid) ? body.avoid : []).slice(0, 40).map(x => clean(x, 60)).filter(Boolean),
     stops: Math.min(5, Math.max(1, parseInt(body.stops, 10) || 3)),
     friends,
