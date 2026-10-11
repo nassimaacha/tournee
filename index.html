@@ -2912,7 +2912,7 @@ $("#stFeed").addEventListener("click",async e=>{
   if(e.target.closest("[data-save]")) return saveStory(s,e.target.closest("[data-save]"));
   const vb=e.target.closest("[data-vis]");
   if(vb){ vb.disabled=true; const d=await stApi({action:"visibility",id:s.id,pub:!s.pub}); vb.disabled=false; if(!d.error){ s.pub=d.pub; vb.classList.toggle("pub",s.pub); vb.textContent=t(s.pub?"stPub":"stPriv"); stBestG=[]; } return; }
-  if(e.target.closest("[data-del]")){ if(!confirm(t("stDelConfirm"))) return; await stApi({action:"delete",id:s.id,owner:g.me?undefined:g.uid}); if(g.me) stPosted=false; loadStories(); return; }
+  if(e.target.closest("[data-del]")){ if(!confirm(t("stDelConfirm"))) return; await stApi({action:"delete",id:s.id,owner:g.me?undefined:g.uid}); afterStoryDelete(g); return; }
   if(e.target.closest("[data-open]")){ if(card.classList.contains("locked")){ pickStoryPhoto(""); return; }
     // double tap = like (Instagram), single tap = full screen
     const now=Date.now(); if(now-lastTap<300){ lastTap=0; clearTimeout(card._t); const h=card.querySelector(".stc-heart"); h.classList.remove("pop"); void h.getBoundingClientRect(); h.classList.add("pop"); likeStory(card,true); return; }
@@ -3041,7 +3041,10 @@ $("#swSave").onclick=async()=>{ const g=deckOf(stOpen.deck)[stOpen.gi], s=g.stor
   await saveStory(s,$("#swSave")); $("#swView").classList.remove("paused"); stTimer=setTimeout(nextStory,2500); };
 $("#swDel").onclick=async()=>{ const g=deckOf(stOpen.deck)[stOpen.gi], s=g.stories[stOpen.si]; clearTimeout(stTimer);
   if(!confirm(t("stDelConfirm"))){ stTimer=setTimeout(nextStory,3000); return; }
-  await stApi({action:"delete",id:s.id,owner:g.me?undefined:g.uid}); if(g.me) stPosted=false; closeStories(); loadStories(); };
+  await stApi({action:"delete",id:s.id,owner:g.me?undefined:g.uid}); closeStories(); afterStoryDelete(g); };
+// a deleted photo also leaves the plan, the outing thumbnails and "Today"
+async function afterStoryDelete(g){ if(g.me) stPosted=false; await Promise.all([loadStories(),loadAcct()]);
+  if(!$("#planner").hidden&&lastPlan) renderPlan(lastPlan,lastIsExample,true); }
 
 /* ---- Friends page: my @username, search by @username, friend list, invite link ---- */
 function renderFriendsPage(){
