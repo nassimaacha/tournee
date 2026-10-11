@@ -33,6 +33,12 @@ const parisDay = () => new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Pari
 const normTag = s => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/^#/, "").replace(/[^a-z0-9_]/g, "").slice(0, 30);
 const tagsOf = caption => [...new Set((String(caption).match(/#[\p{L}\p{N}_]{2,30}/gu) || []).map(normTag).filter(t => t.length >= 2))].slice(0, 10);
 const isPro = u => !!(u && u.pro && Number(u.pro.until) > Date.now());
+// "redo": delete today's photo and post a new one. 1 a day free, 3 with Tournée+, no limit for the admin
+const redoMax = u => u.admin ? 99 : isPro(u) ? 3 : 1;
+async function dayState(uid, u) {
+  const d = parisDay(), [n, r] = await kv([["GET", `st:n:${uid}:${d}`], ["GET", `st:r:${uid}:${d}`]]);
+  return { posted: (Number(n) || 0) > 0, redoLeft: Math.max(0, redoMax(u) - (Number(r) || 0)) };
+}
 
 // likes count and "liked by me" for a list of stories, in one round trip
 async function withLikes(list, uid) {
@@ -168,7 +174,7 @@ module.exports = async (req, res) => {
         const [raw] = await kv([["GET", "ads:list"]]);
         try { ads = (JSON.parse(raw) || []).filter(a => a.on).map(a => ({ id: a.id, title: a.title, text: a.text, cta: a.cta || "", url: `/api/story?adimg=${a.id}`, link: `/api/story?ad=${a.id}&go=1` })); } catch {}
       }
-      return res.status(200).json({ groups, ads, noAds, posted: !!(await kv([["EXISTS", `st:n:${uid}:${parisDay()}`]]))[0] });
+      return res.status(200).json({ groups, ads, noAds, ...(await dayState(uid, u)) });
     }
 
     // the daily best: today's public stories with the most likes
@@ -256,7 +262,11 @@ module.exports = async (req, res) => {
       const mine = parse(rows), gone = mine.find(s => s.id === id), keep = mine.filter(s => s.id !== id);
       const cmds = [["DEL", `st:${owner}`, `st:img:${id}`, `stl:${id}`]];
       // deleting today's photo lets you post another one today
-      if (gone && owner === uid && new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Paris" }).format(new Date(gone.at)) === parisDay()) cmds.push(["DECR", `st:n:${uid}:${parisDay()}`]);
+      let redo = false;
+      if (gone && owner === uid && new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Paris" }).format(new Date(gone.at)) === parisDay()) {
+        const d = parisDay(), [r] = await kv([["GET", `st:r:${uid}:${d}`]]);
+        if ((Number(r) || 0) < redoMax(u)) { redo = true; cmds.push(["DECR", `st:n:${uid}:${d}`], ["INCR", `st:r:${uid}:${d}`], ["EXPIRE", `st:r:${uid}:${d}`, DAY * 2]); }
+      }
       if (keep.length) cmds.push(["RPUSH", `st:${owner}`, ...keep.map(s => JSON.stringify(s))], ["EXPIRE", `st:${owner}`, DAY]);
       if (gone && gone.pub) {
         const rest = parse(pub).filter(e => e.s?.id !== id);
@@ -266,7 +276,7 @@ module.exports = async (req, res) => {
       }
       await kv(cmds);
       if (gone && gone.oid) await updatePlanPhotos(owner, gone.oid, list => list.filter(p => p.sid !== id));
-      return res.status(200).json({ ok: true });
+      return res.status(200).json({ ok: true, redo, ...(owner === uid ? await dayState(uid, u) : {}) });
     }
 
     return res.status(400).json({ error: "action" });
