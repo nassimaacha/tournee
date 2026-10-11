@@ -36,7 +36,84 @@ const themeRule = (friends, cityId) => friends.some(f => f.vibeKey === "themepar
   : "";
 // sports: Tournée has no live fixtures, so the AI must never name a match, a team or a kick-off time
 const SPORT_VIBES = new Set(["match", "sport"]);
-const sportRule = friends => friends.some(f => SPORT_VIBES.has(f.vibeKey))
+// Real football fixtures (football-data.org, free key in FOOTBALL_DATA_KEY): the matches of the outing's day,
+// so "watch a game" plans can name a real match. Cached 1 hour per day (the free plan allows 10 calls a minute).
+// Leagues per city: its own league, plus Champions League, World Cup, Euro and Premier League everywhere.
+const LOCAL_LEAGUE = {
+  FL1: ["paris", "marrakech", "casablanca", "montreal"], PL: [], ELC: ["london"], PD: ["madrid", "barcelona", "mexico-city", "buenos-aires"],
+  SA: ["rome"], BL1: ["berlin", "vienna"], DED: ["amsterdam"], PPL: ["lisbon", "rio", "sao-paulo"], BSA: ["rio", "sao-paulo"],
+};
+const EVERYWHERE = new Set(["CL", "WC", "EC", "PL"]);
+async function matchesFor(cityId, c, date, mode) {
+  const key = process.env.FOOTBALL_DATA_KEY;
+  if (!key) return null;
+  try {
+    let list = null;
+    if (quota.ready()) { const [hit] = await quota.kv([["GET", `fd:${date}`]]); if (hit) { try { list = JSON.parse(hit); } catch {} } }
+    if (!list) {
+      const next = new Date(Date.parse(date + "T00:00:00Z") + 864e5).toISOString().slice(0, 10);
+      const r = await fetch(`https://api.football-data.org/v4/matches?dateFrom=${date}&dateTo=${next}`, { headers: { "X-Auth-Token": key } });
+      if (!r.ok) { console.error("football-data", r.status); return null; }
+      const d = await r.json();
+      list = (d.matches || []).filter(m => ["SCHEDULED", "TIMED"].includes(m.status)).map(m => ({
+        at: m.utcDate, comp: m.competition?.code || "", compName: m.competition?.name || "",
+        home: m.homeTeam?.shortName || m.homeTeam?.name || "", away: m.awayTeam?.shortName || m.awayTeam?.name || "",
+      })).filter(m => m.home && m.away);
+      if (quota.ready()) await quota.kv([["SET", `fd:${date}`, JSON.stringify(list), "EX", 3600]]);
+    }
+    // only matches that fit the outing (local time): evening for a night out, daytime for a day out
+    const hm = iso => new Intl.DateTimeFormat("fr-FR", { timeZone: c.tz, hour: "2-digit", minute: "2-digit", hour12: false }).format(new Date(iso));
+    const dayOf = iso => new Intl.DateTimeFormat("en-CA", { timeZone: c.tz }).format(new Date(iso));
+    const [from, to] = mode === "culture" ? ["10:00", "19:30"] : ["17:00", "23:30"];
+    return list.filter(m => dayOf(m.at) === date && hm(m.at) >= from && hm(m.at) <= to)
+      .filter(m => EVERYWHERE.has(m.comp) || (LOCAL_LEAGUE[m.comp] || []).includes(cityId))
+      .slice(0, 8).map(m => `${hm(m.at)} ${m.home} vs ${m.away} (${m.compName})`);
+  } catch (e) { console.error("football-data", e); return null; }
+}
+
+// Live sports events with tickets (Ticketmaster Discovery API, free key in TICKETMASTER_KEY): real games and events
+// near the city on the outing's day, so a plan can include going to one. Cached 1 hour per city and day.
+const CENTER = { "london": [51.5, -0.125], "dubai": [25.125, 55.25], "paris": [48.855, 2.345], "madrid": [40.425, -3.7], "new-york": [40.705, -73.975], "los-angeles": [34.025, -118.35], "casablanca": [33.55, -7.6], "barcelona": [41.395, 2.15], "berlin": [52.51, 13.4], "amsterdam": [52.36, 4.9], "lisbon": [38.74, -9.165], "rome": [41.895, 12.5], "miami": [25.8, -80.215], "houston": [29.775, -95.425], "mexico-city": [19.4, -99.15], "montreal": [45.52, -73.615], "khobar": [26.275, 50.15], "manama": [26.215, 50.56], "prague": [50.065, 14.45], "istanbul": [41.035, 28.975], "riyadh": [24.75, 46.75], "tokyo": [35.675, 139.725], "seoul": [37.55, 127.0], "bangkok": [13.75, 100.55], "singapore": [1.33, 103.85], "marrakech": [31.63, -8.015], "cape-town": [-33.975, 18.45], "buenos-aires": [-34.615, -58.43], "rio": [-22.945, -43.225], "sao-paulo": [-23.565, -46.65], "sydney": [-33.89, 151.225], "melbourne": [-37.825, 144.965], "vienna": [48.22, 16.375], "toronto": [43.72, -79.38], "sharm-el-sheikh": [27.945, 34.35] };
+async function liveEventsFor(cityId, date, mode) {
+  const key = process.env.TICKETMASTER_KEY, ll = CENTER[cityId];
+  if (!key || !ll) return null;
+  try {
+    let list = null;
+    const ck = `tm:${cityId}:${date}`;
+    if (quota.ready()) { const [hit] = await quota.kv([["GET", ck]]); if (hit) { try { list = JSON.parse(hit); } catch {} } }
+    if (!list) {
+      const next = new Date(Date.parse(date + "T00:00:00Z") + 2 * 864e5).toISOString().slice(0, 10);
+      const q = new URLSearchParams({ apikey: key, classificationName: "sports", latlong: ll.join(","), radius: "40", unit: "km", startDateTime: `${date}T00:00:00Z`, endDateTime: `${next}T00:00:00Z`, size: "40", sort: "date,asc" });
+      const r = await fetch("https://app.ticketmaster.com/discovery/v2/events.json?" + q);
+      if (!r.ok) { console.error("ticketmaster", r.status); return null; }
+      const d = await r.json();
+      list = (d._embedded?.events || []).map(e => ({
+        name: String(e.name || "").slice(0, 90), day: e.dates?.start?.localDate || "", time: String(e.dates?.start?.localTime || "").slice(0, 5),
+        venue: e._embedded?.venues?.[0]?.name || "", url: /^https:\/\//.test(e.url || "") ? e.url : "", sport: e.classifications?.[0]?.genre?.name || "",
+        status: e.dates?.status?.code || "",
+      })).filter(e => e.name && e.venue && e.url && e.status !== "cancelled" && e.status !== "offsale");
+      if (quota.ready()) await quota.kv([["SET", ck, JSON.stringify(list), "EX", 3600]]);
+    }
+    const [from, to] = mode === "culture" ? ["09:00", "19:30"] : ["16:00", "23:30"];
+    return list.filter(e => e.day === date && (!e.time || (e.time >= from && e.time <= to))).slice(0, 8);
+  } catch (e) { console.error("ticketmaster", e); return null; }
+}
+const liveRule = events => events && events.length
+  ? `- ÉVÉNEMENTS SPORTIFS EN DIRECT ce jour près de la ville (source fiable, billets en vente) :\n${events.map(e => `  • ${e.time || "heure à confirmer"} ${e.name}, ${e.venue}${e.sport && e.sport !== "Undefined" ? ` (${e.sport})` : ""}`).join("\n")}\n  Si le groupe a envie d'aller voir un match sur place et que le budget le permet, une étape peut être UN de ces événements : "lieu" = le nom exact de la salle ou du stade, "type" = "Match", "billet": true, et cite l'événement et l'heure dans "pourquoi". Ne cite aucun autre événement.`
+  : "";
+// a stop that is one of these events gets the real ticket link
+function attachTickets(plan, events) {
+  if (!events || !events.length) return;
+  (plan.etapes || []).forEach(s => {
+    const e = events.find(x => nameMatch(s.lieu, x.venue) || nameMatch(s.lieu, x.name) || String(s.pourquoi || "").includes(x.name));
+    if (e && (nameMatch(s.lieu, e.venue) || String(s.pourquoi || "").toLowerCase().includes(e.name.toLowerCase()))) { s.ticket_url = e.url; s.billet = true; }
+  });
+}
+
+const sportRule = (friends, matches) => !friends.some(f => SPORT_VIBES.has(f.vibeKey)) ? ""
+  : matches && matches.length
+  ? `- SPORT : voici les VRAIS matchs de foot de ce jour (heure locale, source fiable) :\n${matches.map(m => "  • " + m).join("\n")}\n  Si le groupe veut voir un match, choisis UN de ces matchs (de préférence le plus important pour la ville) et un bar ou café connu pour diffuser le foot, arrive avant le coup d'envoi, et cite le match et l'heure dans "pourquoi". Ne cite AUCUN autre match ni événement sportif. Pour un autre sport, propose seulement des lieux permanents (visite de stade, bowling, padel, escalade, karting).`
+  : friends.some(f => SPORT_VIBES.has(f.vibeKey))
   ? `- SPORT : tu n'as PAS accès au calendrier sportif en direct. N'invente JAMAIS un match, une équipe adverse, une compétition, une heure de coup d'envoi ni un événement sportif à une date précise. Propose seulement des lieux permanents : bar ou café connu pour diffuser le sport (dans "pourquoi", dis de vérifier qu'un match est diffusé ce jour-là, sans en citer aucun), visite de stade, ou activité sportive (bowling, padel, escalade, karting, foot five, laser game). Une visite de stade ou une activité payante peut avoir "billet": true.`
   : "";
 const LANGS = { fr: "français", en: "anglais", es: "espagnol" };
@@ -204,7 +281,7 @@ function groupText(friends, c, mode) {
   }).join("\n");
 }
 
-function buildPrompt({ c, cityId, mode, lang, avoid, stops, friends, area, start, end, metro, date }) {
+function buildPrompt({ c, cityId, mode, lang, avoid, stops, friends, area, start, end, metro, date, matches, liveEvents }) {
   const minB = Math.min(...friends.map(f => f.budget));
   const intro = mode === "culture"
     ? `Tu es Tournée, une IA qui organise des sorties culturelles à ${c.name} pour des groupes d'étudiants de 18 à 25 ans.
@@ -242,7 +319,8 @@ Règles :
 ${ticketRule(input0(stops, friends), mode)}
 - Chaque envie exprimée dans le groupe doit être servie au moins une fois. Les personnes sans préférence suivent le groupe.
 - Ce que chacun "aime aussi" sert seulement à départager ou affiner tes choix, jamais à remplacer une envie.
-${sportRule(friends)}
+${sportRule(friends, matches)}
+${liveRule(liveEvents)}
 ${themeRule(friends, cityId)}
 ${friends.some(f => f.minor) ? "- IMPORTANT : au moins une personne du groupe a moins de 18 ans. Propose UNIQUEMENT des lieux ouverts à tous les âges et sans alcool : aucun bar, club, rooftop bar, pub, bar à cocktails, karaoké réservé aux adultes ni lieu interdit aux mineurs. Les envies liées à l'alcool deviennent des équivalents sans alcool (café, salon de thé, glacier, bowling, jeux, concert tout public)." : ""}
 ${rules}
@@ -446,6 +524,7 @@ module.exports = async (req, res) => {
   };
 
   try {
+    if (friends.some(f => SPORT_VIBES.has(f.vibeKey))) [input.matches, input.liveEvents] = await Promise.all([matchesFor(input.cityId, c, input.date, mode), liveEventsFor(input.cityId, input.date, mode)]);
     const prompt = buildPrompt(input);
     let { text, plan } = await claude(key, [{ role: "user", content: prompt }]);
     // safety net: the plan came back in the wrong language, ask once more
@@ -497,6 +576,7 @@ module.exports = async (req, res) => {
     }
 
     trimStops(plan, input.stops, need);
+    attachTickets(plan, input.liveEvents);
     (plan.etapes || []).forEach(s => { delete s._why; delete s._ok; delete s._unverified; s.pour = (Array.isArray(s.pour) ? s.pour : []).map(x => clean(x, 20)).filter(Boolean).slice(0, 11); s.billet = s.billet === true; if (!input.end) s.heure = ""; });
     plan.excluded = excluded;
     return res.status(200).json({ plan, quota: q ? await q.status() : null });
