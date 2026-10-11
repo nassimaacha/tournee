@@ -2913,7 +2913,8 @@ function renderStories(){
   const deck=stSearching?"r":stTab, groups=deckOf(deck);
   // my photo of the day on top (friends tab), or the button to post it
   const mine=stGroups.find(g=>g.me);
-  $("#stMine").innerHTML=deck!=="f"?"":!stPosted?`<div class="st-cta"><p>${t(stLocked()?"stLockT":"stMineT")}</p><button class="btn primary" type="button" id="stAddBtn">${t("stPostNow")}</button></div>`:"";
+  const myToday=(stGroups.find(g=>g.me)?.stories||[]).some(x=>new Date(x.at).toDateString()===new Date().toDateString());
+  $("#stMine").innerHTML=deck!=="f"?"":(canPost()&&!myToday)?`<div class="st-cta"><p>${t(stLocked()?"stLockT":"stMineT")}</p><button class="btn primary" type="button" id="stAddBtn">${t("stPostNow")}</button></div>`:"";
   // newest first; my own story first in the friends tab; one ad card every 3 posts
   const posts=groups.flatMap(g=>g.stories.map(s=>({g,s}))).sort((a,b)=>(deck==="f"?(!!b.g.me-!!a.g.me):0)||(deck==="b"?0:b.s.at-a.s.at));
   const ads=stAds.length?stAds:googleAd()?[{google:true}]:[];
@@ -2988,7 +2989,9 @@ let stDraft="", stWantOut="", stVisPub=false;
 // private (friends) unless "Public" is picked; the default comes from Settings
 function setVis(pub){ stVisPub=!!pub; $("#stVis").querySelectorAll("[data-vis]").forEach(b=>{ const on=(b.dataset.vis==="1")===stVisPub; b.setAttribute("aria-checked",String(on)); }); }
 $("#stVis").addEventListener("click",e=>{ const b=e.target.closest("[data-vis]"); if(b) setVis(b.dataset.vis==="1"); });
-function pickStoryPhoto(oid){ if(stPosted){ alert(t("stTooMany")); return; } stWantOut=oid||""; $("#stFile").value=""; $("#stFile").click(); }
+// can I post now? (the admin always can; the server has the final word)
+const canPost=()=>!stPosted||!!acct?.me?.admin;
+function pickStoryPhoto(oid){ if(!canPost()){ alert(t("stTooMany")); return; } stWantOut=oid||""; $("#stFile").value=""; $("#stFile").click(); }
 // photo missions: each person photographs a stop they didn't pick (same draw for everyone in the group)
 function missionsFor(stops,people){
   if(!stops.length||!people.length) return [];
