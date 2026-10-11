@@ -509,7 +509,8 @@ input[type=search]{font:inherit;letter-spacing:.036em;color:var(--ink);backgroun
 .sw-view.is-ad .sw-who span{color:#FFD27A;opacity:1}
 .st-search{margin:0 0 14px}
 /* stories feed: BeReal style (post yours to unlock your friends'), Instagram style cards */
-.feed{max-width:520px;margin:0 auto;padding-bottom:40px}
+.feed{max-width:520px;margin:0 auto;padding:28px 0 40px}
+.panel.no-top{border-top:0;padding-top:28px}
 .st-tabs{display:flex;gap:6px;margin:0 0 18px;border:1px solid var(--line);border-radius:30px;padding:4px}
 .st-tabs button{flex:1;background:none;border:0;border-radius:30px;padding:9px 12px;font:inherit;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer}
 .st-tabs button[aria-selected="true"]{background:var(--accent);color:var(--bg)}
@@ -890,6 +891,10 @@ footer{color:var(--muted);font-size:12px;padding:28px 0 44px;border-top:1px soli
         </div>
         <div id="profEdit" class="prof-edit" hidden>
           <div class="av-row"><button class="suggest-link" type="button" id="avPick"></button><button class="suggest-link" type="button" id="avDel" data-i18n="avRemove" hidden></button></div>
+          <div class="handle-box"><p class="sv-l" id="hHandleL" data-i18n="myHandleT" style="margin:0 0 8px!important"></p>
+            <div class="share-row handle-row"><label class="at-field"><span class="at-prefix" aria-hidden="true">@</span><input type="text" id="hHandle" maxlength="20" autocomplete="off" autocapitalize="none" spellcheck="false" aria-labelledby="hHandleL"></label><button class="btn" id="hSave" type="button" data-i18n="resetBtn"></button></div>
+            <p class="note" id="hMsg" aria-live="polite" style="text-align:left;margin:8px 0 16px"></p>
+          </div>
         <div class="field"><label for="pNick" data-i18n="nick"></label><input type="text" id="pNick" maxlength="20" autocomplete="given-name"></div>
         <div class="budget" style="margin-top:16px"><span class="blabel" id="pbl"></span><div class="lvls" id="pLvls" role="group" aria-labelledby="pbl"></div></div>
         <div class="grid2" style="margin-top:16px">
@@ -933,14 +938,7 @@ footer{color:var(--muted);font-size:12px;padding:28px 0 44px;border-top:1px soli
   </main>
 
   <main id="friendsView" class="view" hidden>
-    <section class="hero"><h1 data-i18n="friendsTab"></h1></section>
-    <section class="panel">
-      <h2 data-i18n="myHandleT"></h2>
-      <div class="share-row handle-row"><label class="at-field"><span class="at-prefix" aria-hidden="true">@</span><input type="text" id="hHandle" maxlength="20" autocomplete="off" autocapitalize="none" spellcheck="false" aria-labelledby="hHandleL"></label><button class="btn" id="hSave" type="button" data-i18n="resetBtn"></button></div>
-      <span id="hHandleL" class="sr-only" data-i18n="myHandleT" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)"></span>
-      <p class="note" id="hMsg" aria-live="polite" style="text-align:left;margin:10px 0 0"></p>
-    </section>
-    <section class="panel">
+    <section class="panel no-top">
       <h2 data-i18n="searchT"></h2>
       <div class="field"><label class="at-field"><span class="at-prefix" aria-hidden="true">@</span><input type="search" id="uSearch" autocomplete="off" autocapitalize="none" spellcheck="false" aria-labelledby="uSearchL"></label><span id="uSearchL" data-i18n="searchT" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)"></span></div>
       <ul class="flist" id="uResults"></ul>
@@ -959,7 +957,6 @@ footer{color:var(--muted);font-size:12px;padding:28px 0 44px;border-top:1px soli
   </main>
 
   <main id="storiesView" class="view" hidden>
-    <section class="hero"><h1 data-i18n="storiesT"></h1></section>
     <div class="feed">
       <div class="field st-search"><input type="search" id="stQ" autocomplete="off" autocapitalize="none" spellcheck="false" aria-labelledby="stQL"><span id="stQL" data-i18n="stSearchPh" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)"></span></div>
       <div class="st-tabs" id="stTabs" role="tablist"><button type="button" role="tab" data-tab="f" aria-selected="true" data-i18n="stTabF"></button><button type="button" role="tab" data-tab="b" aria-selected="false" data-i18n="stTabB"></button></div>
@@ -1631,7 +1628,10 @@ const GYG_STUDENT={fr:" billet étudiant",es:" entrada estudiante",en:" student 
 // Fever (impact.com) for ticketed night stops in the cities Fever covers; GetYourGuide for everything else
 const FEVER_LINK="https://fever.pxf.io/c/7915007/1356939/16345";
 const FEVER_CITY={london:"london",dubai:"dubai",paris:"paris",madrid:"madrid","new-york":"new-york","los-angeles":"los-angeles",casablanca:"casablanca",barcelona:"barcelona",berlin:"berlin",amsterdam:"amsterdam",lisbon:"lisbon",rome:"rome",miami:"miami",houston:"houston","mexico-city":"mexico-city",montreal:"montreal",riyadh:"riyadh",tokyo:"tokyo",seoul:"seoul",singapore:"singapore","buenos-aires":"buenos-aires",rio:"rio-de-janeiro","sao-paulo":"sao-paulo",sydney:"sydney",melbourne:"melbourne",toronto:"toronto"};
+// live sports events: the real Ticketmaster page (only Ticketmaster links are accepted)
+const tmUrl=s=>/^https:\/\/([a-z0-9-]+\.)*ticketmaster\.[a-z.]{2,8}\//i.test(s.ticket_url||"")?s.ticket_url:"";
 function bookUrl(s){
+  if(tmUrl(s)) return tmUrl(s);
   if(s.fever_url) return `${FEVER_LINK}?u=${encodeURIComponent(s.fever_url)}`; // exact Fever event (only when certain)
   const q=`${s.lieu} ${CITY_T[city.id]?.[lang]||CITY_T[city.id]?.en||""}${studentGroup()?GYG_STUDENT[lang]||GYG_STUDENT.en:""}`.trim();
   return `${GYG_SITE[lang]||GYG_SITE.en}/s/?q=${encodeURIComponent(q)}&partner_id=${GYG_PARTNER}&cmp=tournee&locale_autoredirect_optout=true`;
@@ -1644,7 +1644,7 @@ function generalUrl(){
   return `${GYG_SITE[lang]||GYG_SITE.en}/s/?q=${encodeURIComponent(q)}&partner_id=${GYG_PARTNER}&cmp=tournee&locale_autoredirect_optout=true`;
 }
 // at night in Fever cities a stop only gets a button when it is a confirmed Fever event; otherwise the general link at the bottom covers it
-const showBook=(s,isExample)=>!isExample&&(s.fever_url?true:!!s.billet&&!(mode==="night"&&FEVER_CITY[city.id])&&!(studentGroup()&&Number(s.prix_pp)===0));
+const showBook=(s,isExample)=>!isExample&&(tmUrl(s)||s.fever_url?true:!!s.billet&&!(mode==="night"&&FEVER_CITY[city.id])&&!(studentGroup()&&Number(s.prix_pp)===0));
 // once a real plan is shown, the form folds into a one line summary; "Edit" opens it again
 let editingForm=false;
 function renderSummary(){
@@ -2181,7 +2181,7 @@ fr:[["C'est quoi, Tournée ?","Un outil gratuit pour organiser une sortie entre 
 ["Les lieux sont vérifiés ?","Chaque lieu est vérifié sur Google Maps (il existe et n'est pas fermé), et les temps de trajet viennent de Google. Horaires et prix peuvent changer : vérifiez avant d'y aller."],
 ["Je ne bois pas d'alcool, c'est pour moi ?","Oui. Cochez « Ne boit pas d'alcool » : les lieux proposés ont de vraies options sans alcool. Et beaucoup d'envies n'ont rien à voir avec l'alcool : concerts, jeux, bien manger, voir un match. Si quelqu'un a moins de 18 ans, aucun lieu avec alcool n'est proposé."],
 ["Comment organiser avec mes amis ?","Ajoutez-les par leur @nom d'utilisateur dans l'onglet Amis. Ensuite, ajoutez-les au groupe : chacun reçoit une invitation et peut donner son budget et son envie lui-même."],
-["On me propose des matchs en direct ?","Oui pour le foot. Tournée connaît les vrais matchs du jour des grands championnats (Ligue 1, Premier League, Liga, Serie A, Bundesliga, Ligue des champions, et d'autres). Choisissez « Voir un match » : le plan vous propose un bar qui le diffuse, avec l'heure du coup d'envoi. Pour les autres sports, Tournée propose des lieux et des activités, sans jamais inventer de match."],
+["On me propose des matchs en direct ?","Oui pour le foot. Tournée connaît les vrais matchs du jour des grands championnats (Ligue 1, Premier League, Liga, Serie A, Bundesliga, Ligue des champions, et d'autres). Choisissez « Voir un match » : le plan vous propose un bar qui le diffuse, avec l'heure du coup d'envoi. Pour aller voir un match sur place, Tournée propose aussi les vrais événements sportifs du jour près de la ville (foot, basket, rugby...), avec un bouton pour les billets. Il n'invente jamais de match."],
 ["Pourquoi certains lieux ont un bouton de réservation ?","Quand un lieu a des billets (musée, visite, concert) et qu'on est sûrs du bon lien, un bouton mène au billet chez un partenaire (GetYourGuide, Fever). Tournée peut toucher une petite commission, sans frais pour vous. Rien n'est jamais imposé dans un plan."],
 ["Les lieux paient pour apparaître ?","Non, les plans sont choisis pour votre groupe. Si un lieu est un jour mis en avant par un partenaire, ce sera toujours indiqué « Sponsorisé »."],
 ["Que faites-vous de mes données ?","Le strict minimum (profil, amis, historique), sans publicité ni revente. Vous pouvez supprimer votre compte à tout moment. Tout est détaillé dans <a href=\"/privacy\" data-go=\"privacy\">Confidentialité</a>."],
@@ -2198,7 +2198,7 @@ en:[["What is Tournée?","A free tool to plan an outing with friends. Everyone p
 ["Are the places checked?","Every place is checked on Google Maps (it exists and isn't closed), and travel times come from Google. Opening hours and prices can change: check before you go."],
 ["I don't drink. Is it for me?","Yes. Tick \"Doesn't drink alcohol\": suggested places have real alcohol free options. And lots of vibes have nothing to do with drinking: live music, games, good food, watching a game. If anyone is under 18, no place with alcohol is suggested."],
 ["How do I plan with my friends?","Add them by @username in the Friends tab. Then add them to the party: everyone gets an invite and can enter their own budget and vibe."],
-["Do you suggest live matches?","Yes, for football. Tournée knows the real matches of the day in the big leagues (Ligue 1, Premier League, La Liga, Serie A, Bundesliga, Champions League and more). Pick \"Watch a game\": the plan suggests a bar showing it, with the kick-off time. For other sports, Tournée suggests places and activities and never makes up a game."],
+["Do you suggest live matches?","Yes, for football. Tournée knows the real matches of the day in the big leagues (Ligue 1, Premier League, La Liga, Serie A, Bundesliga, Champions League and more). Pick \"Watch a game\": the plan suggests a bar showing it, with the kick-off time. To go to a game in person, Tournée also suggests the day's real sports events near the city (football, basketball, rugby...), with a button for tickets. It never makes up a game."],
 ["Why do some places have a booking button?","When a place sells tickets (museum, tour, concert) and we're sure of the right link, a button takes you to the ticket on a partner site (GetYourGuide, Fever). Tournée may earn a small commission, at no cost to you. Nothing is ever forced into a plan."],
 ["Do places pay to show up?","No, plans are picked for your group. If a partner ever features a place, it will always be labeled \"Sponsored\"."],
 ["What do you do with my data?","The bare minimum (profile, friends, history), no ads, never sold. You can delete your account at any time. Everything is in <a href=\"/privacy\" data-go=\"privacy\">Privacy</a>."],
@@ -2215,7 +2215,7 @@ es:[["¿Qué es Tournée?","Una herramienta gratuita para organizar una salida c
 ["¿Los lugares están comprobados?","Cada lugar se comprueba en Google Maps (existe y no está cerrado), y los trayectos vienen de Google. Horarios y precios pueden cambiar: compruébalo antes de ir."],
 ["No bebo alcohol, ¿es para mí?","Sí. Marca \"Sin alcohol\": los lugares propuestos tienen opciones sin alcohol de verdad. Y muchos planes no tienen nada que ver con beber: conciertos, juegos, comer bien, ver un partido. Si alguien es menor de 18, no se propone ningún lugar con alcohol."],
 ["¿Cómo organizo con mis amigos?","Añádelos por su @usuario en la pestaña Amigos. Luego añádelos al grupo: cada uno recibe una invitación y puede poner su presupuesto y sus ganas."],
-["¿Proponéis partidos en directo?","Sí, de fútbol. Tournée conoce los partidos reales del día de las grandes ligas (Ligue 1, Premier League, LaLiga, Serie A, Bundesliga, Champions League y más). Elige \"Ver un partido\": el plan te propone un bar que lo emite, con la hora del partido. Para otros deportes, Tournée propone lugares y actividades y nunca se inventa un partido."],
+["¿Proponéis partidos en directo?","Sí, de fútbol. Tournée conoce los partidos reales del día de las grandes ligas (Ligue 1, Premier League, LaLiga, Serie A, Bundesliga, Champions League y más). Elige \"Ver un partido\": el plan te propone un bar que lo emite, con la hora del partido. Para ir a un partido en persona, Tournée también propone los eventos deportivos reales del día cerca de la ciudad (fútbol, baloncesto, rugby...), con un botón para las entradas. Nunca se inventa un partido."],
 ["¿Por qué algunos lugares tienen botón de reserva?","Cuando un lugar vende entradas (museo, visita, concierto) y estamos seguros del enlace, un botón te lleva a la entrada en un sitio asociado (GetYourGuide, Fever). Tournée puede recibir una pequeña comisión, sin coste para ti. Nunca se impone nada en un plan."],
 ["¿Los lugares pagan por aparecer?","No, los planes se eligen para tu grupo. Si algún día un socio destaca un lugar, siempre llevará la etiqueta \"Patrocinado\"."],
 ["¿Qué hacéis con mis datos?","Lo mínimo (perfil, amigos, historial), sin publicidad y sin venderlos. Puedes eliminar tu cuenta en cualquier momento. Todo está en <a href=\"/privacy\" data-go=\"privacy\">Privacidad</a>."],
@@ -2643,7 +2643,7 @@ function renderAccount(){
   $("#pVN").innerHTML=opts(MODES.night.vibes,p.vibeNight); $("#pVD").innerHTML=opts(MODES.day.vibes,p.vibeDay);
   $("#pSober").checked=!!p.sober; $("#pStudent").checked=!!p.student; $("#pMinor").checked=!!p.minor;
   $("#pLikes").innerHTML=likeChips(p.likes||[]);
-  renderProfSum(); $("#setPub").checked=!!p.stPub; $("#setLikes").checked=!!p.showLikes;
+  renderProfSum(); $("#hHandle").value=p.handle||""; renderHandleLock(); $("#setPub").checked=!!p.stPub; $("#setLikes").checked=!!p.showLikes;
   $("#fLink").value=location.origin+"/f/"+p.code;
   renderPlus();
   renderToday(); renderHistory(); renderGroups(); renderAdmin();
@@ -3032,7 +3032,6 @@ $("#swDel").onclick=async()=>{ const g=deckOf(stOpen.deck)[stOpen.gi], s=g.stori
 /* ---- Friends page: my @username, search by @username, friend list, invite link ---- */
 function renderFriendsPage(){
   if(!acct){ if(!session()) go("account"); return; } // signed in but still loading: loadAcct renders it
-  $("#hHandle").value=acct.me.handle||""; renderHandleLock();
   $("#fLink").value=location.origin+"/f/"+acct.me.code;
   renderFriendList(); renderSearch([]);
 }
@@ -3052,7 +3051,7 @@ $("#hSave").onclick=async()=>{ const h=$("#hHandle").value.trim(); if(h===acct.m
   const d=await acctApi({action:"setHandle",handle:h});
   if(d.error==="handle_wait"){ acct.me.handleNext=d.next; renderHandleLock(); return; }
   if(d.error){ $("#hMsg").textContent=t(d.error==="handle_taken"?"handleTaken":"handleInvalid"); return; }
-  acct.me=d.me; renderHandleLock(); };
+  acct.me=d.me; renderHandleLock(); renderProfSum(); };
 let searchTimer=null, searchSeq=0;
 function renderSearch(users,q){
   $("#uResults").innerHTML=users.length?users.map(u=>`<li><span class="f-row"><span class="f-av" aria-hidden="true">${avInner(u)}</span><span class="f-txt"><span class="fn">${esc(u.nick)}</span><span class="fm">@${esc(u.handle)}</span></span></span>${u.friend?`<span class="fm">${t("isFriend")}</span>`:u.pending?`<span class="fm">${t("reqSent")}</span>`:`<button class="remove" type="button" data-req="${esc(u.handle)}">${t("addReq")}</button>`}</li>`).join("")
