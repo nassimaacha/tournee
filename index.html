@@ -122,9 +122,13 @@ header select.lang{width:auto;padding:4px 30px 4px 14px;font-size:12px;font-weig
 @media (prefers-reduced-motion: no-preference){.dot.st-pending{animation:st-pulse 1.8s ease-in-out infinite}}
 @keyframes st-pulse{50%{box-shadow:0 0 0 6px rgba(242,182,50,0)}}
 .sum-p{display:inline-flex;align-items:center;gap:6px;margin-right:12px}
+.sum-who:has(.sum-p){overflow:visible;white-space:normal;display:flex;flex-wrap:wrap;row-gap:4px}
 .sum-p .dot{width:7px;height:7px}
-.rsvp-legend{display:flex;gap:16px;flex-wrap:wrap;margin:10px 0 0;font-size:12px;color:var(--muted)}
-.rsvp-legend span{display:inline-flex;align-items:center;gap:6px}
+/* hover (or tap) a dot to see "Confirmé" / "En attente" */
+.dot[data-tip]{position:relative;cursor:default;outline:none}
+.dot[data-tip]::before{content:"";position:absolute;inset:-8px}
+.dot[data-tip]::after{content:attr(data-tip);position:absolute;left:50%;bottom:calc(100% + 8px);transform:translate(-50%,4px);background:var(--ink);color:var(--bg);font-size:11px;font-weight:600;letter-spacing:.04em;white-space:nowrap;padding:4px 9px;border-radius:30px;opacity:0;pointer-events:none;transition:opacity .15s,transform .15s;z-index:20}
+.dot[data-tip]:hover::after,.dot[data-tip]:focus::after{opacity:1;transform:translate(-50%,0)}
 .rsvp-box{display:flex;flex-direction:column;gap:12px}
 .rsvp-box p{margin:0}
 .rsvp-btns{display:flex;gap:10px;flex-wrap:wrap}.rsvp-btns .btn{flex:none}
@@ -632,7 +636,6 @@ footer{color:var(--muted);font-size:12px;padding:28px 0 44px;border-top:1px soli
     <div id="friends"></div>
     <button class="add" id="addFriend" type="button" data-i18n="add"></button>
     <p class="hint group-max" id="groupMaxHint" hidden></p>
-    <p class="rsvp-legend" id="rsvpLegend" hidden></p>
   </section>
 
   <section class="panel" aria-labelledby="s-title">
@@ -1215,10 +1218,8 @@ const saveCreds=(id,c)=>{ try{ localStorage.setItem("tournee-o-"+id,JSON.stringi
 // party RSVP: green = confirmed, yellow = waiting for their answer (only shown inside a party)
 const stClass=f=>!outing?"":f.status==="in"?"st-in":f.status==="pending"?"st-pending":"st-none";
 function dotFor(f){ const c=stClass(f), lbl=f.status==="in"?t("stIn"):f.status==="pending"?t("stPending"):"";
-  return `<span class="dot ${c}"${lbl?` title="${esc(lbl)}" role="img" aria-label="${esc(lbl)}"`:` aria-hidden="true"`}></span>`; }
+  return `<span class="dot ${c}"${lbl?` data-tip="${esc(lbl)}" tabindex="0" role="img" aria-label="${esc(lbl)}"`:` aria-hidden="true"`}></span>`; }
 function renderRsvp(){
-  const lg=$("#rsvpLegend"), any=!!outing&&friends.some(f=>f.status);
-  lg.hidden=!any; if(any) lg.innerHTML=`<span><span class="dot st-in" aria-hidden="true"></span>${t("stIn")}</span><span><span class="dot st-pending" aria-hidden="true"></span>${t("stPending")}</span>`;
   if(!$("#planSummary").hidden) renderSummary();
   const mine=outing&&acct?friends.find(f=>f.uid===acct.me.uid):null, box=$("#rsvpPanel");
   box.hidden=!(mine&&mine.status==="pending"); if(box.hidden) return;
