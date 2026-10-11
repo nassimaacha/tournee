@@ -10,6 +10,7 @@
 // POST /api/story {action:"like", id, owner, on}     -> heart on or off
 // POST /api/story {action:"seen", ids, ads}          -> stories seen, ads shown
 // POST /api/story {action:"delete", id}              -> delete my story (the admin can delete any)
+// POST /api/story {action:"visibility", id, pub}     -> switch my story between private (friends) and public
 // GET  /api/story?img=ID&e=EXPIRY&s=SIG              -> the photo (signed link)
 // GET  /api/story?adimg=ID                           -> an ad's picture
 // GET  /api/story?ad=ID&go=1                         -> counts the click and opens the ad's link
@@ -45,6 +46,15 @@ const asGroups = (entries, uid, seen) => entries.map(e => ({
   stories: [{ ...e.s, url: urlFor(e.s.id, e.s.at), seen: e.uid === uid || seen.has(e.s.id), likes: e.s.likes, liked: e.s.liked }],
   unseen: e.uid !== uid && !seen.has(e.s.id), last: e.s.at,
 }));
+
+// take a story out of the public lists (search, today's best)
+async function unindex(id, tags) {
+  const keys = ["stpub", ...(tags || []).map(t => `sth:${t}`)];
+  const rows = await kv(keys.map(k => ["LRANGE", k, 0, 999]));
+  const cmds = [];
+  keys.forEach((k, i) => { const rest = parse(rows[i]).filter(e => e.s?.id !== id); cmds.push(["DEL", k], ...(rest.length ? [["RPUSH", k, ...rest.map(e => JSON.stringify(e))], ["EXPIRE", k, DAY]] : [])); });
+  if (cmds.length) await kv(cmds);
+}
 
 async function publicEntries(key, limit) {
   const [rows] = await kv([["LRANGE", key, 0, limit - 1]]);
@@ -116,6 +126,20 @@ module.exports = async (req, res) => {
         s.tags.forEach(t => cmds.push(["LPUSH", `sth:${t}`, entry], ["LTRIM", `sth:${t}`, 0, 199], ["EXPIRE", `sth:${t}`, DAY]));
       }
       await kv(cmds);
+      // the photo also lands on the plan itself, on the stop it shows (for everyone in the group who has that outing)
+      if (link.oid) {
+        const [mine] = await kv([["LRANGE", `h:${uid}`, 0, 49]]);
+        const e = parse(mine).find(x => x.id === link.oid);
+        const owners = [...new Set([uid, ...((e && e.people) || []).map(p => p.uid).filter(Boolean)])].slice(0, 12);
+        const lists = await kv(owners.map(o => ["LRANGE", `h:${o}`, 0, 49]));
+        const photo = { sid: s.id, uid, nick, stop: link.mission || "", at: s.at, url: urlFor(s.id, s.at) };
+        const sets = [];
+        owners.forEach((o, i) => { const rows = lists[i] || []; rows.forEach((raw, k) => { let x; try { x = JSON.parse(raw); } catch { return; }
+          if (x.id !== link.oid) return;
+          x.photos = [...(x.photos || []).filter(p => p.uid !== uid && Date.now() - p.at < DAY * 1000), photo].slice(-12);
+          sets.push(["LSET", `h:${o}`, k, JSON.stringify(x)]); }); });
+        if (sets.length) await kv(sets);
+      }
       return res.status(200).json({ ok: true, story: { ...s, url: urlFor(s.id, s.at), likes: 0, liked: false } });
     }
 
@@ -201,6 +225,25 @@ module.exports = async (req, res) => {
       ads.forEach(a => cmds.push(["INCR", `ad:v:${a}`]));
       if (cmds.length) await kv(cmds);
       return res.status(200).json({ ok: true });
+    }
+
+    if (body.action === "visibility") {
+      const id = clean(body.id, 20), pub = body.pub === true;
+      const [rows] = await kv([["LRANGE", `st:${uid}`, 0, 19]]);
+      const list = parse(rows), s = list.find(x => x.id === id);
+      if (!s || !fresh(s)) return res.status(404).json({ error: "gone" });
+      if (!!s.pub !== pub) {
+        s.pub = pub;
+        const cmds = [["DEL", `st:${uid}`], ["RPUSH", `st:${uid}`, ...list.map(x => JSON.stringify(x))], ["EXPIRE", `st:${uid}`, DAY]];
+        if (pub) {
+          const entry = JSON.stringify({ uid, nick, handle, av: u.av || null, s });
+          cmds.push(["LPUSH", "stpub", entry], ["LTRIM", "stpub", 0, 999], ["EXPIRE", "stpub", DAY]);
+          (s.tags || []).forEach(t => cmds.push(["LPUSH", `sth:${t}`, entry], ["LTRIM", `sth:${t}`, 0, 199], ["EXPIRE", `sth:${t}`, DAY]));
+        }
+        await kv(cmds);
+        if (!pub) await unindex(id, s.tags);
+      }
+      return res.status(200).json({ ok: true, pub });
     }
 
     if (body.action === "delete") {
