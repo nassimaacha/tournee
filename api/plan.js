@@ -316,14 +316,22 @@ async function verifyStops(plan, c, lang) {
   const bad = [];
   await Promise.all((plan.etapes || []).map(async (s, i) => {
     const bias = validLL(+s.lat, +s.lng) ? { lat: +s.lat, lng: +s.lng } : null;
-    const { place, error } = await findPlace(`${s.lieu}, ${s.quartier || ""}, ${c.name}`, lang, bias);
-    if (error) return;                       // Google unavailable: keep the stop as is
-    if (!place) { bad.push(i); s._why = "introuvable sur Google Maps"; return; }
+    const first = await findPlace(`${s.lieu}, ${s.quartier || ""}, ${c.name}`, lang, bias);
+    if (first.error) return;                 // Google unavailable: keep the stop as is
+    let place = first.place;
+    // Google found something with another name: try once more with just the name and the city
+    if (place && !nameMatch(s.lieu, place.displayName?.text)) {
+      const again = await findPlace(`${s.lieu}, ${c.name}`, lang, null);
+      if (again.error) return;
+      place = again.place && nameMatch(s.lieu, again.place.displayName?.text) ? again.place : null;
+    }
+    // not on Google Maps: replaced on the retry; if it stays, its made up position is never shown on the map
+    if (!place) { bad.push(i); s._why = "introuvable sur Google Maps"; s._unverified = true; return; }
     const status = place.businessStatus;
     if (status === "CLOSED_PERMANENTLY" || status === "CLOSED_TEMPORARILY") {
       bad.push(i); s._why = status === "CLOSED_PERMANENTLY" ? "fermé définitivement" : "fermé temporairement"; return;
     }
-    if (!nameMatch(s.lieu, place.displayName?.text)) return; // Google found something else: keep the AI version
+    s._unverified = false;
     s.lieu = place.displayName.text;
     s.adresse = place.formattedAddress || "";
     s.lat = place.location.latitude; s.lng = place.location.longitude;
@@ -356,6 +364,17 @@ async function travel(from, to, metro) {
   const alt = metro ? await route(from, to, "TRANSIT") : await route(from, to, "DRIVE");
   if (alt !== null) return { min: alt, mode: metro ? "transit" : "drive" };
   return walk !== null ? { min: walk, mode: "walk" } : null;
+}
+
+// the "getting home" stop: its position comes from Google too, otherwise it isn't shown on the map
+async function verifyReturn(plan, c, lang) {
+  const drop = () => { delete plan.retour_lat; delete plan.retour_lng; };
+  if (!plan.retour_station) return drop();
+  const bias = validLL(+plan.retour_lat, +plan.retour_lng) ? { lat: +plan.retour_lat, lng: +plan.retour_lng } : null;
+  const { place, error } = await findPlace(`${plan.retour_station}, ${c.name}`, lang, bias);
+  if (error) return;
+  if (place && nameMatch(plan.retour_station, place.displayName?.text)) { plan.retour_lat = place.location.latitude; plan.retour_lng = place.location.longitude; }
+  else drop();
 }
 
 async function addTravelTimes(plan, c, lang, area, metro) {
@@ -471,11 +490,13 @@ module.exports = async (req, res) => {
         } catch (e) { console.error("retry failed", e); }
       }
       trimStops(plan, input.stops, need);
-      if (GKEY) await addTravelTimes(plan, c, lang, input.area, input.metro);
+      // a stop Google could not confirm keeps its name but loses its guessed position (no pin in the sea)
+      plan.etapes.forEach(s => { if (s._unverified) { delete s.lat; delete s.lng; } });
+      if (GKEY) { await verifyReturn(plan, c, lang); await addTravelTimes(plan, c, lang, input.area, input.metro); }
     }
 
     trimStops(plan, input.stops, need);
-    (plan.etapes || []).forEach(s => { delete s._why; delete s._ok; s.billet = s.billet === true; if (!input.end) s.heure = ""; });
+    (plan.etapes || []).forEach(s => { delete s._why; delete s._ok; delete s._unverified; s.billet = s.billet === true; if (!input.end) s.heure = ""; });
     plan.excluded = excluded;
     return res.status(200).json({ plan, quota: q ? await q.status() : null });
   } catch (e) {
