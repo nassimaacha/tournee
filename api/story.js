@@ -120,6 +120,7 @@ module.exports = async (req, res) => {
     const nick = u.profile?.nick || "?", handle = u.handle || "";
 
     if (body.action === "post") {
+      if (!u.handle) return res.status(403).json({ error: "need_handle" }); // everyone posts with a @username
       const img = String(body.image || "");
       const m = /^data:image\/(jpeg|png|webp);base64,([A-Za-z0-9+/=]+)$/.exec(img);
       if (!m) return res.status(400).json({ error: "image" });

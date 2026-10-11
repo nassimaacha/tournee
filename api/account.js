@@ -40,7 +40,7 @@ const HANDLE_WAIT = 90 * 24 * 60 * 60 * 1000;
 const handleNext = u => u.handleChangedAt && Date.now() - u.handleChangedAt < HANDLE_WAIT ? u.handleChangedAt + HANDLE_WAIT : null;
 // the short survey shows once after signup, unless the profile is already filled in
 const needSurvey = u => !u.profile.surveyAt && !(u.profile.vibeNight && u.profile.vibeDay && Number.isInteger(u.profile.level));
-const meView = u => ({ ...publicView(u), code: u.code, admin: !!u.admin, mail: u.profile.mail !== false, handleNext: handleNext(u), needHandle: !u.handle, needSurvey: needSurvey(u) });
+const meView = u => ({ ...publicView(u), code: u.code, admin: !!u.admin, mail: u.profile.mail !== false, handleNext: handleNext(u), needHandle: !u.handle, needSurvey: needSurvey(u), stPub: !!u.profile.stPub, showLikes: !!u.profile.showLikes });
 
 /* ---- @usernames: unique, lowercase, 3 to 20 letters, digits, "_" or "." ---- */
 const HANDLE_RE = /^[a-z0-9_](?:[a-z0-9_.]{1,18})[a-z0-9_]$/;
@@ -80,6 +80,9 @@ function cleanProfile(p, prev) {
     sober: p?.sober === undefined ? !!prev.sober : !!p.sober,
     student: p?.student === undefined ? !!prev.student : !!p.student,
     minor: p?.minor === undefined ? !!prev.minor : !!p.minor,
+    // settings: stories public by default (off = private), show like counts (off by default)
+    stPub: p?.stPub === undefined ? !!prev.stPub : !!p.stPub,
+    showLikes: p?.showLikes === undefined ? !!prev.showLikes : !!p.showLikes,
     mail: p?.mail === undefined ? prev.mail !== false : !!p.mail,
     likes: Array.isArray(p?.likes) ? [...new Set(p.likes.filter(x => LIKES.includes(x)))] : (prev.likes || []),
     ...(p?.survey || prev.surveyAt ? { surveyAt: prev.surveyAt || Date.now() } : {}),
@@ -372,6 +375,19 @@ module.exports = async (req, res) => {
 
     if (action === "admin") {
       if (!u.admin) return res.status(403).json({ error: "forbidden" });
+      // once: give a @username to every older account that never got one (accounts still choosing theirs are left alone)
+      const [fixed] = await kv([["GET", "adm:handlesFixed"]]);
+      if (!fixed) {
+        let cursor = "0", n = 0;
+        do {
+          const [page] = await kv([["SCAN", cursor, "MATCH", "u:*", "COUNT", 200]]);
+          cursor = String(page[0]);
+          const raws = page[1].length ? await kv(page[1].map(k => ["GET", k])) : [];
+          for (const raw of raws) { let x; try { x = JSON.parse(raw); } catch { continue; } if (x && x.uid && !x.handle && !x.needHandle && x.profile) { await ensureHandle(x); n++; } }
+        } while (cursor !== "0");
+        await kv([["SET", "adm:handlesFixed", String(Date.now())]]);
+        console.log("handles given:", n);
+      }
       const key = process.env.ADMIN_KEY || "";
       const [pending, cities, nr, nc, sr, sc, ratings, nt, st, biz, nb, sb] = await kv([["LLEN", "rv:pending"], ["ZCARD", "sg:count"], ["GET", "adm:newReview"], ["GET", "adm:newCity"], ["GET", "adm:seenReview"], ["GET", "adm:seenCity"],
         ["LLEN", "rt:all"], ["GET", "adm:newRating"], ["GET", "adm:seenRating"], ["LLEN", "biz:list"], ["GET", "adm:newBiz"], ["GET", "adm:seenBiz"]]);
@@ -383,12 +399,24 @@ module.exports = async (req, res) => {
     }
 
     // admin only: look someone up, remove their saved plans, ban or unban them
-    if (action === "adminUser" || action === "removePlans" || action === "ban") {
+    if (action === "adminUser" || action === "removePlans" || action === "ban" || action === "adminRename") {
       if (!u.admin) return res.status(403).json({ error: "forbidden" });
       const h = normHandle(body.handle);
       const [fid] = await kv([["GET", `un:${h}`]]);
       const f = fid ? await getUser(fid) : null;
       if (!f) return res.status(404).json({ error: "not_found" });
+      // admin: fix someone's first name and/or @username (no 3 month wait)
+      if (action === "adminRename") {
+        const nh = normHandle(body.newHandle);
+        if (nh && nh !== f.handle) {
+          if (!HANDLE_RE.test(nh) || RESERVED.has(nh)) return res.status(400).json({ error: "handle_invalid" });
+          if (!(await claimHandle(f, nh))) return res.status(409).json({ error: "handle_taken" });
+          delete f.needHandle;
+        }
+        const nn = clean(body.nick, 20);
+        if (nn) f.profile.nick = nn;
+        await kv([["SET", `u:${fid}`, JSON.stringify(f)]]);
+      }
       if (action === "removePlans") {
         const [cur] = await kv([["GET", `cr:${fid}`]]);
         const left = body.all ? 0 : Math.max(0, (Number(cur) || 0) - Math.max(1, parseInt(body.n, 10) || 0));
