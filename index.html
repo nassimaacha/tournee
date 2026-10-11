@@ -923,7 +923,8 @@ const VIBE_T = {
  dance:{fr:"Danser",en:"Dancing",es:"Bailar"},
  club:{fr:"Club / boîte de nuit",en:"Club",es:"Discoteca"},
  karaoke:{fr:"Karaoké",en:"Karaoke",es:"Karaoke"},
- food:{fr:"Bien manger",en:"Good food",es:"Comer bien"},
+ food:{fr:"Restaurant, on se pose pour manger",en:"Proper sit down restaurant",es:"Restaurante para sentarse"},
+ streetfood:{fr:"Street food et pâtisseries",en:"Street food and pastries",es:"Comida callejera y pastelerías"},
  cheap:{fr:"Sortie pas chère",en:"Cheap night out",es:"Plan barato"},
  music:{fr:"Concert ou DJ set",en:"Live music or DJ",es:"Concierto o sesión de DJ"},
  rooftop:{fr:"Rooftop",en:"Rooftop",es:"Azotea"},
@@ -1019,9 +1020,9 @@ function fillEnd(val){ fillSel("end",WIN[mode].end,t("endPh"),val||"",true); }
 
 const MODES = {
   night:{theme:"dark", emoji:"🌙", panel:"panelNight", cta:"ctaNight", end:"endNight", flag:"flagNight", homeTitle:"nightTitle", homeText:"nightText", hero:"heroNight", label:"pickNight",
-    vibes:["chill","food","music","dance","games","match","cocktails","cheap","club","karaoke","rooftop"], picks:["cheap","dance","food"], flags:[false,false,true]},
+    vibes:["chill","food","streetfood","music","dance","games","match","cocktails","cheap","club","karaoke","rooftop"], picks:["cheap","dance","food"], flags:[false,false,true]},
   day:{theme:"light", emoji:"🎨", panel:"panelDay", cta:"ctaDay", end:"endDay", flag:"flagDay", homeTitle:"dayTitle", homeText:"dayText", hero:"heroDay", label:"pickDay",
-    vibes:["museums","contemporary","galleries","streetart","architecture","parks","markets","views","conceptcafe","sport","themepark"], picks:["museums","streetart","parks"], flags:[true,true,true]}
+    vibes:["museums","contemporary","galleries","streetart","architecture","parks","markets","food","streetfood","views","conceptcafe","sport","themepark"], picks:["museums","streetart","parks"], flags:[true,true,true]}
 };
 let mode = "night";
 const M = () => MODES[mode];
