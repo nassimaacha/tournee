@@ -134,6 +134,21 @@ async function archiveOf(uid) {
   if (live.length !== all.length) await kv(listCmds(`ha:${uid}`, live, ARCHIVE_MS / 1000));
   return live;
 }
+// parties removed from my list also go to an archive for 3 days (the party itself stays for the others)
+async function groupArchiveOf(uid) {
+  const [rows] = await kv([["LRANGE", `ga:${uid}`, 0, 199]]);
+  const all = (rows || []).map(r => { try { return JSON.parse(r); } catch { return null; } }).filter(Boolean);
+  const live = all.filter(x => Date.now() - (x.deletedAt || 0) < ARCHIVE_MS);
+  if (live.length !== all.length) await kv(listCmds(`ga:${uid}`, live, ARCHIVE_MS / 1000));
+  return live;
+}
+async function archiveGroups(uid, ids) {
+  const groups = await groupsOf(uid), now = Date.now();
+  const gone = groups.filter(g => ids.includes(g.id)).map(g => ({ id: g.id, city: g.city, mode: g.mode, names: g.names, date: g.date, created: g.created, deletedAt: now }));
+  const archive = [...gone, ...(await groupArchiveOf(uid)).filter(x => !ids.includes(x.id))].slice(0, 200);
+  await kv([...(ids.length ? [["SREM", `g:${uid}`, ...ids]] : []), ...listCmds(`ga:${uid}`, archive, ARCHIVE_MS / 1000)]);
+  return { groups: await groupsOf(uid), garchive: archive };
+}
 const MODES_OK = ["night", "day"];
 function cleanEntry(b) {
   const plan = b.plan || {};
@@ -395,7 +410,7 @@ module.exports = async (req, res) => {
       // "new" = something arrived since the owner last opened that page; the account page makes the button blink
       return res.status(200).json({ pending: pending || 0, cities: cities || 0, ratings: ratings || 0, biz: biz || 0,
         newReviews: Number(nr) > (Number(sr) || 0), newCities: Number(nc) > (Number(sc) || 0), newRatings: Number(nt) > (Number(st) || 0), newBiz: Number(nb) > (Number(sb) || 0),
-        reviewsUrl: k ? "/api/review?key=" + k : null, citiesUrl: k ? "/api/suggest?key=" + k : null, ratingsUrl: k ? "/api/review?view=ratings&key=" + k : null, bizUrl: k ? "/api/business?key=" + k : null, adsUrl: k ? "/api/business?view=ads&key=" + k : null });
+        reviewsUrl: k ? "/api/review?key=" + k : null, citiesUrl: k ? "/api/suggest?key=" + k : null, ratingsUrl: k ? "/api/review?view=ratings&key=" + k : null, bizUrl: k ? "/api/business?key=" + k : null });
     }
 
     // admin only: look someone up, remove their saved plans, ban or unban them
@@ -529,12 +544,19 @@ module.exports = async (req, res) => {
     }
 
     // remove a group from my list only (the group itself stays for the others)
-    if (action === "leaveGroup") {
-      await kv([["SREM", `g:${u.uid}`, clean(body.id, 12)]]);
-      return res.status(200).json({ groups: await groupsOf(u.uid) });
+    if (action === "leaveGroup") return res.status(200).json(await archiveGroups(u.uid, [clean(body.id, 12)]));
+    // "delete all" for parties: they leave my list (archive, 3 days to restore); the others keep them
+    if (action === "clearGroups") { const [ids] = await kv([["SMEMBERS", `g:${u.uid}`]]); return res.status(200).json(await archiveGroups(u.uid, ids || [])); }
+    if (action === "restoreGroup") {
+      const id = clean(body.id, 12);
+      const archive = await groupArchiveOf(u.uid);
+      const rest = archive.filter(x => x.id !== id);
+      const [alive] = await kv([["EXISTS", `o:${id}`]]);
+      await kv([...(alive ? [["SADD", `g:${u.uid}`, id]] : []), ...listCmds(`ga:${u.uid}`, rest, ARCHIVE_MS / 1000)]);
+      return res.status(alive ? 200 : 410).json({ ...(alive ? {} : { error: "gone" }), groups: await groupsOf(u.uid), garchive: rest });
     }
 
-    if (action === "me") { const history = await historyOf(u.uid); return res.status(200).json({ ...(await meFull(u)), rateAsk: await rateAsk(u.uid, history).catch(() => null), friends: await friendsOf(u.uid), history, archive: await archiveOf(u.uid), groups: await groupsOf(u.uid), ...(await notifsOf(u.uid)) }); }
+    if (action === "me") { const history = await historyOf(u.uid); return res.status(200).json({ ...(await meFull(u)), rateAsk: await rateAsk(u.uid, history).catch(() => null), friends: await friendsOf(u.uid), history, archive: await archiveOf(u.uid), groups: await groupsOf(u.uid), garchive: await groupArchiveOf(u.uid), ...(await notifsOf(u.uid)) }); }
 
     if (action === "saveOuting") {
       const e = cleanEntry(body);
@@ -713,7 +735,7 @@ module.exports = async (req, res) => {
       (tokens || []).forEach(t => cmds.push(["DEL", `s:${t}`]));
       if (u.handle) cmds.push(["DEL", `un:${u.handle}`], ["ZREM", "handles", u.handle]);
       if (u.email && !u.pw) cmds.push(["DEL", "ge:" + crypto.createHash("sha256").update(u.email.trim().toLowerCase()).digest("hex")]);
-      cmds.push(["DEL", `u:${u.uid}`, `fr:${u.uid}`, `us:${u.uid}`, `fc:${u.code}`, `h:${u.uid}`, `ha:${u.uid}`, `g:${u.uid}`, `n:${u.uid}`, `nseen:${u.uid}`, `pc:${u.uid}`, `rn:${u.uid}`, `st:${u.uid}`, `sts:${u.uid}`, `av:${u.uid}`]);
+      cmds.push(["DEL", `u:${u.uid}`, `fr:${u.uid}`, `us:${u.uid}`, `fc:${u.code}`, `h:${u.uid}`, `ha:${u.uid}`, `g:${u.uid}`, `n:${u.uid}`, `nseen:${u.uid}`, `pc:${u.uid}`, `rn:${u.uid}`, `st:${u.uid}`, `sts:${u.uid}`, `av:${u.uid}`, `ga:${u.uid}`]);
       if (u.sk) cmds.push(["DEL", u.sk]);
       await kv(cmds);
       return res.status(200).json({ ok: true });
