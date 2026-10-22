@@ -61,6 +61,25 @@
   background:var(--bg); color:var(--ink);
   box-shadow:0 0 0 100vmax var(--bg); clip-path:inset(0 -100vmax);
 }
+/* Halloween (October only): spider cursor, webs in the corners, a spider on its thread, pumpkin orange accents */
+html.hw,html.hw[data-theme]{--lamp:#FF7A1A;--logodot:#FF7A1A}
+html.hw .pick.night,html.hw .pick.day{--dot:#FF7A1A}
+@media (hover:hover) and (pointer:fine){
+  html.hw,html.hw body{cursor:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2232%22%20height%3D%2232%22%20viewBox%3D%220%200%2032%2032%22%3E%3Cg%20fill%3D%22none%22%20stroke%3D%22%23fff%22%20stroke-width%3D%223.6%22%20stroke-linecap%3D%22round%22%3E%3Cpath%20d%3D%22M13%2013%209%208%204%207M12%2016H6l-3%203M13%2019l-4%204-1%205M19%2013l4-5%205-1M20%2016h6l3%203M19%2019l4%204%201%205%22%2F%3E%3C%2Fg%3E%3Cg%20fill%3D%22none%22%20stroke%3D%22%23120B22%22%20stroke-width%3D%221.6%22%20stroke-linecap%3D%22round%22%3E%3Cpath%20d%3D%22M13%2013%209%208%204%207M12%2016H6l-3%203M13%2019l-4%204-1%205M19%2013l4-5%205-1M20%2016h6l3%203M19%2019l4%204%201%205%22%2F%3E%3C%2Fg%3E%3Cellipse%20cx%3D%2216%22%20cy%3D%2218%22%20rx%3D%225%22%20ry%3D%226%22%20fill%3D%22%23120B22%22%20stroke%3D%22%23fff%22%20stroke-width%3D%221.2%22%2F%3E%3Ccircle%20cx%3D%2216%22%20cy%3D%2211%22%20r%3D%223.4%22%20fill%3D%22%23120B22%22%20stroke%3D%22%23fff%22%20stroke-width%3D%221.2%22%2F%3E%3Ccircle%20cx%3D%2214.8%22%20cy%3D%2210.6%22%20r%3D%22.9%22%20fill%3D%22%23FF7A1A%22%2F%3E%3Ccircle%20cx%3D%2217.2%22%20cy%3D%2210.6%22%20r%3D%22.9%22%20fill%3D%22%23FF7A1A%22%2F%3E%3Cpath%20d%3D%22M16%2015.5l-1.6%202.2h3.2z%22%20fill%3D%22%23FF7A1A%22%2F%3E%3C%2Fsvg%3E") 16 14,auto}
+  html.hw a,html.hw button,html.hw [role=tab],html.hw label,html.hw select,html.hw summary{cursor:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2232%22%20height%3D%2232%22%20viewBox%3D%220%200%2032%2032%22%3E%3Cg%20fill%3D%22none%22%20stroke%3D%22%23fff%22%20stroke-width%3D%223.6%22%20stroke-linecap%3D%22round%22%3E%3Cpath%20d%3D%22M13%2013%209%208%204%207M12%2016H6l-3%203M13%2019l-4%204-1%205M19%2013l4-5%205-1M20%2016h6l3%203M19%2019l4%204%201%205%22%2F%3E%3C%2Fg%3E%3Cg%20fill%3D%22none%22%20stroke%3D%22%23120B22%22%20stroke-width%3D%221.6%22%20stroke-linecap%3D%22round%22%3E%3Cpath%20d%3D%22M13%2013%209%208%204%207M12%2016H6l-3%203M13%2019l-4%204-1%205M19%2013l4-5%205-1M20%2016h6l3%203M19%2019l4%204%201%205%22%2F%3E%3C%2Fg%3E%3Cellipse%20cx%3D%2216%22%20cy%3D%2218%22%20rx%3D%225%22%20ry%3D%226%22%20fill%3D%22%23120B22%22%20stroke%3D%22%23fff%22%20stroke-width%3D%221.2%22%2F%3E%3Ccircle%20cx%3D%2216%22%20cy%3D%2211%22%20r%3D%223.4%22%20fill%3D%22%23120B22%22%20stroke%3D%22%23fff%22%20stroke-width%3D%221.2%22%2F%3E%3Ccircle%20cx%3D%2214.8%22%20cy%3D%2210.6%22%20r%3D%22.9%22%20fill%3D%22%23FF7A1A%22%2F%3E%3Ccircle%20cx%3D%2217.2%22%20cy%3D%2210.6%22%20r%3D%22.9%22%20fill%3D%22%23FF7A1A%22%2F%3E%3Cpath%20d%3D%22M16%2015.5l-1.6%202.2h3.2z%22%20fill%3D%22%23FF7A1A%22%2F%3E%3C%2Fsvg%3E") 16 14,pointer}
+  html.hw input:not([type=checkbox]):not([type=radio]):not([type=range]),html.hw textarea{cursor:text}
+}
+.hw-web{position:fixed;top:0;width:clamp(90px,14vw,170px);height:auto;color:var(--ink);opacity:.28;pointer-events:none;z-index:40}
+.hw-web.l{left:0}.hw-web.r{right:0;transform:scaleX(-1)}
+.hw-spider{position:fixed;top:0;right:clamp(46px,7vw,92px);width:2px;pointer-events:none;z-index:41;animation:hw-drop 7s ease-in-out infinite;transform-origin:top center}
+.hw-spider::before{content:"";position:absolute;left:0;top:0;width:1px;height:var(--len,120px);background:var(--ink);opacity:.4}
+.hw-spider svg{position:absolute;left:-12px;top:calc(var(--len,120px) - 4px);width:26px;height:26px;animation:hw-sway 3.5s ease-in-out infinite;transform-origin:50% 0}
+@keyframes hw-drop{0%,100%{--len:70px}50%{--len:150px}}
+@property --len{syntax:"<length>";inherits:true;initial-value:120px}
+@keyframes hw-sway{0%,100%{transform:rotate(-8deg)}50%{transform:rotate(8deg)}}
+@media (max-width:600px){.hw-spider{right:28px}@keyframes hw-drop{0%,100%{--len:46px}50%{--len:96px}}}
+@media (prefers-reduced-motion:reduce){.hw-spider,.hw-spider svg{animation:none}}
+@media print{.hw-web,.hw-spider{display:none}}
 :root[data-theme="dark"] .band{
   --bg:#DBC9FF; --surface:#DBC9FF; --ash:#CFBBF7; --ink:#271A47; --charcoal:#271A47;
   --muted:#4A3B70; --stone:#5A4B80; --line:#B5A0E6; --field:#DBC9FF;
@@ -722,6 +741,14 @@ footer{color:var(--muted);font-size:12px;padding:28px 0 44px;border-top:1px soli
 @keyframes mk-twinkle{0%,100%{opacity:.12}50%{opacity:.7}}
 @media (prefers-reduced-motion: reduce){body,.city,.add,.cta,.btn,.stops button,.pick b .last::after{transition:none}.train::after{animation:none;transform:translateX(20px)}}
 </style>
+<script>
+/* Halloween: on for the whole month of October, off by itself on Nov 1 (?halloween to preview) */
+(function(){ var on=new Date().getMonth()===9||/[?&]halloween\b/.test(location.search); if(!on) return;
+  document.documentElement.classList.add("hw");
+  document.addEventListener("DOMContentLoaded",function(){ var w='<svg class="hw-web l" viewBox="0 0 160 160" aria-hidden="true"><path d="M0 0L170 0 M0 0L162 53 M0 0L138 100 M0 0L100 138 M0 0L53 162 M0 0L0 170 M30 0Q24 4 29 9Q22 11 24 18Q17 17 18 24Q11 22 9 29Q4 24 0 30 M60 0Q48 8 57 19Q43 22 49 35Q34 34 35 49Q22 43 19 57Q8 48 0 60 M95 0Q76 12 90 29Q69 35 77 56Q54 54 56 77Q35 69 29 90Q12 76 0 95 M135 0Q108 17 128 42Q97 50 109 79Q77 77 79 109Q50 97 42 128Q17 108 0 135" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg>';
+    document.body.insertAdjacentHTML("afterbegin",w+w.replace('hw-web l','hw-web r')+'<div class="hw-spider" aria-hidden="true">'+'<svg viewBox="0 0 32 32" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" style="color:var(--ink)"><path d="M13 13 9 8 4 7M12 16H6l-3 3M13 19l-4 4-1 5M19 13l4-5 5-1M20 16h6l3 3M19 19l4 4 1 5"/></g><ellipse cx="16" cy="18" rx="5" ry="6" fill="var(--ink)"/><circle cx="16" cy="11" r="3.4" fill="var(--ink)"/><circle cx="14.8" cy="10.6" r=".9" fill="#FF7A1A"/><circle cx="17.2" cy="10.6" r=".9" fill="#FF7A1A"/></svg>'+'</div>'); });
+})();
+</script>
 </head>
 <body>
 <div id="sky" aria-hidden="true"></div>
